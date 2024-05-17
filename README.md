@@ -42,3 +42,13 @@ fixpoint` from any other code in your virtual-env:
 ```
 pip install -e .
 ```
+
+### Git hooks
+
+Set up your Githooks via:
+
+```
+git config core.hooksPath githooks/
+
+npm install -g lint-staged
+```

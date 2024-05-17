@@ -1,0 +1,7 @@
+{
+  "*.py": [
+    "python -m mypy",
+    "python -m pylint",
+    "python -m black"
+  ]
+}
