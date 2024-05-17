@@ -32,7 +32,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
 
-      - run: pip install -e '.[dev]'
+      - run: pip install poetry
+        working-directory: ${{ github.workspace }}
+
+      - run: poetry install
         working-directory: ${{ github.workspace }}
 
       - name: Typecheck Python
