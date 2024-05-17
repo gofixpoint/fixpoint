@@ -9,24 +9,8 @@ more important work.
 
 ## Development
 
-### Virtual Env
-
-To create a virtual environment called `venv`:
-
-```
-# Create the virtual environment
-python3 -m venv venv
-
-# Activate it
-source venv/bin/activate
-
-# Upgrade pip to latest version (in part so we can do editable installs), and
-# then install Poetry, which is how we manage the package.
-pip install --upgrade pip
-pip install poetry
-```
-
-To install the package locally for development:
+We use Poetry, which manages its own virtual environments. To install the
+package locally for development:
 
 ```
 # Installs both the dev and prod dependencies

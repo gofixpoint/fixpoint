@@ -7,4 +7,4 @@ ROOT_DIR=$(realpath "${SCRIPT_DIR}/..")
 
 cd $ROOT_DIR
 
-python -m pylint src examples tests
+poetry run pylint src examples tests

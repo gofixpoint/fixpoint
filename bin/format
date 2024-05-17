@@ -7,4 +7,4 @@ ROOT_DIR=$(realpath "${SCRIPT_DIR}/..")
 
 cd $ROOT_DIR
 
-python -m black .
+poetry run black .
