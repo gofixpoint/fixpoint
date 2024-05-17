@@ -39,17 +39,17 @@ jobs:
         working-directory: ${{ github.workspace }}
 
       - name: Typecheck Python
-        run: mypy .
+        run: python -m mypy .
         working-directory: ${{ github.workspace }}
 
       - name: Format Python
-        run: black --check .
+        run: python -m black --check .
         working-directory: ${{ github.workspace }}
 
       - name: Lint Python
-        run: pylint src/ examples/ tests/
+        run: python -m pylint src/ examples/ tests/
         working-directory: ${{ github.workspace }}
 
       - name: Test Python
-        run: pytest
+        run: python -m pytest
         working-directory: ${{ github.workspace }}
