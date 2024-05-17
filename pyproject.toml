@@ -19,13 +19,13 @@ python = "^3.8"
 pydantic = ">=2"
 typing-extensions = ">=4.7.1"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
+pylint = "^3.2.0"
 pytest = ">=8.0.2"
 black = ">=24"
 flake8 = ">=4.0.0"
 mypy = "1.4.1"
 poetry = "1.8.2"
-
 
 [build-system]
 requires = ["setuptools"]

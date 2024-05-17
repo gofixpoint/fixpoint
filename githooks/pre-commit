@@ -4,4 +4,4 @@ set -euo pipefail
 
 cd "$(dirname "$0")"/..
 
-pnpm dlx lint-staged
+pnpm dlx lint-staged --relative
