@@ -1,0 +1,55 @@
+name: CI
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push events but only for the master branch
+  push:
+    branches: [main]
+  # Triggers workflow on all PRs
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in
+# parallel
+jobs:
+
+  python:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+
+    steps:
+
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - run: pip install poetry
+        working-directory: ${{ github.workspace }}
+
+      - run: poetry install
+        working-directory: ${{ github.workspace }}
+
+      - name: Typecheck Python
+        run: poetry run mypy .
+        working-directory: ${{ github.workspace }}
+
+      - name: Format Python
+        run: poetry run black --check .
+        working-directory: ${{ github.workspace }}
+
+      - name: Lint Python
+        run: poetry run pylint src/ examples/ tests/
+        working-directory: ${{ github.workspace }}
+
+      - name: Test Python
+        run: poetry run pytest
+        working-directory: ${{ github.workspace }}
