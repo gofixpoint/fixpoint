@@ -1,0 +1,35 @@
+[tool.poetry]
+name = "fixpoint"
+version = "0.1.0"
+description = "Open source infra for reliable multi-step AI workflows."
+authors = ["Fixpoint <team@fixpoint.co>"]
+
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: Apache Software License"
+]
+
+license = "License :: OSI Approved :: Apache Software License"
+readme = "README.md"
+repository = "https://github.com/gofixpoint/fixpoint"
+include = ["src/fixpoint/py.typed"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+pydantic = ">=2"
+typing-extensions = ">=4.7.1"
+
+[tool.poetry.dev-dependencies]
+pytest = ">=8.0.2"
+black = ">=24"
+flake8 = ">=4.0.0"
+mypy = "1.4.1"
+poetry = "1.8.2"
+
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.pylint.'MESSAGES CONTROL']
+extension-pkg-whitelist = "pydantic"
