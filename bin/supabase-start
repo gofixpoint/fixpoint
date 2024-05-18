@@ -1,0 +1,28 @@
+#!/bin/bash
+
+set -euo pipefail
+
+# Instructions paraphrased from: https://supabase.com/docs/guides/self-hosting/docker
+# If .supabase folder does not exist, clone the supabase repo
+if [ ! -d ".supabase" ]; then
+  echo "Cloning supabase repo..."
+  git clone --depth 1 https://github.com/supabase/supabase .supabase
+else
+   echo "Found existing .supabase folder. Skipping cloning..."
+fi
+
+# Change directories into the supabase docker folder
+echo "Changing directories into .supabase/docker..."
+cd .supabase/docker
+
+# Copy example env file into .env
+echo "Copying .env.example to .env..."
+cp .env.example .env
+
+# Pull the latest images
+echo "Pulling the latest images..."
+docker compose pull
+
+# Start the services (in detached mode)
+echo "Starting the services..."
+docker compose up -d
