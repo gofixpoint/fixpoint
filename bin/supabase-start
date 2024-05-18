@@ -1,0 +1,22 @@
+#!/bin/bash
+
+set -euo pipefail
+
+# Check if supabase cli is installed
+if ! command -v supabase &> /dev/null; then
+  echo "Supabase CLI not found. Installing..."
+  brew install supabase/tap/supabase
+else
+  echo "Supabase CLI found. Skipping installation..."
+fi
+
+# Check if supabase folder exists
+if [ ! -d "supabase" ]; then
+  echo "Initializing supabase project..."
+  supabase init
+else
+  echo "Found existing supabase project. Skipping initialization..."
+fi
+
+# Start supabase
+supabase start
