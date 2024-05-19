@@ -1,0 +1,42 @@
+#!/bin/bash
+
+set -euo pipefail
+
+SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]:-$0}"; )" &> /dev/null && pwd 2> /dev/null; )";
+ROOT_DIR=$(realpath "${SCRIPT_DIR}/..")
+
+source $SCRIPT_DIR/lib/supabase-lib.sh
+
+cd $ROOT_DIR
+
+usage() {
+    echo "Usage: supabase-db-down <local>"
+}
+
+echo "Rolling back migrations"
+
+# The input argument
+db_env=${1:-}
+
+# Check the input argument
+case $db_env in
+    local)
+        URL=$(localDBURL)
+        ;;
+    *)
+        echo "Invalid input. Please use 'local'."
+        usage
+        exit 2
+        ;;
+esac
+
+dbmate \
+    --url "$URL" \
+    --migrations-dir $ROOT_DIR/db/migrations \
+    --schema-file $ROOT_DIR/db/schema.sql \
+    --migrations-table fixpoint.schema_migrations \
+    down
+
+echo ""
+echo "Finished migrations"
+echo ""
