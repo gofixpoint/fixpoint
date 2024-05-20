@@ -1,6 +1,6 @@
 -- migrate:up
 CREATE TABLE fixpoint.workflows(
-  id UUID PRIMARY KEY,
+  id text PRIMARY KEY,
   name TEXT NOT NULL,
   description TEXT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
