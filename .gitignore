@@ -161,3 +161,6 @@ cython_debug/
 
 # Supabase
 supabase/
+
+# This directory is for local scratch work that you don't want to check in
+scratch/
