@@ -2,4 +2,4 @@
 This is the fixpoint module.
 """
 
-from . import models
+from . import models, agents
