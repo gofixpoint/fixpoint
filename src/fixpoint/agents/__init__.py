@@ -2,6 +2,6 @@
 This is the agents module.
 """
 
-from .agent import Agent
+from .openai import OpenAIAgent
 
-__all__ = ["Agent"]
+__all__ = ["OpenAIAgent"]
