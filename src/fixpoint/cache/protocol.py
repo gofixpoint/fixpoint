@@ -23,7 +23,7 @@ class Cache(Protocol[K_contra, V]):
         """Clear all items from the cache"""
 
 
-class LRUCache(Protocol[K_contra, V]):
+class LRUCache(Cache[K_contra, V], Protocol[K_contra, V]):
     """Protocol for an LRU cache"""
 
     def get(self, key: K_contra) -> V:
@@ -47,9 +47,6 @@ class TLRUCache(Protocol[K_contra, V]):
 
     def set(self, key: K_contra, value: V, ttl: int) -> None:
         """Set an item by key with a time-to-live (TTL)"""
-
-    def expire(self) -> None:
-        """Expire items that have exceeded their TTL"""
 
     def delete(self, key: K_contra) -> None:
         """Delete an item by key"""
