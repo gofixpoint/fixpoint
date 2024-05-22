@@ -1,6 +1,6 @@
 import unittest
 
-from fixpoint.utils import decorate_instructor_completion_with_fixp
+from fixpoint._utils import decorate_instructor_completion_with_fixp
 from fixpoint.completions import FixpointCompletion
 from tests.test_utils import SampleCompletion, SampleStructure
 

@@ -10,8 +10,9 @@ class TestCompletions(unittest.TestCase):
 
         greeting_completion = SampleCompletion("Hello, how are you?", "I'm doing good.")
         greeting_structure = SampleStructure("John")
+
         fixpoint_completion = FixpointCompletion(
-            greeting_completion, greeting_structure
+            greeting_completion, greeting_structure  # type: ignore
         )
 
         # Chat completion attributes should be accessed directly from the completion object

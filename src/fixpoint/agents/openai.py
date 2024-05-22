@@ -8,7 +8,7 @@ from typing import Any, get_args
 import openai
 import instructor
 
-from fixpoint.utils.completions import decorate_instructor_completion_with_fixp
+from .._utils.completions import decorate_instructor_completion_with_fixp
 
 
 class OpenAIAgent:

@@ -3,6 +3,7 @@ Completions module for the fixpoint package.
 """
 
 from typing import Any
+import openai
 
 
 class FixpointCompletion:
@@ -18,7 +19,9 @@ class FixpointCompletion:
         def __init__(self, structured_output: Any) -> None:
             self.structured_output = structured_output
 
-    def __init__(self, original_completion: Any, structured_output: Any) -> None:
+    def __init__(
+        self, original_completion: openai.types.Completion, structured_output: Any
+    ) -> None:
         self._original_completion = original_completion
         self.fixp = FixpointCompletion.Fixp(structured_output)
 

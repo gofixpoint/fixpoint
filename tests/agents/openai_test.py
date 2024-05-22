@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 import fixpoint
 
-from fixpoint.utils.completions import decorate_instructor_completion_with_fixp
+from fixpoint._utils.completions import decorate_instructor_completion_with_fixp
 from tests.test_utils import SampleCompletion, SampleStructure
 
 
