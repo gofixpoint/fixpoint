@@ -5,8 +5,10 @@ This is the OpenAI module.
 from typing import get_args
 import openai
 
+from .protocol import BaseModel
 
-class OpenAI:
+
+class OpenAI(BaseModel):
     """
     This is the OpenAI class.
     """
