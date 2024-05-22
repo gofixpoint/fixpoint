@@ -1,16 +1,16 @@
 """Protocol definitions for various cache types"""
 
-from typing import Protocol, TypeVar
+from typing import Protocol, TypeVar, Union, Any
 
 # Rename K to K_contra to indicate contravariance
 K_contra = TypeVar("K_contra", contravariant=True)  # Key type
 V = TypeVar("V")  # Value type
 
 
-class Cache(Protocol[K_contra, V]):
+class SupportsCache(Protocol[K_contra, V]):
     """A basic cache protocol"""
 
-    def get(self, key: K_contra) -> V:
+    def get(self, key: K_contra) -> Union[V, None]:
         """Retrieve an item by key"""
 
     def set(self, key: K_contra, value: V) -> None:
@@ -22,22 +22,46 @@ class Cache(Protocol[K_contra, V]):
     def clear(self) -> None:
         """Clear all items from the cache"""
 
+    @property
+    def maxsize(self) -> int:
+        """Property to get the maxsize of the cache"""
 
-class LRUCache(Cache[K_contra, V], Protocol[K_contra, V]):
-    """Protocol for an LRU cache"""
+    @property
+    def currentsize(self) -> int:
+        """Property to get the currentsize of the cache"""
 
 
-class TLRUCache(Protocol[K_contra, V]):
+class SupportsTLRUCache(Protocol[K_contra, V]):
     """Protocol for a Time-Limited LRU cache"""
 
-    def get(self, key: K_contra) -> V:
-        """Retrieve an item by key if it has not expired, updating LRU order"""
+    def get(self, key: K_contra) -> Union[V, None]:
+        """Retrieve an item by key"""
 
-    def set(self, key: K_contra, value: V, ttl: int) -> None:
-        """Set an item by key with a time-to-live (TTL)"""
+    def set(self, key: K_contra, value: V, ttl: float) -> None:
+        """Set an item by key"""
 
     def delete(self, key: K_contra) -> None:
         """Delete an item by key"""
 
     def clear(self) -> None:
         """Clear all items from the cache"""
+
+    @property
+    def maxsize(self) -> int:
+        """Property to get the maxsize of the cache"""
+
+    @property
+    def currentsize(self) -> int:
+        """Property to get the currentsize of the cache"""
+
+
+class SupportsTTLCacheItem(Protocol):
+    """Protocol for a Time-Limited LRU cache item"""
+
+    @property
+    def data(self) -> Any:
+        """Property to get the data of the item"""
+
+    @property
+    def ttl(self) -> float:
+        """Property to get the TTL of the item"""
