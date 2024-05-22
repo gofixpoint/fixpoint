@@ -19,6 +19,7 @@ python = "^3.10"
 pydantic = ">=2"
 typing-extensions = ">=4.7.1"
 openai = "^1.30.1"
+tiktoken = "^0.7.0"
 instructor = "^1.2.6"
 
 [tool.poetry.group.dev.dependencies]
@@ -26,8 +27,9 @@ pylint = "^3.2.0"
 pytest = ">=8.0.2"
 black = ">=24"
 flake8 = ">=4.0.0"
-mypy = "1.4.1"
 poetry = "1.8.2"
+ipdb = "^0.13.13"
+mypy = "^1.10.0"
 
 [build-system]
 requires = ["setuptools"]
