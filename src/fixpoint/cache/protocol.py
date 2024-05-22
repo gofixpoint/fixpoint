@@ -26,18 +26,6 @@ class Cache(Protocol[K_contra, V]):
 class LRUCache(Cache[K_contra, V], Protocol[K_contra, V]):
     """Protocol for an LRU cache"""
 
-    def get(self, key: K_contra) -> V:
-        """Retrieve an item by key, updating LRU order"""
-
-    def set(self, key: K_contra, value: V) -> None:
-        """Set an item by key, possibly evicting the least recently used item"""
-
-    def delete(self, key: K_contra) -> None:
-        """Delete an item by key"""
-
-    def clear(self) -> None:
-        """Clear all items from the cache"""
-
 
 class TLRUCache(Protocol[K_contra, V]):
     """Protocol for a Time-Limited LRU cache"""
