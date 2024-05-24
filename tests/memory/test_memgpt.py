@@ -1,6 +1,6 @@
 from typing import List
 
-from fixpoint.memory import WithMemory
+from fixpoint.memory import Memory
 from fixpoint.completions import ChatCompletion, ChatCompletionMessageParam
 from fixpoint.agents.mock import MockAgent, new_mock_completion
 from fixpoint.utils.messages import smsg, umsg
@@ -13,7 +13,7 @@ from fixpoint.memory._memgpt import (
 
 class TestMemGPTSummaryAgent:
     def test_simple_create_completion(self) -> None:
-        mem = WithMemory()
+        mem = Memory()
         agent = MockAgent(completion_fn=_completion_fn, memory=mem)
         summary_opts = MemGPTSummarizeOpts(agent=agent, context_window=200)
         summary_agent = MemGPTSummaryAgent(summary_opts)

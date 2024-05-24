@@ -1,12 +1,12 @@
 """LLM agent memory"""
 
 from ._memgpt import MemGPTSummarizeOpts, MemGPTSummaryAgent, memgpt_summarize
-from ._memory import WithMemory, WithMemoryProto
+from ._memory import Memory, SupportsMemory
 
 __all__ = [
     "MemGPTSummarizeOpts",
     "MemGPTSummaryAgent",
-    "WithMemory",
-    "WithMemoryProto",
+    "Memory",
+    "SupportsMemory",
     "memgpt_summarize",
 ]

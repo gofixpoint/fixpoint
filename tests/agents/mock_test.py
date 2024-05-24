@@ -1,12 +1,12 @@
 from fixpoint.completions import ChatCompletion, ChatCompletionChunk
 from fixpoint.agents.mock import MockAgent, new_mock_completion
-from fixpoint.memory import WithMemory
+from fixpoint.memory import Memory
 from fixpoint.utils import messages
 
 
 class TestMockAgent:
     def test_completion_memory(self) -> None:
-        mem = WithMemory()
+        mem = Memory()
         agent = MockAgent(
             completion_fn=MockCompletionGenerator().new_mock_completion, memory=mem
         )

@@ -14,7 +14,7 @@ from ..completions import (
     ChatCompletionMessageParam,
 )
 from .protocol import BaseAgent, CompletionCallback, PreCompletionFn
-from ..memory import WithMemoryProto
+from ..memory import SupportsMemory
 
 
 class MockAgent(BaseAgent):
@@ -23,14 +23,14 @@ class MockAgent(BaseAgent):
     _completion_fn: Callable[[], ChatCompletion]
     _pre_completion_fns: List[PreCompletionFn]
     _completion_callbacks: List[CompletionCallback]
-    _memory: Optional[WithMemoryProto] = None
+    _memory: Optional[SupportsMemory] = None
 
     def __init__(
         self,
         completion_fn: Callable[[], ChatCompletion],
         pre_completion_fns: Optional[List[PreCompletionFn]] = None,
         completion_callbacks: Optional[List[CompletionCallback]] = None,
-        memory: Optional[WithMemoryProto] = None,
+        memory: Optional[SupportsMemory] = None,
     ):
         self._completion_fn = completion_fn
         self._pre_completion_fns = pre_completion_fns or []
