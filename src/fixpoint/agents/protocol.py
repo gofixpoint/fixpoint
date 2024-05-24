@@ -5,7 +5,7 @@ from typing import Any, Callable, List, Protocol
 import tiktoken
 
 from ..logging import logger
-from ..chat import ChatCompletionMessageParam, ChatCompletion
+from ..completions import ChatCompletionMessageParam, ChatCompletion
 
 
 class BaseAgent(Protocol):

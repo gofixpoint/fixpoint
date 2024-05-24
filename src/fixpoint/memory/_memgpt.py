@@ -20,11 +20,9 @@
 from dataclasses import dataclass
 from typing import Any, List, Optional
 
-from openai.types.chat.chat_completion import ChatCompletion
-
 from ..logging import logger
 from ..agents.protocol import BaseAgent
-from ..chat import ChatCompletionMessageParam
+from ..completions import ChatCompletionMessageParam, ChatCompletion
 
 
 @dataclass

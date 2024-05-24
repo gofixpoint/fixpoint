@@ -1,16 +1,14 @@
 from typing import List
 
-from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
-from openai.types.chat import ChatCompletion
-
 from fixpoint.memory import WithMemory
+from fixpoint.completions import ChatCompletion, ChatCompletionMessageParam
+from fixpoint.agents.mock import MockAgent, new_mock_completion
+from fixpoint.utils.messages import smsg, umsg
 from fixpoint.memory._memgpt import (
     MemGPTSummaryAgent,
     MemGPTSummarizeOpts,
     _ContextLengthCheck,
 )
-from fixpoint.agents.mock import MockAgent, new_mock_completion
-from fixpoint.utils.messages import smsg, umsg
 
 
 class TestMemGPTSummaryAgent:

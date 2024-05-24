@@ -1,7 +1,6 @@
 from typing import List
 
-from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
-
+from fixpoint.completions import ChatCompletionMessageParam
 from fixpoint.memory import WithMemory
 from fixpoint.agents.mock import new_mock_completion
 

@@ -1,4 +1,4 @@
-from fixpoint.completions import FixpointCompletion
+from fixpoint.completions import ChatCompletion
 from tests.test_utils import SampleCompletion, SampleStructure
 
 
@@ -9,7 +9,7 @@ class TestCompletions:
         greeting_completion = SampleCompletion("Hello, how are you?", "I'm doing good.")
         greeting_structure = SampleStructure("John")
 
-        fixpoint_completion = FixpointCompletion(
+        fixpoint_completion = ChatCompletion(
             greeting_completion, greeting_structure  # type: ignore
         )
 
@@ -18,6 +18,6 @@ class TestCompletions:
         assert fixpoint_completion.output_message == "I'm doing good."
 
         # Structured output should be accessible on the .fixp attribute
-        assert isinstance(fixpoint_completion.fixp, FixpointCompletion.Fixp)
+        assert isinstance(fixpoint_completion.fixp, ChatCompletion.Fixp)
         assert isinstance(fixpoint_completion.fixp.structured_output, SampleStructure)
         assert fixpoint_completion.fixp.structured_output.name == "John"

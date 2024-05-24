@@ -2,12 +2,14 @@
 
 from typing import Any, Callable, List, Optional
 
-from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
 from openai.types import CompletionUsage
-from openai.types.chat import ChatCompletion
 from openai.types.chat.chat_completion import Choice as CompletionChoice
-from openai.types.chat.chat_completion_message import ChatCompletionMessage
 
+from ..completions import (
+    ChatCompletion,
+    ChatCompletionMessage,
+    ChatCompletionMessageParam,
+)
 from .protocol import BaseAgent, CompletionCallback, PreCompletionFn
 from ..memory import WithMemoryProto
 

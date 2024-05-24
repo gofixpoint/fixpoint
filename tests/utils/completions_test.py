@@ -1,11 +1,9 @@
-import unittest
-
 from fixpoint._utils import decorate_instructor_completion_with_fixp
-from fixpoint.completions import FixpointCompletion
+from fixpoint.completions import ChatCompletion
 from tests.test_utils import SampleCompletion, SampleStructure
 
 
-class TestUtilsCompletions(unittest.TestCase):
+class TestUtilsCompletions:
 
     def test_instructor_completion_decorator(self) -> None:
 
@@ -28,15 +26,13 @@ class TestUtilsCompletions(unittest.TestCase):
         )
 
         # Chat completion response should be of type FixpointCompletion
-        self.assertIsInstance(fixpoint_completion, FixpointCompletion)
+        assert isinstance(fixpoint_completion, ChatCompletion)
 
         # Chat completion attributes should be accessed directly from the completion object
-        self.assertEqual(fixpoint_completion.prompt, "Hello, how are you?")
-        self.assertEqual(fixpoint_completion.output_message, "I'm doing good.")
+        assert fixpoint_completion.prompt == "Hello, how are you?"
+        assert fixpoint_completion.output_message == "I'm doing good."
 
         # Strucutred output should be accessible on the .fixp attribute
-        self.assertIsInstance(fixpoint_completion.fixp, FixpointCompletion.Fixp)
-        self.assertIsInstance(
-            fixpoint_completion.fixp.structured_output, SampleStructure
-        )
-        self.assertEqual(fixpoint_completion.fixp.structured_output.name, "John")
+        assert isinstance(fixpoint_completion.fixp, ChatCompletion.Fixp)
+        assert isinstance(fixpoint_completion.fixp.structured_output, SampleStructure)
+        assert fixpoint_completion.fixp.structured_output.name == "John"

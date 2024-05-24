@@ -2,6 +2,16 @@
 This module contains the completion classes and functions.
 """
 
-from .fixpoint import FixpointCompletion
+from .chat_completion import (
+    ChatCompletion,
+    ChatCompletionMessage,
+    ChatCompletionMessageParam,
+    ChatCompletionChunk,
+)
 
-__all__ = ["FixpointCompletion"]
+__all__ = [
+    "ChatCompletion",
+    "ChatCompletionMessage",
+    "ChatCompletionMessageParam",
+    "ChatCompletionChunk",
+]
