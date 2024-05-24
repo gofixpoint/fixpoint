@@ -1,6 +1,6 @@
 """A base protocol for agents"""
 
-from typing import Any, Callable, List, Protocol
+from typing import Any, Callable, List, Optional, Protocol
 
 import tiktoken
 
@@ -12,9 +12,18 @@ class BaseAgent(Protocol):
     """The base protocol for agents"""
 
     def create_completion(
-        self, *, messages: List[ChatCompletionMessageParam], **kwargs: Any
+        self,
+        *,
+        messages: List[ChatCompletionMessageParam],
+        model: Optional[str] = None,
+        **kwargs: Any,
     ) -> ChatCompletion:
-        """Create a completion"""
+        """Create a completion
+
+        The `model` argument is optional if the agent has a pre-defined model it
+        should use. In that case, specifying `model` overrides which model to
+        use.
+        """
 
     def count_tokens(self, s: str) -> int:
         """Count the tokens in the string, according to the model's agent(s)"""

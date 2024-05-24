@@ -12,7 +12,7 @@ def decorate_instructor_completion_with_fixp(
 ) -> Callable[..., Any]:
     """
     Decorate the completion method to replace the original
-    completion object with FixpointCompletion.
+    completion object with our Fixpoint ChatCompletion.
     """
 
     @wraps(func)
@@ -20,7 +20,7 @@ def decorate_instructor_completion_with_fixp(
         # Make a call to get structured output + original completion
         structured_output, completion = func(*args, **kwargs)
 
-        # Wrap the completion object with FixpointCompletion and
+        # Wrap the completion object with Fixpoint ChatCompletion and
         # inject additional information under .fixp attribute
         fixpoint_completion = ChatCompletion.from_original_completion(
             completion, structured_output

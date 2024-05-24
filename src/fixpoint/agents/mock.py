@@ -46,7 +46,9 @@ class MockAgent(BaseAgent):
         if self._memory:
             self._memory.store_memory(messages, cmpl)
         self._trigger_completion_callbacks(messages, cmpl)
-        return cmpl
+        return ChatCompletion.from_original_completion(
+            original_completion=cmpl, structured_output=None
+        )
 
     def _trigger_completion_callbacks(
         self, messages: List[ChatCompletionMessageParam], completion: ChatCompletion
