@@ -1,11 +1,15 @@
 from unittest.mock import patch
 
 import pytest
+from openai.types.chat.chat_completion import (
+    Choice as CompletionChoice,
+    ChatCompletion as OpenAIChatCompletion,
+)
 
 import fixpoint
-
 from fixpoint._utils.completions import decorate_instructor_completion_with_fixp
-from tests.test_utils import SampleCompletion, SampleStructure
+from fixpoint.agents.mock import new_mock_orig_completion
+from tests.test_utils import SampleStructure
 
 
 class TestAgents:
@@ -36,9 +40,9 @@ class TestAgents:
         )
 
         def instructed_chat_completion(
-            prompt: str, response_type: SampleStructure
-        ) -> tuple[SampleStructure, SampleCompletion]:
-            completion = SampleCompletion(prompt, "I'm doing good.")
+            _prompt: str, _response_type: SampleStructure
+        ) -> tuple[SampleStructure, OpenAIChatCompletion]:
+            completion = new_mock_orig_completion("I'm doing good.")
             structure = SampleStructure("John")
 
             # Return in order instructor expects them
@@ -58,7 +62,5 @@ class TestAgents:
                 "Hello, how are you?", SampleStructure
             )
 
-            # Check that the completion is correct
-            response.prompt == "Hello, how are you?"
-            response.output_message == "I'm doing good."
+            assert response.choices[0].message.content == "I'm doing good."
             assert response.fixp.structured_output.name == "John"
