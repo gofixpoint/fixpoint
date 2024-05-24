@@ -13,6 +13,12 @@ classifiers = [
 license = "License :: OSI Approved :: Apache Software License"
 readme = "README.md"
 repository = "https://github.com/gofixpoint/fixpoint"
+
+packages = [
+    { include = "fixpoint", from = "src" },
+    { include = "fixpoint_extras", from = "src" },
+]
+
 include = ["src/fixpoint/py.typed"]
 
 [tool.poetry.dependencies]
