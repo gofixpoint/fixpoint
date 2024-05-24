@@ -4,7 +4,7 @@ Utilities for completions.
 
 from typing import Callable, Any
 from functools import wraps
-from fixpoint.completions.fixpoint import FixpointCompletion
+from ..completions import ChatCompletion
 
 
 def decorate_instructor_completion_with_fixp(
@@ -22,7 +22,9 @@ def decorate_instructor_completion_with_fixp(
 
         # Wrap the completion object with FixpointCompletion and
         # inject additional information under .fixp attribute
-        fixpoint_completion = FixpointCompletion(completion, structured_output)
+        fixpoint_completion = ChatCompletion.from_original_completion(
+            completion, structured_output
+        )
 
         # Return fixpoint completion object
         return fixpoint_completion

@@ -2,12 +2,17 @@
 
 from typing import Any, Callable, List, Optional
 
-from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
 from openai.types import CompletionUsage
-from openai.types.chat import ChatCompletion
-from openai.types.chat.chat_completion import Choice as CompletionChoice
-from openai.types.chat.chat_completion_message import ChatCompletionMessage
+from openai.types.chat.chat_completion import (
+    Choice as CompletionChoice,
+    ChatCompletion as OpenAIChatCompletion,
+)
 
+from ..completions import (
+    ChatCompletion,
+    ChatCompletionMessage,
+    ChatCompletionMessageParam,
+)
 from .protocol import BaseAgent, CompletionCallback, PreCompletionFn
 from ..memory import WithMemoryProto
 
@@ -59,12 +64,16 @@ _CREATED = 1711061307
 
 def new_mock_completion(content: Optional[str] = None) -> ChatCompletion:
     """Create new mock completion"""
+    return ChatCompletion.from_original_completion(new_mock_orig_completion(content))
 
+
+def new_mock_orig_completion(content: Optional[str] = None) -> OpenAIChatCompletion:
+    """Create a new original mock completion"""
     if content is None:
         # pylint: disable=line-too-long
         content = "No, I am not sentient. I am a computer program designed to assist with tasks and provide information."
 
-    return ChatCompletion(
+    return OpenAIChatCompletion(
         id=_COMPLETION_ID,
         choices=[
             CompletionChoice(

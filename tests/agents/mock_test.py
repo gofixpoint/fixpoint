@@ -1,5 +1,4 @@
-from openai.types.chat import ChatCompletion, ChatCompletionChunk
-
+from fixpoint.completions import ChatCompletion, ChatCompletionChunk
 from fixpoint.agents.mock import MockAgent, new_mock_completion
 from fixpoint.memory import WithMemory
 from fixpoint.utils import messages

@@ -7,10 +7,9 @@ from typing import Any, List, Optional, cast, get_args
 
 import openai
 import instructor
-from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
-from openai.types.chat.chat_completion import ChatCompletion
 import tiktoken
 
+from ..completions import ChatCompletion, ChatCompletionMessageParam
 from .._utils.completions import decorate_instructor_completion_with_fixp
 from .protocol import BaseAgent, CompletionCallback, PreCompletionFn
 from ..memory import WithMemoryProto

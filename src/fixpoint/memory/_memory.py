@@ -3,7 +3,7 @@
 from typing import List, Protocol, Tuple
 
 
-from ..chat import ChatCompletionMessageParam, ChatCompletion
+from ..completions import ChatCompletionMessageParam, ChatCompletion
 
 
 class WithMemoryProto(Protocol):
