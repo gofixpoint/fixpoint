@@ -31,6 +31,7 @@ tiktoken = "^0.7.0"
 instructor = "~1.2.6"
 types-cachetools = "^5.3.0.7"
 cachetools = "^5.3.3"
+pandas = { version = "^2.2.2", optional = true }
 
 [tool.poetry.group.dev.dependencies]
 freezegun = "^1.5.1"
@@ -41,6 +42,9 @@ flake8 = ">=4.0.0"
 poetry = "1.8.2"
 ipdb = "^0.13.13"
 mypy = "^1.10.0"
+
+[tool.poetry.extras]
+analyze = ["pandas"]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
