@@ -22,6 +22,7 @@ class _DataDict(TypedDict):
     role: List[str]
     content: List[Union[str, None]]
     structured_output: List[Optional[Dict[str, Any]]]
+    workflow_id: List[Optional[str]]
 
 
 class DataframeMemory(Memory):
@@ -35,18 +36,24 @@ class DataframeMemory(Memory):
             "role": [],
             "content": [],
             "structured_output": [],
+            "workflow_id": [],
         }
-        for idx, (messages, completion) in enumerate(self.memory()):
+        for idx, memitem in enumerate(self.memory()):
+            messages = memitem.messages
+            completion = memitem.completion
+            workflow_id = memitem.workflow.id if memitem.workflow else None
             for message in messages:
                 data["turn_id"].append(idx)
                 data["role"].append(message["role"])
                 data["content"].append(self._format_content_parts(message))
                 data["structured_output"].append(None)
+                data["workflow_id"].append(workflow_id)
             data["turn_id"].append(idx)
             data["role"].append("assistant")
             data["content"].append(completion.choices[0].message.content)
             so = completion.fixp.structured_output
             data["structured_output"].append(so.dict() if so else None)
+            data["workflow_id"].append(workflow_id)
         return pd.DataFrame(data)
 
     def _format_content_parts(

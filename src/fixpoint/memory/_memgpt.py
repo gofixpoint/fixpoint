@@ -23,6 +23,7 @@ from typing import Any, List, Optional
 from ..logging import logger
 from ..agents.protocol import BaseAgent
 from ..completions import ChatCompletionMessageParam, ChatCompletion
+from ..workflow import SupportsWorkflow
 
 
 @dataclass
@@ -51,6 +52,9 @@ class MemGPTSummaryAgent:
         self,
         *,
         messages: List[ChatCompletionMessageParam],
+        model: Optional[str] = None,
+        workflow: Optional[SupportsWorkflow] = None,
+        response_model: Optional[Any] = None,
         **kwargs: Any,
     ) -> ChatCompletion:
         """Create a chat completion, using historical (maybe summarized) messages in context"""
@@ -67,7 +71,11 @@ class MemGPTSummaryAgent:
             self._messages = [{"role": "system", "content": summary}]
 
         cmpl = self._opts.agent.create_completion(
-            messages=self._messages + messages, **kwargs
+            messages=self._messages + messages,
+            model=model,
+            workflow=workflow,
+            response_model=response_model,
+            **kwargs,
         )
         self._messages += messages + [
             {"role": "assistant", "content": cmpl.choices[0].message.content}

@@ -15,6 +15,7 @@ from ..completions import (
 )
 from .protocol import BaseAgent, CompletionCallback, PreCompletionFn
 from ..memory import SupportsMemory
+from ..workflow import SupportsWorkflow
 
 
 class MockAgent(BaseAgent):
@@ -38,13 +39,21 @@ class MockAgent(BaseAgent):
         self._memory = memory
 
     def create_completion(
-        self, *, messages: List[ChatCompletionMessageParam], **kwargs: Any
+        self,
+        *,
+        messages: List[ChatCompletionMessageParam],
+        model: Optional[str] = None,
+        workflow: Optional[SupportsWorkflow] = None,
+        response_model: Optional[Any] = None,
+        **kwargs: Any,
     ) -> ChatCompletion:
         for fn in self._pre_completion_fns:
             messages = fn(messages)
         cmpl = self._completion_fn()
         if self._memory:
-            self._memory.store_memory(messages, cmpl)
+            self._memory.store_memory(
+                messages=messages, completion=cmpl, workflow=workflow
+            )
         self._trigger_completion_callbacks(messages, cmpl)
         return ChatCompletion.from_original_completion(
             original_completion=cmpl, structured_output=None

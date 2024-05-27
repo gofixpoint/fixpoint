@@ -21,11 +21,11 @@ class TestMockAgent:
         assert cmpl.choices[0].message.content == "test 0"
         mems = mem.memory()
         assert len(mems) == 1
-        assert mems[0][0] == [
+        assert mems[0].messages == [
             messages.smsg("I am a system"),
             messages.umsg("I am a user"),
         ]
-        assert mems[0][1].choices[0].message.content == "test 0"
+        assert mems[0].completion.choices[0].message.content == "test 0"
 
 
 class MockCompletionGenerator:
