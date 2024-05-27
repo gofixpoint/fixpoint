@@ -22,6 +22,15 @@ class _DataDict(TypedDict):
     role: List[str]
     content: List[Union[str, None]]
     structured_output: List[Optional[Dict[str, Any]]]
+
+    # The first (and often the only) tool call name
+    tool_call_name: List[Optional[str]]
+    # The first (and often the only) tool call arguments
+    tool_call_args: List[Optional[str]]
+    # In case there are other tool calls, show all of the tool call info here
+    all_tool_call_names: List[List[str]]
+    all_tool_call_args: List[List[str]]
+
     workflow_id: List[Optional[str]]
 
 
@@ -36,6 +45,10 @@ class DataframeMemory(Memory):
             "role": [],
             "content": [],
             "structured_output": [],
+            "tool_call_name": [],
+            "tool_call_args": [],
+            "all_tool_call_names": [],
+            "all_tool_call_args": [],
             "workflow_id": [],
         }
         for idx, memitem in enumerate(self.memory()):
@@ -47,12 +60,34 @@ class DataframeMemory(Memory):
                 data["role"].append(message["role"])
                 data["content"].append(self._format_content_parts(message))
                 data["structured_output"].append(None)
+                data["tool_call_name"].append(None)
+                data["tool_call_args"].append(None)
+                data["all_tool_call_names"].append([])
+                data["all_tool_call_args"].append([])
                 data["workflow_id"].append(workflow_id)
+
             data["turn_id"].append(idx)
             data["role"].append("assistant")
             data["content"].append(completion.choices[0].message.content)
             so = completion.fixp.structured_output
             data["structured_output"].append(so.dict() if so else None)
+
+            tool_calls = completion.choices[0].message.tool_calls
+            if tool_calls:
+                data["tool_call_name"].append(tool_calls[0].function.name)
+                data["tool_call_args"].append(tool_calls[0].function.arguments)
+                data["all_tool_call_names"].append(
+                    [tc.function.name for tc in tool_calls]
+                )
+                data["all_tool_call_args"].append(
+                    [tc.function.arguments for tc in tool_calls]
+                )
+            else:
+                data["tool_call_name"].append(None)
+                data["tool_call_args"].append(None)
+                data["all_tool_call_names"].append([])
+                data["all_tool_call_args"].append([])
+
             data["workflow_id"].append(workflow_id)
         return pd.DataFrame(data)
 
