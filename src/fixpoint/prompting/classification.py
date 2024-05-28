@@ -11,7 +11,7 @@ from ..completions import (
     ChatCompletionToolParam,
 )
 from ..workflow.protocol import SupportsWorkflow
-from ..agents import BaseAgent
+from ..agents import BaseAgent, CacheMode
 from ..utils.messages import umsg
 
 
@@ -102,6 +102,7 @@ def classify_message(
     context_messages: Optional[List[ChatCompletionMessageParam]] = None,
     model: Optional[str] = None,
     workflow: Optional[SupportsWorkflow] = None,
+    cache_mode: Optional[CacheMode] = None
 ) -> ChatCompletion:
     """Classify a user message
 
@@ -125,6 +126,7 @@ def classify_message(
         messages=messages,
         tools=tools,
         tool_choice={"type": "function", "function": {"name": COT_CLASSIFY_TOOL_NAME}},
+        cache_mode=cache_mode,
     )
 
 
@@ -136,6 +138,7 @@ def create_classified_chat_completion(
     context_messages: Optional[List[ChatCompletionMessageParam]] = None,
     model: Optional[str] = None,
     workflow: Optional[SupportsWorkflow] = None,
+    cache_mode: Optional[CacheMode] = None
 ) -> ClassifiedChatCompletion:
     """Create a classified chat completion"""
     completion = classify_message(
@@ -145,5 +148,6 @@ def create_classified_chat_completion(
         model=model,
         workflow=workflow,
         context_messages=context_messages,
+        cache_mode=cache_mode,
     )
     return ClassifiedChatCompletion(completion=completion)

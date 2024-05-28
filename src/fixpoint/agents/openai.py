@@ -21,10 +21,11 @@ from ..completions import (
     ChatCompletionToolChoiceOptionParam,
     ChatCompletionToolParam,
 )
-from .protocol import BaseAgent, CompletionCallback, PreCompletionFn
 from ..memory import SupportsMemory
 from ..workflow import SupportsWorkflow
-from ..cache.protocol import SupportsCache
+from ..cache import ChatCompletionCache
+from .protocol import BaseAgent, CompletionCallback, PreCompletionFn
+from ._shared import request_cached_completion, CacheMode
 
 
 @dataclass
@@ -57,6 +58,7 @@ class OpenAIAgent(BaseAgent):
     _completion_callbacks: List[CompletionCallback]
     _pre_completion_fns: List[PreCompletionFn]
     _memory: Optional[SupportsMemory]
+    _cache_mode: CacheMode = "normal"
 
     def __init__(
         self,
@@ -66,9 +68,7 @@ class OpenAIAgent(BaseAgent):
         pre_completion_fns: Optional[List[PreCompletionFn]] = None,
         completion_callbacks: Optional[List[CompletionCallback]] = None,
         memory: Optional[SupportsMemory] = None,
-        cache: Optional[
-            SupportsCache[List[ChatCompletionMessageParam], ChatCompletion]
-        ] = None,
+        cache: Optional[ChatCompletionCache] = None,
     ) -> None:
         # if instance of models is not one of the supported models, raise ValueError
         supported_models = get_args(openai.types.ChatModel)
@@ -93,6 +93,7 @@ class OpenAIAgent(BaseAgent):
         response_model: Optional[Any] = None,
         tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
         tools: Optional[Iterable[ChatCompletionToolParam]] = None,
+        cache_mode: Optional[CacheMode] = None,
         **kwargs: Any,
     ) -> ChatCompletion:
         """Create a completion"""
@@ -104,20 +105,9 @@ class OpenAIAgent(BaseAgent):
         # User can override the model, but by default we use the model they
         # constructed the agent with.
         mymodel = model or self.model_name
-        if self._cache is not None:
-            fixp_completion = self._cache.get(messages)
-            if fixp_completion is None:
-                fixp_completion = self._request_completion(
-                    messages,
-                    mymodel,
-                    response_model,
-                    tool_choice=tool_choice,
-                    tools=tools,
-                    **kwargs,
-                )
-                self._cache.set(messages, fixp_completion)
-        else:
-            fixp_completion = self._request_completion(
+
+        def _wrapped_completion_fn() -> ChatCompletion:
+            return self._request_completion(
                 messages,
                 mymodel,
                 response_model,
@@ -125,6 +115,15 @@ class OpenAIAgent(BaseAgent):
                 tools=tools,
                 **kwargs,
             )
+
+        if cache_mode is None:
+            cache_mode = self._cache_mode
+        fixp_completion = request_cached_completion(
+            cache=self._cache,
+            messages=messages,
+            completion_fn=_wrapped_completion_fn,
+            cache_mode=cache_mode,
+        )
 
         if self._memory is not None:
             self._memory.store_memory(messages, fixp_completion, workflow)
@@ -182,6 +181,14 @@ class OpenAIAgent(BaseAgent):
         encoding = tiktoken.encoding_for_model(self.model_name)
         return len(encoding.encode(s))
 
+    def set_cache_mode(self, mode: CacheMode) -> None:
+        """If the agent has a cache, set its cache mode"""
+        self._cache_mode = mode
+
+    def get_cache_mode(self) -> CacheMode:
+        """If the agent has a cache, set its cache mode"""
+        return self._cache_mode
+
     def _trigger_pre_completion_fns(
         self, messages: List[ChatCompletionMessageParam]
     ) -> List[ChatCompletionMessageParam]:
@@ -217,9 +224,7 @@ class OpenAI:
         pre_completion_fns: Optional[List[PreCompletionFn]] = None,
         completion_callbacks: Optional[List[CompletionCallback]] = None,
         memory: Optional[SupportsMemory] = None,
-        cache: Optional[
-            SupportsCache[List[ChatCompletionMessageParam], ChatCompletion]
-        ] = None,
+        cache: Optional[ChatCompletionCache] = None,
     ) -> None:
         self.fixp = OpenAIAgent(
             model_name=model_name,

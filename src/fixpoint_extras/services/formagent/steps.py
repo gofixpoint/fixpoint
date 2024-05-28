@@ -67,7 +67,8 @@ _INTAKE_PROMPT = jinja2.Template(
 
 
 def classify_form_type(
-    wfctx: WorkflowContext, user_message: str
+    wfctx: WorkflowContext,
+    user_message: str,
 ) -> Tuple[FormType, classification.ClassifiedChatCompletion]:
     """A workflow step that classifies the users message intent into a form type"""
     completion = classification.create_classified_chat_completion(

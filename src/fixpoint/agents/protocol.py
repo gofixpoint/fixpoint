@@ -12,6 +12,7 @@ from ..completions import (
     ChatCompletionToolParam,
 )
 from ..workflow import SupportsWorkflow
+from ._shared import CacheMode
 
 
 class BaseAgent(Protocol):
@@ -26,6 +27,7 @@ class BaseAgent(Protocol):
         response_model: Optional[Any] = None,
         tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
         tools: Optional[Iterable[ChatCompletionToolParam]] = None,
+        cache_mode: Optional[CacheMode] = "normal",
         **kwargs: Any,
     ) -> ChatCompletion:
         """Create a completion
@@ -37,6 +39,12 @@ class BaseAgent(Protocol):
 
     def count_tokens(self, s: str) -> int:
         """Count the tokens in the string, according to the model's agent(s)"""
+
+    def set_cache_mode(self, mode: CacheMode) -> None:
+        """If the agent has a cache, set its cache mode"""
+
+    def get_cache_mode(self) -> CacheMode:
+        """If the agent has a cache, set its cache mode"""
 
 
 PreCompletionFn = Callable[
