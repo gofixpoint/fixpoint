@@ -13,6 +13,7 @@ import tiktoken
 from ..completions import ChatCompletion, ChatCompletionMessageParam
 from .protocol import BaseAgent, CompletionCallback, PreCompletionFn
 from ..memory import SupportsMemory
+from ..workflow import SupportsWorkflow
 
 
 @dataclass
@@ -73,6 +74,7 @@ class OpenAIAgent(BaseAgent):
         *,
         messages: List[ChatCompletionMessageParam],
         model: Optional[str] = None,
+        workflow: Optional[SupportsWorkflow] = None,
         response_model: Optional[Any] = None,
         **kwargs: Any,
     ) -> ChatCompletion:
@@ -90,7 +92,7 @@ class OpenAIAgent(BaseAgent):
         )
 
         if self._memory is not None:
-            self._memory.store_memory(messages, fixp_completion)
+            self._memory.store_memory(messages, fixp_completion, workflow)
         self._trigger_completion_callbacks(messages, fixp_completion)
         return fixp_completion
 
@@ -232,9 +234,14 @@ class OpenAI:
             *,
             model: Optional[str] = None,
             response_model: Optional[Any] = None,
+            workflow: Optional[SupportsWorkflow] = None,
             **kwargs: Any,
         ) -> ChatCompletion:
             """Create a chat completion"""
             return self._agent.create_completion(
-                messages=messages, model=model, response_model=response_model, **kwargs
+                messages=messages,
+                model=model,
+                response_model=response_model,
+                workflow=workflow,
+                **kwargs,
             )

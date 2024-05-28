@@ -6,6 +6,7 @@ import tiktoken
 
 from ..logging import logger
 from ..completions import ChatCompletionMessageParam, ChatCompletion
+from ..workflow import SupportsWorkflow
 
 
 class BaseAgent(Protocol):
@@ -16,6 +17,8 @@ class BaseAgent(Protocol):
         *,
         messages: List[ChatCompletionMessageParam],
         model: Optional[str] = None,
+        workflow: Optional[SupportsWorkflow] = None,
+        response_model: Optional[Any] = None,
         **kwargs: Any,
     ) -> ChatCompletion:
         """Create a completion

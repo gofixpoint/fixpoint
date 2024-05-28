@@ -1,19 +1,32 @@
 """Code for agent memory"""
 
-from typing import List, Protocol, Tuple
-
+from dataclasses import dataclass
+from typing import List, Protocol, Optional
 
 from ..completions import ChatCompletionMessageParam, ChatCompletion
+from ..workflow import SupportsWorkflow
+
+
+@dataclass
+class MemoryItem:
+    """A single memory item"""
+
+    messages: List[ChatCompletionMessageParam]
+    completion: ChatCompletion
+    workflow: Optional[SupportsWorkflow] = None
 
 
 class SupportsMemory(Protocol):
     """A protocol for adding memory to an agent"""
 
-    def memory(self) -> List[Tuple[List[ChatCompletionMessageParam], ChatCompletion]]:
+    def memory(self) -> List[MemoryItem]:
         """Get the memory"""
 
     def store_memory(
-        self, messages: List[ChatCompletionMessageParam], completion: ChatCompletion
+        self,
+        messages: List[ChatCompletionMessageParam],
+        completion: ChatCompletion,
+        workflow: Optional[SupportsWorkflow] = None,
     ) -> None:
         """Store the memory"""
 
@@ -24,19 +37,16 @@ class SupportsMemory(Protocol):
 class Memory(SupportsMemory):
     """A composable class to add memory to an agent"""
 
-    _memory: List[Tuple[List[ChatCompletionMessageParam], ChatCompletion]]
+    _memory: List[MemoryItem]
 
     def __init__(self) -> None:
         self._memory = []
 
-    def callback(
-        self, messages: List[ChatCompletionMessageParam], completion: ChatCompletion
-    ) -> None:
-        """Handle completions with memory context"""
-        self.store_memory(messages, completion)
-
     def store_memory(
-        self, messages: List[ChatCompletionMessageParam], completion: ChatCompletion
+        self,
+        messages: List[ChatCompletionMessageParam],
+        completion: ChatCompletion,
+        workflow: Optional[SupportsWorkflow] = None,
     ) -> None:
         """Store the memory
 
@@ -44,9 +54,11 @@ class Memory(SupportsMemory):
             messages (List[ChatCompletionMessageParam]): List of message parameters.
             completion (Optional[ChatCompletion]): The completion object, if any.
         """
-        self._memory.append((messages, completion))
+        self._memory.append(
+            MemoryItem(messages=messages, completion=completion, workflow=workflow)
+        )
 
-    def memory(self) -> List[Tuple[List[ChatCompletionMessageParam], ChatCompletion]]:
+    def memory(self) -> List[MemoryItem]:
         """Get the memory"""
         return self._memory
 
@@ -55,14 +67,14 @@ class Memory(SupportsMemory):
         delim = "============================================================"
         lines = []
         for mem in self.memory():
-            lines.extend(self._format_single_mem(mem[0], mem[1]))
+            lines.extend(self._format_single_mem(mem))
             lines.append(delim)
         return "\n".join(lines)
 
-    def _format_single_mem(
-        self, messages: List[ChatCompletionMessageParam], completion: ChatCompletion
-    ) -> List[str]:
+    def _format_single_mem(self, memitem: MemoryItem) -> List[str]:
         """Return the formatted string of a single memory entry"""
+        messages = memitem.messages
+        completion = memitem.completion
         lines = [f'{m["role"]}: {m["content"]}' for m in messages]
         lines.append(f"assistant: {completion.choices[0].message.content}")
         return lines
