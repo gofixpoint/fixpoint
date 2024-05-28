@@ -25,7 +25,6 @@ class TestMockAgent:
             messages.smsg("I am a system"),
             messages.umsg("I am a user"),
         ]
-        assert mems[0][1] == cmpl
         assert mems[0][1].choices[0].message.content == "test 0"
 
 

@@ -3,24 +3,45 @@ This module contains the OpenAIAgent class, which is responsible for handling th
 interaction between the user and OpenAI.
 """
 
-from typing import Any, List, Optional, cast, get_args
+from dataclasses import dataclass
+from typing import Any, List, Optional, get_args
 
 import openai
 import instructor
 import tiktoken
 
 from ..completions import ChatCompletion, ChatCompletionMessageParam
-from .._utils.completions import decorate_instructor_completion_with_fixp
 from .protocol import BaseAgent, CompletionCallback, PreCompletionFn
 from ..memory import WithMemoryProto
 
 
-class OpenAIAgent(BaseAgent):
+@dataclass
+class OpenAIClients:
     """
-    This is the Agent class.
+    A class that contains the OpenAI and Instructor clients.
     """
 
-    _client: instructor.Instructor
+    openai: openai.OpenAI
+    instructor: instructor.Instructor
+
+    @classmethod
+    def from_api_key(cls, api_key: str) -> "OpenAIClients":
+        """Creates our OpenAI clients from an API key"""
+        # Create two versions so that we can use the instructor client for
+        # structured output and the openai client for everything else.
+        # We duplicate the inner OpenAI client in case Instructor mutates it.
+        return cls(
+            openai=openai.OpenAI(api_key=api_key),
+            instructor=instructor.from_openai(openai.OpenAI(api_key=api_key)),
+        )
+
+
+class OpenAIAgent(BaseAgent):
+    """
+    An agent that follows our BaseAgent protocol, but interacts with OpenAI.
+    """
+
+    _openai_clients: OpenAIClients
     _completion_callbacks: List[CompletionCallback]
     _pre_completion_fns: List[PreCompletionFn]
     _memory: Optional[WithMemoryProto]
@@ -28,7 +49,7 @@ class OpenAIAgent(BaseAgent):
     def __init__(
         self,
         model_name: str,
-        api_key: str,
+        openai_clients: OpenAIClients,
         *,
         pre_completion_fns: Optional[List[PreCompletionFn]] = None,
         completion_callbacks: Optional[List[CompletionCallback]] = None,
@@ -40,34 +61,19 @@ class OpenAIAgent(BaseAgent):
             raise ValueError(
                 f"Invalid model name: {model_name}. Supported models are: {supported_models}"
             )
-        if api_key is None:
-            raise ValueError("API key must be provided to use OpenAI models.")
         self.model_name = model_name
-
-        # Wrap the openai client with instructor
-        self._client = instructor.from_openai(openai.OpenAI(api_key=api_key))
-
-        # Replace call to chat.completions.create with
-        # chat.completions.create_with_completion which will expose
-        # the response object and the original response
-        decorated_method = decorate_instructor_completion_with_fixp(
-            self._client.chat.completions.create_with_completion
-        )
-
-        setattr(self._client.chat.completions, "create", decorated_method)
+        self._openai_clients = openai_clients
 
         self._completion_callbacks = completion_callbacks or []
         self._pre_completion_fns = pre_completion_fns or []
         self._memory = memory
 
-    def __getattr__(self, name: str) -> Any:
-        # Forward attribute access to the underlying client
-        return getattr(self._client, name)
-
     def create_completion(
         self,
         *,
         messages: List[ChatCompletionMessageParam],
+        model: Optional[str] = None,
+        response_model: Optional[Any] = None,
         **kwargs: Any,
     ) -> ChatCompletion:
         """Create a completion"""
@@ -76,23 +82,52 @@ class OpenAIAgent(BaseAgent):
 
         messages = self._trigger_pre_completion_fns(messages)
 
-        completion = self._client.chat.completions.create(
-            messages=messages,
-            model=self.model_name,
-            # TODO(dbmikus) support streaming mode.
-            stream=False,
-            **kwargs,
+        # User can override the model, but by default we use the model they
+        # constructed the agent with.
+        mymodel = model or self.model_name
+        fixp_completion = self._request_completion(
+            messages, mymodel, response_model, **kwargs
         )
-        # For some reason, the type checker doesn't understand that the type of
-        # completion is ChatCompletion.
-        # Note, when we support streaming, the return type will be different
-        # depending on whether streaming is on or off.
-        fixed_completion = cast(ChatCompletion, completion)
 
         if self._memory is not None:
-            self._memory.store_memory(messages, fixed_completion)
-        self._trigger_completion_callbacks(messages, fixed_completion)
-        return fixed_completion
+            self._memory.store_memory(messages, fixp_completion)
+        self._trigger_completion_callbacks(messages, fixp_completion)
+        return fixp_completion
+
+    def _request_completion(
+        self,
+        messages: List[ChatCompletionMessageParam],
+        model: str,
+        response_model: Optional[Any] = None,
+        **kwargs: Any,
+    ) -> ChatCompletion:
+        if response_model is None:
+            compl = self._openai_clients.openai.chat.completions.create(
+                messages=messages,
+                model=model,
+                # TODO(dbmikus) support streaming mode.
+                stream=False,
+                **kwargs,
+            )
+            return ChatCompletion.from_original_completion(
+                original_completion=compl,
+                structured_output=None,
+            )
+
+        structured_resp, completion = (
+            self._openai_clients.instructor.chat.completions.create_with_completion(
+                messages=messages,
+                model=model,
+                # TODO(dbmikus) support streaming mode.
+                stream=False,
+                response_model=response_model,
+                **kwargs,
+            )
+        )
+        return ChatCompletion.from_original_completion(
+            original_completion=completion,
+            structured_output=structured_resp,
+        )
 
     def count_tokens(self, s: str) -> int:
         """Count the tokens in the string, according to the model's agent(s)"""
@@ -116,3 +151,90 @@ class OpenAIAgent(BaseAgent):
         """Trigger the completion callbacks"""
         for callback in self._completion_callbacks:
             callback(messages, completion)
+
+
+class OpenAI:
+    """
+    An agent that conforms to the OpenAI API.
+    """
+
+    fixp: OpenAIAgent
+    _fixpchat: "OpenAI._Chat"
+
+    def __init__(
+        self,
+        model_name: str,
+        openai_clients: OpenAIClients,
+        *,
+        pre_completion_fns: Optional[List[PreCompletionFn]] = None,
+        completion_callbacks: Optional[List[CompletionCallback]] = None,
+        memory: Optional[WithMemoryProto] = None,
+    ) -> None:
+        self.fixp = OpenAIAgent(
+            model_name=model_name,
+            openai_clients=openai_clients,
+            pre_completion_fns=pre_completion_fns,
+            completion_callbacks=completion_callbacks,
+            memory=memory,
+        )
+
+        self._fixpchat = OpenAI._Chat(openai_clients.instructor.chat, self.fixp)
+
+    @property
+    def chat(self) -> "OpenAI._Chat":
+        """Chat-related operations"""
+        return self._fixpchat
+
+    def __getattr__(self, name: str) -> Any:
+        # Forward attribute access to the underlying client
+        return getattr(self._fixpchat, name)
+
+    class _Chat:
+        _fixpchat: instructor.Instructor
+        _fixpcompletions: "OpenAI._Completions"
+        _agent: OpenAIAgent
+
+        def __init__(
+            self, openai_chat: instructor.Instructor, agent: OpenAIAgent
+        ) -> None:
+            self._fixpchat = openai_chat
+            self._fixpcompletions = OpenAI._Completions(
+                self._fixpchat.completions, agent
+            )
+            self._agent = agent
+
+        @property
+        def completions(self) -> "OpenAI._Completions":
+            """Operations on chat completions"""
+            return self._fixpcompletions
+
+        def __getattr__(self, name: str) -> Any:
+            # Forward attribute access to the underlying client
+            return getattr(self._fixpchat, name)
+
+    class _Completions:
+        _fixpcompletions: instructor.Instructor
+        _agent: OpenAIAgent
+
+        def __init__(
+            self, openai_completions: instructor.Instructor, agent: OpenAIAgent
+        ) -> None:
+            self._fixpcompletions = openai_completions
+            self._agent = agent
+
+        def __getattr__(self, name: str) -> Any:
+            # Forward attribute access to the underlying client
+            return getattr(self._fixpcompletions, name)
+
+        def create(
+            self,
+            messages: List[ChatCompletionMessageParam],
+            *,
+            model: Optional[str] = None,
+            response_model: Optional[Any] = None,
+            **kwargs: Any,
+        ) -> ChatCompletion:
+            """Create a chat completion"""
+            return self._agent.create_completion(
+                messages=messages, model=model, response_model=response_model, **kwargs
+            )

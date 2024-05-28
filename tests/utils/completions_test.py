@@ -1,13 +1,9 @@
+from openai.types.chat.chat_completion import ChatCompletion as OpenAIChatCompletion
+
 from fixpoint._utils import decorate_instructor_completion_with_fixp
 from fixpoint.completions import ChatCompletion
-
-from openai.types.chat.chat_completion import (
-    Choice as CompletionChoice,
-    ChatCompletion as OpenAIChatCompletion,
-)
-
-from tests.test_utils import SampleStructure
 from fixpoint.agents.mock import new_mock_orig_completion
+from tests.test_utils import SampleStructure
 
 
 class TestUtilsCompletions:
@@ -32,7 +28,6 @@ class TestUtilsCompletions:
             "Hello, how are you?", SampleStructure
         )
 
-        # Chat completion response should be of type FixpointCompletion
         assert isinstance(fixpoint_completion, ChatCompletion)
 
         # Chat completion attributes should be accessed directly from the completion object
