@@ -1,6 +1,6 @@
 """The Form Agent service"""
 
-from fixpoint.agents import BaseAgent
+from . import steps
 
 
 def info() -> str:
@@ -9,3 +9,6 @@ def info() -> str:
         "I am a service that uses AI agents to gather info from your users and "
         "turn that into structured forms"
     )
+
+
+__all__ = ["steps"]

@@ -2,6 +2,6 @@
 This is the fixpoint module.
 """
 
-from . import models, agents
+from . import agents, memory, models, prompting, workflow
 
-__all__ = ["models", "agents"]
+__all__ = ["agents", "memory", "models", "prompting", "workflow"]
