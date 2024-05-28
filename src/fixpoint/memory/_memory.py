@@ -17,7 +17,7 @@ class SupportsMemory(Protocol):
     ) -> None:
         """Store the memory"""
 
-    def format_str(self) -> str:
+    def to_str(self) -> str:
         """Return the formatted string of messages. Useful for printing/debugging"""
 
 
@@ -50,7 +50,7 @@ class Memory(SupportsMemory):
         """Get the memory"""
         return self._memory
 
-    def format_str(self) -> str:
+    def to_str(self) -> str:
         """Return the formatted string of messages. Useful for printing/debugging"""
         delim = "============================================================"
         lines = []
