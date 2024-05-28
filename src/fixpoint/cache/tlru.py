@@ -3,11 +3,12 @@ TLRU Cache
 """
 
 import time
+import json
 from threading import RLock
 from typing import Union, Any
 from cachetools import TLRUCache as CachetoolsTLRUCache
 
-from fixpoint.cache.protocol import SupportsTLRUCache, K_contra, V, SupportsTTLCacheItem
+from fixpoint.cache.protocol import SupportsCache, K_contra, V, SupportsTTLCacheItem
 
 
 class TLRUCacheItem(SupportsTTLCacheItem):
@@ -39,7 +40,7 @@ class TLRUCacheItem(SupportsTTLCacheItem):
         self._ttl = value
 
 
-class TLRUCache(SupportsTLRUCache[K_contra, V]):
+class TLRUCache(SupportsCache[K_contra, V]):
     """
     TLRU Cache
     """
@@ -47,9 +48,10 @@ class TLRUCache(SupportsTLRUCache[K_contra, V]):
     def __init__(
         self,
         maxsize: int,
+        ttl: float,
     ) -> None:
 
-        def my_ttu(_key: K_contra, value: SupportsTTLCacheItem, now: float) -> float:
+        def my_ttu(_key: int, value: SupportsTTLCacheItem, now: float) -> float:
             # assume value.ttl contains the item's time-to-live in seconds
             return now + value.ttl
 
@@ -58,21 +60,41 @@ class TLRUCache(SupportsTLRUCache[K_contra, V]):
         )
 
         self.lock = RLock()
+        self._ttl = ttl
+
+    def _hash_key(self, key: K_contra) -> int:
+        if isinstance(key, (dict, list, set)):
+            # Convert unhashable types to a JSON string
+            try:
+                key_str = json.dumps(key, sort_keys=True)
+            except TypeError as e:
+                # Handle types that are not serializable by json.dumps
+                raise ValueError(
+                    f"Key of type {type(key)} is not serializable: {e}"
+                ) from e
+
+            return hash(key_str)
+        return hash(key)
 
     def get(self, key: K_contra) -> Union[Any, None]:
         with self.lock:
-            item = self.cache.get(key)
+            # Pre-emptively expire any expired items
+            self.cache.expire()
+            _key_hash = self._hash_key(key)
+            item = self.cache.get(_key_hash)
             if item is not None:
                 return item.data
             return None
 
-    def set(self, key: K_contra, value: V, ttl: float) -> None:
+    def set(self, key: K_contra, value: V) -> None:
         with self.lock:
-            self.cache[key] = TLRUCacheItem(value, ttl)
+            _key_hash = self._hash_key(key)
+            self.cache[_key_hash] = TLRUCacheItem(value, self._ttl)
 
     def delete(self, key: K_contra) -> None:
         with self.lock:
-            del self.cache[key]
+            _key_hash = self._hash_key(key)
+            del self.cache[_key_hash]
 
     def clear(self) -> None:
         with self.lock:

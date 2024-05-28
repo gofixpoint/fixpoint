@@ -24,6 +24,7 @@ from ..completions import (
 from .protocol import BaseAgent, CompletionCallback, PreCompletionFn
 from ..memory import SupportsMemory
 from ..workflow import SupportsWorkflow
+from ..cache.protocol import SupportsCache
 
 
 @dataclass
@@ -65,6 +66,9 @@ class OpenAIAgent(BaseAgent):
         pre_completion_fns: Optional[List[PreCompletionFn]] = None,
         completion_callbacks: Optional[List[CompletionCallback]] = None,
         memory: Optional[SupportsMemory] = None,
+        cache: Optional[
+            SupportsCache[List[ChatCompletionMessageParam], ChatCompletion]
+        ] = None,
     ) -> None:
         # if instance of models is not one of the supported models, raise ValueError
         supported_models = get_args(openai.types.ChatModel)
@@ -78,6 +82,7 @@ class OpenAIAgent(BaseAgent):
         self._completion_callbacks = completion_callbacks or []
         self._pre_completion_fns = pre_completion_fns or []
         self._memory = memory
+        self._cache = cache
 
     def create_completion(
         self,
@@ -99,14 +104,27 @@ class OpenAIAgent(BaseAgent):
         # User can override the model, but by default we use the model they
         # constructed the agent with.
         mymodel = model or self.model_name
-        fixp_completion = self._request_completion(
-            messages,
-            mymodel,
-            response_model,
-            tool_choice=tool_choice,
-            tools=tools,
-            **kwargs,
-        )
+        if self._cache is not None:
+            fixp_completion = self._cache.get(messages)
+            if fixp_completion is None:
+                fixp_completion = self._request_completion(
+                    messages,
+                    mymodel,
+                    response_model,
+                    tool_choice=tool_choice,
+                    tools=tools,
+                    **kwargs,
+                )
+                self._cache.set(messages, fixp_completion)
+        else:
+            fixp_completion = self._request_completion(
+                messages,
+                mymodel,
+                response_model,
+                tool_choice=tool_choice,
+                tools=tools,
+                **kwargs,
+            )
 
         if self._memory is not None:
             self._memory.store_memory(messages, fixp_completion, workflow)

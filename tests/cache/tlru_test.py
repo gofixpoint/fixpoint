@@ -5,10 +5,10 @@ from fixpoint.cache.tlru import TLRUCache
 class TestTLRUCache:
 
     def test_tlru_cache_size_limits(self) -> None:
-        ttlCache = TLRUCache[str, str](maxsize=1)
-        ttlCache.set("test", "a", 1000)
-        ttlCache.set("test2", "b", 1000)
-        ttlCache.set("test3", "c", 1000)
+        ttlCache = TLRUCache[str, str](maxsize=1, ttl=1000)
+        ttlCache.set("test", "a")
+        ttlCache.set("test2", "b")
+        ttlCache.set("test3", "c")
 
         assert ttlCache.currentsize == 1
         assert ttlCache.maxsize == 1
@@ -18,8 +18,8 @@ class TestTLRUCache:
 
     @freeze_time("2023-01-01")
     def test_tlru_cache_ttl(self) -> None:
-        ttlCache = TLRUCache[str, str](maxsize=1)
-        ttlCache.set("test", "a", 10)
+        ttlCache = TLRUCache[str, str](maxsize=1, ttl=10)
+        ttlCache.set("test", "a")
         assert ttlCache.get("test") == "a"
 
         # Advance time by 12 seconds
