@@ -76,12 +76,14 @@ def classify_form_type(
         user_message=user_message,
         context_messages=[smsg(_INTAKE_PROMPT)],
     )
-    if completion.classification == FormType.INVOICE.value:
-        return (FormType.INVOICE, completion)
-    elif completion.classification == FormType.EVENT_REGISTRATION.value:
-        return (FormType.EVENT_REGISTRATION, completion)
-    elif completion.classification == FormType.UNKNOWN.value:
-        return (FormType.UNKNOWN, completion)
-    else:
-        wfctx.logger.error("Unkown form type: %s", completion.classification)
-        return (FormType.UNKNOWN, completion)
+
+    match completion.classification:
+        case FormType.INVOICE.value:
+            return (FormType.INVOICE, completion)
+        case FormType.EVENT_REGISTRATION.value:
+            return (FormType.EVENT_REGISTRATION, completion)
+        case FormType.UNKNOWN.value:
+            return (FormType.UNKNOWN, completion)
+        case _:
+            wfctx.logger.error("Unkown form type: %s", completion.classification)
+            return (FormType.UNKNOWN, completion)
