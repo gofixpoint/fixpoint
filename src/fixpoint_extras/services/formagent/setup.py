@@ -23,13 +23,12 @@ class WorkflowContext:
     workflow: fixpoint.workflow.SupportsWorkflow
 
 
-def setup_workflow(openai_key: str) -> WorkflowContext:
+def setup_workflow(openai_key: str, model_name: str) -> WorkflowContext:
     """Set up the workflow context
 
     Set up the workflow context, which includes the workflow ojbect, the agent,
     the agent's memory store, and a logger for the workflow.
     """
-    model_name = "gpt-3.5-turbo"
     agent_mem = DataframeMemory()
     # Log token usage
     tokenlogger = TikTokenLogger(model_name)
