@@ -6,7 +6,7 @@ from typing import List, Protocol, Tuple
 from ..completions import ChatCompletionMessageParam, ChatCompletion
 
 
-class WithMemoryProto(Protocol):
+class SupportsMemory(Protocol):
     """A protocol for adding memory to an agent"""
 
     def memory(self) -> List[Tuple[List[ChatCompletionMessageParam], ChatCompletion]]:
@@ -21,7 +21,7 @@ class WithMemoryProto(Protocol):
         """Return the formatted string of messages. Useful for printing/debugging"""
 
 
-class WithMemory(WithMemoryProto):
+class Memory(SupportsMemory):
     """A composable class to add memory to an agent"""
 
     _memory: List[Tuple[List[ChatCompletionMessageParam], ChatCompletion]]
@@ -69,8 +69,8 @@ class WithMemory(WithMemoryProto):
 
 
 # Check that we implement the protocol
-def _check(_c: WithMemoryProto) -> None:
+def _check(_c: SupportsMemory) -> None:
     pass
 
 
-_check(WithMemory())
+_check(Memory())

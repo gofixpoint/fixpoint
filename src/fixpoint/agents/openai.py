@@ -12,7 +12,7 @@ import tiktoken
 
 from ..completions import ChatCompletion, ChatCompletionMessageParam
 from .protocol import BaseAgent, CompletionCallback, PreCompletionFn
-from ..memory import WithMemoryProto
+from ..memory import SupportsMemory
 
 
 @dataclass
@@ -44,7 +44,7 @@ class OpenAIAgent(BaseAgent):
     _openai_clients: OpenAIClients
     _completion_callbacks: List[CompletionCallback]
     _pre_completion_fns: List[PreCompletionFn]
-    _memory: Optional[WithMemoryProto]
+    _memory: Optional[SupportsMemory]
 
     def __init__(
         self,
@@ -53,7 +53,7 @@ class OpenAIAgent(BaseAgent):
         *,
         pre_completion_fns: Optional[List[PreCompletionFn]] = None,
         completion_callbacks: Optional[List[CompletionCallback]] = None,
-        memory: Optional[WithMemoryProto] = None,
+        memory: Optional[SupportsMemory] = None,
     ) -> None:
         # if instance of models is not one of the supported models, raise ValueError
         supported_models = get_args(openai.types.ChatModel)
@@ -168,7 +168,7 @@ class OpenAI:
         *,
         pre_completion_fns: Optional[List[PreCompletionFn]] = None,
         completion_callbacks: Optional[List[CompletionCallback]] = None,
-        memory: Optional[WithMemoryProto] = None,
+        memory: Optional[SupportsMemory] = None,
     ) -> None:
         self.fixp = OpenAIAgent(
             model_name=model_name,
