@@ -1,11 +1,16 @@
 """A base protocol for agents"""
 
-from typing import Any, Callable, List, Optional, Protocol
+from typing import Any, Callable, Iterable, List, Optional, Protocol
 
 import tiktoken
 
 from ..logging import logger
-from ..completions import ChatCompletionMessageParam, ChatCompletion
+from ..completions import (
+    ChatCompletionMessageParam,
+    ChatCompletion,
+    ChatCompletionToolChoiceOptionParam,
+    ChatCompletionToolParam,
+)
 from ..workflow import SupportsWorkflow
 
 
@@ -19,6 +24,8 @@ class BaseAgent(Protocol):
         model: Optional[str] = None,
         workflow: Optional[SupportsWorkflow] = None,
         response_model: Optional[Any] = None,
+        tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
+        tools: Optional[Iterable[ChatCompletionToolParam]] = None,
         **kwargs: Any,
     ) -> ChatCompletion:
         """Create a completion

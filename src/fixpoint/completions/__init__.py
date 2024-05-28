@@ -9,9 +9,13 @@ from .chat_completion import (
     ChatCompletionChunk,
 )
 
+from .tools import ChatCompletionToolChoiceOptionParam, ChatCompletionToolParam
+
 __all__ = [
     "ChatCompletion",
     "ChatCompletionMessage",
     "ChatCompletionMessageParam",
     "ChatCompletionChunk",
+    "ChatCompletionToolChoiceOptionParam",
+    "ChatCompletionToolParam",
 ]

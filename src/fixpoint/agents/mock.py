@@ -1,6 +1,6 @@
 """Code for mocking out agents for testing."""
 
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, Iterable, List, Optional
 
 from openai.types import CompletionUsage
 from openai.types.chat.chat_completion import (
@@ -12,6 +12,8 @@ from ..completions import (
     ChatCompletion,
     ChatCompletionMessage,
     ChatCompletionMessageParam,
+    ChatCompletionToolParam,
+    ChatCompletionToolChoiceOptionParam,
 )
 from .protocol import BaseAgent, CompletionCallback, PreCompletionFn
 from ..memory import SupportsMemory
@@ -43,8 +45,10 @@ class MockAgent(BaseAgent):
         *,
         messages: List[ChatCompletionMessageParam],
         model: Optional[str] = None,
-        workflow: Optional[SupportsWorkflow] = None,
+        tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
+        tools: Optional[Iterable[ChatCompletionToolParam]] = None,
         response_model: Optional[Any] = None,
+        workflow: Optional[SupportsWorkflow] = None,
         **kwargs: Any,
     ) -> ChatCompletion:
         for fn in self._pre_completion_fns:

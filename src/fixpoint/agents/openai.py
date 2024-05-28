@@ -4,13 +4,23 @@ interaction between the user and OpenAI.
 """
 
 from dataclasses import dataclass
-from typing import Any, List, Optional, get_args
+from typing import Any, Iterable, List, Optional, get_args
 
 import openai
+
+# Importing these is kind of a hack because they are in a private namespace from
+# OpenAI. But we need them because the OpenAI client does not type-check when
+# you pass in "None" values for arguments to create chat completions.
+from openai._types import NOT_GIVEN as OPENAI_NOT_GIVEN
 import instructor
 import tiktoken
 
-from ..completions import ChatCompletion, ChatCompletionMessageParam
+from ..completions import (
+    ChatCompletion,
+    ChatCompletionMessageParam,
+    ChatCompletionToolChoiceOptionParam,
+    ChatCompletionToolParam,
+)
 from .protocol import BaseAgent, CompletionCallback, PreCompletionFn
 from ..memory import SupportsMemory
 from ..workflow import SupportsWorkflow
@@ -76,6 +86,8 @@ class OpenAIAgent(BaseAgent):
         model: Optional[str] = None,
         workflow: Optional[SupportsWorkflow] = None,
         response_model: Optional[Any] = None,
+        tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
+        tools: Optional[Iterable[ChatCompletionToolParam]] = None,
         **kwargs: Any,
     ) -> ChatCompletion:
         """Create a completion"""
@@ -88,7 +100,12 @@ class OpenAIAgent(BaseAgent):
         # constructed the agent with.
         mymodel = model or self.model_name
         fixp_completion = self._request_completion(
-            messages, mymodel, response_model, **kwargs
+            messages,
+            mymodel,
+            response_model,
+            tool_choice=tool_choice,
+            tools=tools,
+            **kwargs,
         )
 
         if self._memory is not None:
@@ -101,6 +118,8 @@ class OpenAIAgent(BaseAgent):
         messages: List[ChatCompletionMessageParam],
         model: str,
         response_model: Optional[Any] = None,
+        tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
+        tools: Optional[Iterable[ChatCompletionToolParam]] = None,
         **kwargs: Any,
     ) -> ChatCompletion:
         if response_model is None:
@@ -109,11 +128,20 @@ class OpenAIAgent(BaseAgent):
                 model=model,
                 # TODO(dbmikus) support streaming mode.
                 stream=False,
+                tool_choice=tool_choice or OPENAI_NOT_GIVEN,
+                tools=tools or OPENAI_NOT_GIVEN,
                 **kwargs,
             )
             return ChatCompletion.from_original_completion(
                 original_completion=compl,
                 structured_output=None,
+            )
+
+        if ((tool_choice is not None) or (tools is not None)) and (
+            response_model is not None
+        ):
+            raise ValueError(
+                "Explicit tool calls are not supported with structured output."
             )
 
         structured_resp, completion = (
@@ -233,6 +261,8 @@ class OpenAI:
             messages: List[ChatCompletionMessageParam],
             *,
             model: Optional[str] = None,
+            tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
+            tools: Optional[Iterable[ChatCompletionToolParam]] = None,
             response_model: Optional[Any] = None,
             workflow: Optional[SupportsWorkflow] = None,
             **kwargs: Any,
@@ -241,6 +271,8 @@ class OpenAI:
             return self._agent.create_completion(
                 messages=messages,
                 model=model,
+                tool_choice=tool_choice,
+                tools=tools,
                 response_model=response_model,
                 workflow=workflow,
                 **kwargs,
