@@ -3,12 +3,12 @@ TLRU Cache
 """
 
 import time
-import json
 from threading import RLock
 from typing import Union, Any
 from cachetools import TLRUCache as CachetoolsTLRUCache
 
-from fixpoint.cache.protocol import SupportsCache, K_contra, V, SupportsTTLCacheItem
+from .protocol import SupportsCache, K_contra, V, SupportsTTLCacheItem
+from ._shared import hash_key
 
 
 class TLRUCacheItem(SupportsTTLCacheItem):
@@ -63,18 +63,7 @@ class TLRUCache(SupportsCache[K_contra, V]):
         self._ttl = ttl
 
     def _hash_key(self, key: K_contra) -> int:
-        if isinstance(key, (dict, list, set)):
-            # Convert unhashable types to a JSON string
-            try:
-                key_str = json.dumps(key, sort_keys=True)
-            except TypeError as e:
-                # Handle types that are not serializable by json.dumps
-                raise ValueError(
-                    f"Key of type {type(key)} is not serializable: {e}"
-                ) from e
-
-            return hash(key_str)
-        return hash(key)
+        return hash_key(key)
 
     def get(self, key: K_contra) -> Union[Any, None]:
         with self.lock:

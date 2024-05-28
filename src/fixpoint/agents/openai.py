@@ -217,6 +217,9 @@ class OpenAI:
         pre_completion_fns: Optional[List[PreCompletionFn]] = None,
         completion_callbacks: Optional[List[CompletionCallback]] = None,
         memory: Optional[SupportsMemory] = None,
+        cache: Optional[
+            SupportsCache[List[ChatCompletionMessageParam], ChatCompletion]
+        ] = None,
     ) -> None:
         self.fixp = OpenAIAgent(
             model_name=model_name,
@@ -224,6 +227,7 @@ class OpenAI:
             pre_completion_fns=pre_completion_fns,
             completion_callbacks=completion_callbacks,
             memory=memory,
+            cache=cache,
         )
 
         self._fixpchat = OpenAI._Chat(openai_clients.instructor.chat, self.fixp)
