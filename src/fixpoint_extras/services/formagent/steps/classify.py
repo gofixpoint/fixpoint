@@ -7,7 +7,9 @@ import jinja2
 
 from fixpoint.prompting import classification
 from fixpoint.utils.messages import smsg
+
 from ..workflowcontext import WorkflowContext
+from ._shared import SYSTEM_PREFIX
 
 
 class FormType(Enum):
@@ -41,29 +43,23 @@ _FORM_TYPE_CHOICES: List[classification.Choice] = [
 ]
 
 
-_SYSTEM_PREFIX = jinja2.Template(
-    """
-    You are an AI agent that asks users questions and uses their answers to fill
-    out an internal form. Anywhere that some creates a form or uses a form
-    wizard, they could instead have you ask the user questions instead.
-    """,
-    trim_blocks=True,
-    lstrip_blocks=True,
-    autoescape=False,
-).render()
-
-
 _INTAKE_PROMPT = jinja2.Template(
-    """
-    {{system_prefix}}
+"""
+{{system_prefix}}
 
-    You help users create interactive forms. You ask them what they are trying
-    to do, and then you determine the best type of form they should use.
-    """,
+{{instructions}}
+""",
     trim_blocks=True,
     lstrip_blocks=True,
     autoescape=False,
-).render(system_prefix=_SYSTEM_PREFIX)
+).render(
+    system_prefix=SYSTEM_PREFIX,
+    instructions=(
+        "You help users create interactive forms. You ask them what they are"
+        " trying to do, and then you determine the best type of form they"
+        " should use."
+    )
+)
 
 
 def classify_form_type(
