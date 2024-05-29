@@ -4,7 +4,7 @@ interaction between the user and OpenAI.
 """
 
 from dataclasses import dataclass
-from typing import Any, Iterable, List, Optional, get_args
+from typing import Any, Iterable, List, Mapping, Optional, Union, get_args
 
 import openai
 
@@ -38,15 +38,48 @@ class OpenAIClients:
     instructor: instructor.Instructor
 
     @classmethod
-    def from_api_key(cls, api_key: str) -> "OpenAIClients":
+    def from_api_key(
+        cls,
+        api_key: str,
+        base_url: Optional[str] = None,
+        default_headers: Optional[Mapping[str, str]] = None,
+    ) -> "OpenAIClients":
         """Creates our OpenAI clients from an API key"""
         # Create two versions so that we can use the instructor client for
         # structured output and the openai client for everything else.
         # We duplicate the inner OpenAI client in case Instructor mutates it.
-        return cls(
-            openai=openai.OpenAI(api_key=api_key),
-            instructor=instructor.from_openai(openai.OpenAI(api_key=api_key)),
+        obj = cls(
+            openai=openai.OpenAI(
+                api_key=api_key, base_url=base_url, default_headers=default_headers
+            ),
+            instructor=instructor.from_openai(
+                openai.OpenAI(
+                    api_key=api_key, base_url=base_url, default_headers=default_headers
+                )
+            ),
         )
+        return obj
+
+    def set_base_url(self, base_url: Union[str, None]) -> None:
+        """Set the API base URL for the openai client"""
+        # the OpenAI class has a property setter that expects either an
+        # `httpx.URL` or a `str`, but mypy gets confused.
+        self.openai.base_url = base_url  # type: ignore
+        instructor_client = self.instructor.client
+        if instructor_client is not None:
+            instructor_client.base_url = base_url
+
+    # We dont' support setting the customer headers after creating the objects,
+    # because the OpenAI default headers are immutable.
+    #
+    # def set_default_headers(
+    #     self, default_headers: Union[Mapping[str, str], None]
+    # ) -> None:
+    #     """Set the API base URL for the openai client"""
+    #     self.openai.default_headers = default_headers
+    #     instructor_client = self.instructor.client
+    #     if instructor_client is not None:
+    #         instructor_client.default_headers = default_headers
 
 
 class OpenAIAgent(BaseAgent):
