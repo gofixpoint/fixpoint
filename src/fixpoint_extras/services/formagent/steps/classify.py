@@ -7,7 +7,7 @@ import jinja2
 
 from fixpoint.prompting import classification
 from fixpoint.utils.messages import smsg
-from .setup import WorkflowContext
+from ..workflowcontext import WorkflowContext
 
 
 class FormType(Enum):
