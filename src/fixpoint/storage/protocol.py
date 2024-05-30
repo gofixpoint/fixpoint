@@ -1,44 +1,43 @@
 """Protocol for the storage"""
 
-from typing import Any, Optional, Protocol, Dict
+from typing import Any, Optional, Protocol, Dict, List, TypeVar
+
+V = TypeVar("V")  # Value type
 
 
-class SupportsStorage(Protocol):
+class SupportsStorage(Protocol[V]):
     """Protocol for the storage"""
 
     def fetch_latest(
         self,
         n: Optional[int] = None,
-        resource: Optional[str] = None,
-        order_key: Optional[str] = None,
-        model: Optional[Any] = None,
-    ) -> Any:
+    ) -> List[V]:
         """Fetch the latest n items from the storage"""
 
     def fetch(
         self,
-        filter_criteria: Dict[str, Any],
-        resource: Optional[str] = None,
-        model: Optional[Any] = None,
-    ) -> Any:
-        """Fetch items from storage that match the lookup_options"""
+        resource_id: Any,
+    ) -> V:
+        """Fetch item from storage that matches the id"""
 
-    def insert(
-        self, data: Any, resource: Optional[str] = None, model: Optional[Any] = None
-    ) -> Any:
-        """Insert a data item to a storage resource"""
+    def insert(self, data: V) -> V:
+        """Insert a data item to storage"""
 
     def update(
         self,
-        data: Any,
-        resource: Optional[str] = None,
-        model: Optional[Any] = None,
-    ) -> Any:
-        """Update a data item in storage matching filter_criteria"""
+        data: V,
+    ) -> V:
+        """Update a data item in storage"""
 
     def delete(
         self,
-        filter_criteria: Dict[str, Any],
-        resource: Optional[str] = None,
-    ) -> Any:
-        """Delete a data item from storage matching filter_criteria"""
+        resource_id: Any,
+    ) -> None:
+        """Delete a data item from storage matching id"""
+
+
+class SupportsToDict(Protocol):
+    """Protocol for the storage"""
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Method to convert object to dictionary format."""
