@@ -1,6 +1,6 @@
 from typing import List
 
-from fixpoint.cache import DiskTLRUCache
+from fixpoint.cache.disktlru import DiskTLRUCache
 from fixpoint.completions import ChatCompletionMessageParam
 
 

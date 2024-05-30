@@ -5,7 +5,7 @@ import logging
 from typing import Optional
 
 import fixpoint
-from fixpoint.cache import ChatCompletionCache
+from fixpoint.cache import SupportsChatCompletionCache
 from fixpoint.analyze.memory import DataframeMemory
 
 
@@ -21,4 +21,4 @@ class WorkflowContext:
     logger: logging.Logger
     memory: DataframeMemory
     workflow: fixpoint.workflow.SupportsWorkflow
-    cache: Optional[ChatCompletionCache]
+    cache: Optional[SupportsChatCompletionCache]

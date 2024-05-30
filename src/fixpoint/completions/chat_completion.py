@@ -2,9 +2,10 @@
 LLM ChatCompletions
 """
 
-from typing import Any, Optional, List, Literal
+import json
+from typing import Any, Optional, List, Literal, Type
 
-from pydantic import Field, PrivateAttr
+from pydantic import Field, PrivateAttr, BaseModel
 from openai.types.completion_usage import CompletionUsage
 from openai.types.chat import ChatCompletionChunk
 from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
@@ -24,6 +25,11 @@ def _raw_set_attr(obj: Any, name: str, value: Any) -> None:
     object.__setattr__(obj, name, value)
 
 
+# value.to_json()
+# value.model_dump_json()
+# value.model_validate_json()
+
+
 class ChatCompletion(OpenAIChatCompletion):
     """
     A class that wraps a completion with a Fixpoint completion.
@@ -37,7 +43,7 @@ class ChatCompletion(OpenAIChatCompletion):
         A class that represents a Fixpoint completion.
         """
 
-        _structured_output: Optional[Any]
+        structured_output: Optional[BaseModel]
 
         def __init__(self, structured_output: Optional[Any] = None) -> None:
             self.structured_output = structured_output
@@ -55,7 +61,7 @@ class ChatCompletion(OpenAIChatCompletion):
         system_fingerprint: Optional[str] = None,
         usage: Optional[CompletionUsage] = None,
         # we added these
-        structured_output: Optional[Any] = None
+        structured_output: Optional[BaseModel] = None
     ) -> None:
         # Normally, we should call the superclass here, but since we are doing a
         # weird implementation where we pass calls through to the parent via the
@@ -76,7 +82,7 @@ class ChatCompletion(OpenAIChatCompletion):
     def from_original_completion(
         cls,
         original_completion: OpenAIChatCompletion,
-        structured_output: Optional[Any] = None,
+        structured_output: Optional[BaseModel] = None,
     ) -> "ChatCompletion":
         """
         Create a new ChatCompletion from an original completion.
@@ -91,6 +97,39 @@ class ChatCompletion(OpenAIChatCompletion):
             usage=original_completion.usage,
             structured_output=structured_output,
         )
+
+    def serialize_json(self) -> str:
+        """Serialize the ChatCompletion to a JSON string"""
+        dumped = self._original_completion.model_dump(mode="json")
+        # pylint gets confused by Pydantic
+        # pylint: disable=no-member
+        sout = self.fixp.structured_output
+        sout_str = None
+        if sout:
+            sout_str = sout.model_dump(mode="json")
+        dumped["fixp"] = {"structured_output": sout_str}
+        return json.dumps(dumped)
+
+    @classmethod
+    def deserialize_json(
+        cls,
+        json_string: str,
+        structured_data_model_cls: Optional[Type[BaseModel]] = None,
+    ) -> "ChatCompletion":
+        """Load a JSON string into a ChatCompletion object"""
+        loaded = json.loads(json_string)
+        fixploaded = loaded["fixp"]
+        del loaded["fixp"]
+
+        orig_completion = OpenAIChatCompletion.model_validate(loaded)
+        if structured_data_model_cls:
+            structured_output = structured_data_model_cls.model_validate(
+                fixploaded["structured_output"]
+            )
+        else:
+            structured_output = None
+
+        return cls.from_original_completion(orig_completion, structured_output)
 
     def __getattr__(self, name: str) -> Any:
         # Forward attribute access to the underlying client

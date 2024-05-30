@@ -4,9 +4,10 @@ interaction between the user and OpenAI.
 """
 
 from dataclasses import dataclass
-from typing import Any, Iterable, List, Mapping, Optional, Union, get_args
+from typing import Any, Iterable, List, Mapping, Optional, Type, Union, get_args, cast
 
 import openai
+from pydantic import BaseModel
 
 # Importing these is kind of a hack because they are in a private namespace from
 # OpenAI. But we need them because the OpenAI client does not type-check when
@@ -23,7 +24,7 @@ from ..completions import (
 )
 from ..memory import SupportsMemory
 from ..workflow import SupportsWorkflow
-from ..cache import ChatCompletionCache
+from ..cache import SupportsChatCompletionCache
 from .protocol import BaseAgent, CompletionCallback, PreCompletionFn
 from ._shared import request_cached_completion, CacheMode
 
@@ -101,7 +102,7 @@ class OpenAIAgent(BaseAgent):
         pre_completion_fns: Optional[List[PreCompletionFn]] = None,
         completion_callbacks: Optional[List[CompletionCallback]] = None,
         memory: Optional[SupportsMemory] = None,
-        cache: Optional[ChatCompletionCache] = None,
+        cache: Optional[SupportsChatCompletionCache] = None,
     ) -> None:
         # if instance of models is not one of the supported models, raise ValueError
         supported_models = get_args(openai.types.ChatModel)
@@ -123,7 +124,7 @@ class OpenAIAgent(BaseAgent):
         messages: List[ChatCompletionMessageParam],
         model: Optional[str] = None,
         workflow: Optional[SupportsWorkflow] = None,
-        response_model: Optional[Any] = None,
+        response_model: Optional[Type[BaseModel]] = None,
         tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
         tools: Optional[Iterable[ChatCompletionToolParam]] = None,
         cache_mode: Optional[CacheMode] = None,
@@ -156,6 +157,7 @@ class OpenAIAgent(BaseAgent):
             messages=messages,
             completion_fn=_wrapped_completion_fn,
             cache_mode=cache_mode,
+            structured_output_cls=response_model,
         )
 
         if self._memory is not None:
@@ -167,7 +169,7 @@ class OpenAIAgent(BaseAgent):
         self,
         messages: List[ChatCompletionMessageParam],
         model: str,
-        response_model: Optional[Any] = None,
+        response_model: Optional[Type[BaseModel]] = None,
         tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
         tools: Optional[Iterable[ChatCompletionToolParam]] = None,
         **kwargs: Any,
@@ -200,7 +202,8 @@ class OpenAIAgent(BaseAgent):
                 model=model,
                 # TODO(dbmikus) support streaming mode.
                 stream=False,
-                response_model=response_model,
+                # Instructor gets weird if this is a BaseModel type, even though it is
+                response_model=cast(Any, response_model),
                 **kwargs,
             )
         )
@@ -257,7 +260,7 @@ class OpenAI:
         pre_completion_fns: Optional[List[PreCompletionFn]] = None,
         completion_callbacks: Optional[List[CompletionCallback]] = None,
         memory: Optional[SupportsMemory] = None,
-        cache: Optional[ChatCompletionCache] = None,
+        cache: Optional[SupportsChatCompletionCache] = None,
     ) -> None:
         self.fixp = OpenAIAgent(
             model_name=model_name,
@@ -323,7 +326,7 @@ class OpenAI:
             model: Optional[str] = None,
             tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
             tools: Optional[Iterable[ChatCompletionToolParam]] = None,
-            response_model: Optional[Any] = None,
+            response_model: Optional[Type[BaseModel]] = None,
             workflow: Optional[SupportsWorkflow] = None,
             **kwargs: Any,
         ) -> ChatCompletion:

@@ -4,7 +4,7 @@ import logging
 from typing import Mapping, Optional
 
 import fixpoint
-from fixpoint.cache import ChatCompletionCache
+from fixpoint.cache import SupportsChatCompletionCache
 from fixpoint.agents.protocol import TikTokenLogger
 from fixpoint.agents.openai import OpenAIClients
 from fixpoint.analyze.memory import DataframeMemory
@@ -14,7 +14,7 @@ from .workflowcontext import WorkflowContext
 def setup_workflow(
     openai_key: str,
     model_name: str,
-    cache: Optional[ChatCompletionCache] = None,
+    cache: Optional[SupportsChatCompletionCache] = None,
     openai_base_url: Optional[str] = None,
     default_openai_headers: Optional[Mapping[str, str]] = None,
 ) -> WorkflowContext:

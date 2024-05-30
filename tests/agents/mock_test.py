@@ -6,7 +6,7 @@ from fixpoint.completions import ChatCompletion, ChatCompletionMessageParam
 from fixpoint.agents.mock import MockAgent, new_mock_completion
 from fixpoint.memory import Memory
 from fixpoint.utils import messages
-from fixpoint.cache.tlru import TLRUCache
+from fixpoint.cache.tlru import ChatCompletionTLRUCache
 
 
 class TestMockAgent:
@@ -35,9 +35,7 @@ class TestMockAgent:
     @freeze_time("2023-01-01 00:00:00")
     def test_tlru_cache_ttl(self) -> None:
 
-        cache = TLRUCache[List[ChatCompletionMessageParam], ChatCompletion](
-            maxsize=10, ttl=10, serialize_key_fn=json.dumps
-        )
+        cache = ChatCompletionTLRUCache(maxsize=10, ttl=10, serialize_key_fn=json.dumps)
 
         mock_gen = MockCompletionGenerator()
         agent = MockAgent(completion_fn=mock_gen.new_mock_completion, cache=cache)
