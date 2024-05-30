@@ -20,7 +20,7 @@ class TestMemGPTSummaryAgent:
         summary_opts = MemGPTSummarizeOpts(agent=agent, context_window=200)
         summary_agent = MemGPTSummaryAgent(summary_opts)
 
-        compl: ChatCompletion[BaseModel] = summary_agent.create_completion(
+        compl = summary_agent.create_completion(
             messages=[
                 smsg(
                     "You are a friendly AI customer support agent. You chat with a user to answer their questions"

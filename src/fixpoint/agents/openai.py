@@ -15,6 +15,7 @@ from typing import (
     Union,
     get_args,
     cast,
+    overload,
 )
 
 import openai
@@ -336,14 +337,40 @@ class OpenAI:
             # Forward attribute access to the underlying client
             return getattr(self._fixpcompletions, name)
 
+        @overload
         def create(
             self,
             messages: List[ChatCompletionMessageParam],
             *,
+            response_model: None = None,
             model: Optional[str] = None,
             tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
             tools: Optional[Iterable[ChatCompletionToolParam]] = None,
+            workflow: Optional[SupportsWorkflow] = None,
+            **kwargs: Any,
+        ) -> ChatCompletion[BaseModel]: ...
+
+        @overload
+        def create(
+            self,
+            messages: List[ChatCompletionMessageParam],
+            *,
+            response_model: Type[T_contra],
+            model: Optional[str] = None,
+            tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
+            tools: Optional[Iterable[ChatCompletionToolParam]] = None,
+            workflow: Optional[SupportsWorkflow] = None,
+            **kwargs: Any,
+        ) -> ChatCompletion[T_contra]: ...
+
+        def create(
+            self,
+            messages: List[ChatCompletionMessageParam],
+            *,
             response_model: Optional[Type[T_contra]] = None,
+            model: Optional[str] = None,
+            tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
+            tools: Optional[Iterable[ChatCompletionToolParam]] = None,
             workflow: Optional[SupportsWorkflow] = None,
             **kwargs: Any,
         ) -> ChatCompletion[T_contra]:

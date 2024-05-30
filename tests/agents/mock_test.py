@@ -19,7 +19,7 @@ class TestMockAgent:
         )
 
         assert mem.memory() == []
-        cmpl: ChatCompletion[BaseModel] = agent.create_completion(
+        cmpl = agent.create_completion(
             messages=[
                 messages.smsg("I am a system"),
                 messages.umsg("I am a user"),
@@ -49,7 +49,7 @@ class TestMockAgent:
             messages.smsg("I am a system"),
             messages.umsg("I am a user"),
         ]
-        cmpl: ChatCompletion[BaseModel] = agent.create_completion(messages=msgs)
+        cmpl = agent.create_completion(messages=msgs)
         assert cmpl.choices[0].message.content == "test 0"
         assert cache.currentsize == 1
         assert cache.maxsize == 10

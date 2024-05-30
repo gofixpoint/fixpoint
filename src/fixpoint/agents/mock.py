@@ -1,6 +1,16 @@
 """Code for mocking out agents for testing."""
 
-from typing import Any, Callable, Iterable, List, Optional, Type, TypeVar, cast
+from typing import (
+    Any,
+    Callable,
+    Iterable,
+    List,
+    Optional,
+    Type,
+    TypeVar,
+    cast,
+    overload,
+)
 
 from openai.types import CompletionUsage
 from openai.types.chat.chat_completion import (
@@ -48,6 +58,34 @@ class MockAgent(BaseAgent):
         self._completion_callbacks = completion_callbacks or []
         self._memory = memory
         self._cache = cache
+
+    @overload
+    def create_completion(
+        self,
+        *,
+        messages: List[ChatCompletionMessageParam],
+        response_model: None = None,
+        model: Optional[str] = None,
+        workflow: Optional[SupportsWorkflow] = None,
+        tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
+        tools: Optional[Iterable[ChatCompletionToolParam]] = None,
+        cache_mode: Optional[CacheMode] = None,
+        **kwargs: Any,
+    ) -> ChatCompletion[BaseModel]: ...
+
+    @overload
+    def create_completion(
+        self,
+        *,
+        messages: List[ChatCompletionMessageParam],
+        response_model: Type[T_contra],
+        model: Optional[str] = None,
+        workflow: Optional[SupportsWorkflow] = None,
+        tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
+        tools: Optional[Iterable[ChatCompletionToolParam]] = None,
+        cache_mode: Optional[CacheMode] = None,
+        **kwargs: Any,
+    ) -> ChatCompletion[T_contra]: ...
 
     def create_completion(
         self,

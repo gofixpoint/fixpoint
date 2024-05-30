@@ -18,7 +18,7 @@
 """MemGPT summarization code"""
 
 from dataclasses import dataclass
-from typing import Any, List, Optional, Type, TypeVar
+from typing import Any, List, Optional, Type, TypeVar, Union, overload
 
 from pydantic import BaseModel
 
@@ -53,15 +53,37 @@ class MemGPTSummaryAgent:
         self._agent = opts.agent
         self._messages = []
 
+    @overload
     def create_completion(
         self,
         *,
         messages: List[ChatCompletionMessageParam],
+        response_model: None = None,
         model: Optional[str] = None,
         workflow: Optional[SupportsWorkflow] = None,
-        response_model: Optional[Type[T]] = None,
         **kwargs: Any,
-    ) -> ChatCompletion[T]:
+    ) -> ChatCompletion[BaseModel]: ...
+
+    @overload
+    def create_completion(
+        self,
+        *,
+        messages: List[ChatCompletionMessageParam],
+        response_model: Type[T],
+        model: Optional[str] = None,
+        workflow: Optional[SupportsWorkflow] = None,
+        **kwargs: Any,
+    ) -> ChatCompletion[T]: ...
+
+    def create_completion(
+        self,
+        *,
+        messages: List[ChatCompletionMessageParam],
+        response_model: Optional[Type[T]] = None,
+        model: Optional[str] = None,
+        workflow: Optional[SupportsWorkflow] = None,
+        **kwargs: Any,
+    ) -> Union[ChatCompletion[T], ChatCompletion[BaseModel]]:
         """Create a chat completion, using historical (maybe summarized) messages in context"""
         # check if old messages + new messages is too long
         context_check = _ContextLengthCheck.from_opts_and_messages(
@@ -75,7 +97,7 @@ class MemGPTSummaryAgent:
             )
             self._messages = [{"role": "system", "content": summary}]
 
-        cmpl: ChatCompletion[T] = self._opts.agent.create_completion(
+        cmpl = self._opts.agent.create_completion(
             messages=self._messages + messages,
             model=model,
             workflow=workflow,
@@ -170,7 +192,7 @@ def memgpt_summarize(
         )
     message_sequence.append({"role": "user", "content": summary_input})
 
-    completion: ChatCompletion[BaseModel] = opts.agent.create_completion(
+    completion = opts.agent.create_completion(
         messages=message_sequence,
     )
     # technically, the content could be empty, but in practice it will not be
