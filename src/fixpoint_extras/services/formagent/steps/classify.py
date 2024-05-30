@@ -44,7 +44,7 @@ _FORM_TYPE_CHOICES: List[classification.Choice] = [
 
 
 _INTAKE_PROMPT = jinja2.Template(
-"""
+    """
 {{system_prefix}}
 
 {{instructions}}
@@ -58,7 +58,7 @@ _INTAKE_PROMPT = jinja2.Template(
         "You help users create interactive forms. You ask them what they are"
         " trying to do, and then you determine the best type of form they"
         " should use."
-    )
+    ),
 )
 
 
