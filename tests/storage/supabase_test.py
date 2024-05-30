@@ -2,8 +2,8 @@ from typing import Generator, Tuple, Any
 import pytest
 import psycopg
 from pydantic import BaseModel
+from .postgres_helper import drop_table
 from fixpoint.storage import SupabaseStorage
-from fixpoint.utils.db.postgres import drop_table
 from fixpoint.utils.env import get_env_value
 
 

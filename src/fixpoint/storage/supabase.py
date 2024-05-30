@@ -1,6 +1,7 @@
 """Supabase storage"""
 
 from typing import Any, Optional, TypeVar, List, Type
+from postgrest import SyncRequestBuilder  # type: ignore
 from supabase import create_client, Client
 from .protocol import SupportsStorage, SupportsToDict
 
@@ -9,6 +10,12 @@ V = TypeVar("V", bound=SupportsToDict)
 
 class SupabaseStorage(SupportsStorage[V]):
     """Supabase storage"""
+
+    _client: Client
+    _table: str
+    _order_key: str
+    _id_column: str
+    _value_type: Type[V]
 
     def __init__(
         self,
@@ -28,7 +35,7 @@ class SupabaseStorage(SupportsStorage[V]):
         except Exception as e:
             raise ConnectionError(f"Failed to connect to Supabase: {e}") from e
 
-    def _query_table(self) -> Any:
+    def _query_table(self) -> SyncRequestBuilder[dict[str, Any]]:
         return self._client.table(self._table)
 
     def _deserialize_results(self, results: list[dict[str, Any]]) -> List[V]:
