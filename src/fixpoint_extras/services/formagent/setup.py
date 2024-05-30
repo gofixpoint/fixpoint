@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 import logging
-from typing import Optional
+from typing import Mapping, Optional
 
 import fixpoint
 from fixpoint.cache import ChatCompletionCache
@@ -27,7 +27,11 @@ class WorkflowContext:
 
 
 def setup_workflow(
-    openai_key: str, model_name: str, cache: Optional[ChatCompletionCache] = None
+    openai_key: str,
+    model_name: str,
+    cache: Optional[ChatCompletionCache] = None,
+    openai_base_url: Optional[str] = None,
+    default_openai_headers: Optional[Mapping[str, str]] = None,
 ) -> WorkflowContext:
     """Set up the workflow context
 
@@ -39,7 +43,9 @@ def setup_workflow(
     tokenlogger = TikTokenLogger(model_name)
     agent = fixpoint.agents.OpenAIAgent(
         model_name=model_name,
-        openai_clients=OpenAIClients.from_api_key(openai_key),
+        openai_clients=OpenAIClients.from_api_key(
+            openai_key, base_url=openai_base_url, default_headers=default_openai_headers
+        ),
         memory=agent_mem,
         pre_completion_fns=[tokenlogger.tiktoken_logger],
         cache=cache,
