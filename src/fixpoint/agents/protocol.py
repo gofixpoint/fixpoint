@@ -1,6 +1,6 @@
 """A base protocol for agents"""
 
-from typing import Any, Callable, Iterable, List, Optional, Protocol, Type
+from typing import Any, Callable, Iterable, List, Optional, Protocol, Type, TypeVar
 
 from pydantic import BaseModel
 import tiktoken
@@ -16,6 +16,9 @@ from ..workflow import SupportsWorkflow
 from ._shared import CacheMode
 
 
+T_contra = TypeVar("T_contra", bound=BaseModel, contravariant=True)
+
+
 class BaseAgent(Protocol):
     """The base protocol for agents"""
 
@@ -25,12 +28,12 @@ class BaseAgent(Protocol):
         messages: List[ChatCompletionMessageParam],
         model: Optional[str] = None,
         workflow: Optional[SupportsWorkflow] = None,
-        response_model: Optional[Type[BaseModel]] = None,
+        response_model: Optional[Type[T_contra]] = None,
         tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
         tools: Optional[Iterable[ChatCompletionToolParam]] = None,
         cache_mode: Optional[CacheMode] = "normal",
         **kwargs: Any,
-    ) -> ChatCompletion:
+    ) -> ChatCompletion[T_contra]:
         """Create a completion
 
         The `model` argument is optional if the agent has a pre-defined model it
@@ -52,7 +55,9 @@ PreCompletionFn = Callable[
     [List[ChatCompletionMessageParam]], List[ChatCompletionMessageParam]
 ]
 
-CompletionCallback = Callable[[List[ChatCompletionMessageParam], ChatCompletion], None]
+CompletionCallback = Callable[
+    [List[ChatCompletionMessageParam], ChatCompletion[BaseModel]], None
+]
 
 
 class TikTokenLogger:

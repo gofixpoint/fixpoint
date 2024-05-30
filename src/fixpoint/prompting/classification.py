@@ -4,6 +4,7 @@ import json
 from typing import Any, Dict, List, Optional, TypedDict
 
 import jinja2
+from pydantic import BaseModel
 
 from ..completions import (
     ChatCompletionMessageParam,
@@ -79,11 +80,11 @@ def _make_cot_classes(choices: List[Choice]) -> List[Dict[str, Any]]:
 class ClassifiedChatCompletion:
     """A classified chat completion"""
 
-    completion: ChatCompletion
+    completion: ChatCompletion[BaseModel]
     chain_of_thought: str
     classification: str
 
-    def __init__(self, completion: ChatCompletion):
+    def __init__(self, completion: ChatCompletion[BaseModel]):
         self.completion = completion
         tool_calls = completion.choices[0].message.tool_calls
         if tool_calls is None:
@@ -103,7 +104,7 @@ def classify_message(
     model: Optional[str] = None,
     workflow: Optional[SupportsWorkflow] = None,
     cache_mode: Optional[CacheMode] = None
-) -> ChatCompletion:
+) -> ChatCompletion[BaseModel]:
     """Classify a user message
 
     agent: the agent to use for the classification

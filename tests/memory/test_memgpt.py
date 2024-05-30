@@ -1,5 +1,7 @@
 from typing import List
 
+from pydantic import BaseModel
+
 from fixpoint.memory import Memory
 from fixpoint.completions import ChatCompletion, ChatCompletionMessageParam
 from fixpoint.agents.mock import MockAgent, new_mock_completion
@@ -18,7 +20,7 @@ class TestMemGPTSummaryAgent:
         summary_opts = MemGPTSummarizeOpts(agent=agent, context_window=200)
         summary_agent = MemGPTSummaryAgent(summary_opts)
 
-        compl = summary_agent.create_completion(
+        compl: ChatCompletion[BaseModel] = summary_agent.create_completion(
             messages=[
                 smsg(
                     "You are a friendly AI customer support agent. You chat with a user to answer their questions"
@@ -58,7 +60,7 @@ def test_context_length_check() -> None:
     assert len(extra_messages) == 2
 
 
-def _completion_fn() -> ChatCompletion:
+def _completion_fn() -> ChatCompletion[BaseModel]:
     return new_mock_completion(
         "I am a friendly AI customer support agent here to assist you with any questions or issues you may have. How can I help you today?"
     )

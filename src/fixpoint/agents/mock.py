@@ -1,6 +1,6 @@
 """Code for mocking out agents for testing."""
 
-from typing import Any, Callable, Iterable, List, Optional, Type
+from typing import Any, Callable, Iterable, List, Optional, Type, TypeVar, cast
 
 from openai.types import CompletionUsage
 from openai.types.chat.chat_completion import (
@@ -23,10 +23,13 @@ from .protocol import BaseAgent, CompletionCallback, PreCompletionFn
 from ._shared import request_cached_completion, CacheMode
 
 
+T_contra = TypeVar("T_contra", bound=BaseModel, contravariant=True)
+
+
 class MockAgent(BaseAgent):
     """A mock agent for testing. Does not make inference requests."""
 
-    _completion_fn: Callable[[], ChatCompletion]
+    _completion_fn: Callable[[], ChatCompletion[BaseModel]]
     _pre_completion_fns: List[PreCompletionFn]
     _completion_callbacks: List[CompletionCallback]
     _memory: Optional[SupportsMemory] = None
@@ -34,7 +37,7 @@ class MockAgent(BaseAgent):
 
     def __init__(
         self,
-        completion_fn: Callable[[], ChatCompletion],
+        completion_fn: Callable[[], ChatCompletion[BaseModel]],
         pre_completion_fns: Optional[List[PreCompletionFn]] = None,
         completion_callbacks: Optional[List[CompletionCallback]] = None,
         memory: Optional[SupportsMemory] = None,
@@ -52,12 +55,12 @@ class MockAgent(BaseAgent):
         messages: List[ChatCompletionMessageParam],
         model: Optional[str] = None,
         workflow: Optional[SupportsWorkflow] = None,
-        response_model: Optional[Type[BaseModel]] = None,
+        response_model: Optional[Type[T_contra]] = None,
         tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
         tools: Optional[Iterable[ChatCompletionToolParam]] = None,
         cache_mode: Optional[CacheMode] = None,
         **kwargs: Any,
-    ) -> ChatCompletion:
+    ) -> ChatCompletion[T_contra]:
         for fn in self._pre_completion_fns:
             messages = fn(messages)
 
@@ -68,21 +71,26 @@ class MockAgent(BaseAgent):
             cache_mode=cache_mode,
             cache=self._cache,
             messages=messages,
-            completion_fn=self._completion_fn,
+            completion_fn=cast(
+                Callable[[], ChatCompletion[T_contra]], self._completion_fn
+            ),
             response_model=response_model,
         )
 
+        casted_cmpl = cast(ChatCompletion[BaseModel], cmpl)
         if self._memory:
             self._memory.store_memory(
-                messages=messages, completion=cmpl, workflow=workflow
+                messages=messages, completion=casted_cmpl, workflow=workflow
             )
-        self._trigger_completion_callbacks(messages, cmpl)
+        self._trigger_completion_callbacks(messages, casted_cmpl)
         return ChatCompletion.from_original_completion(
             original_completion=cmpl, structured_output=None
         )
 
     def _trigger_completion_callbacks(
-        self, messages: List[ChatCompletionMessageParam], completion: ChatCompletion
+        self,
+        messages: List[ChatCompletionMessageParam],
+        completion: ChatCompletion[BaseModel],
     ) -> None:
         for fn in self._completion_callbacks:
             fn(messages, completion)
@@ -103,7 +111,7 @@ _COMPLETION_ID = "chatcmpl-95LUxn8nTls6Ti5ES1D5LRXv4lwTg"
 _CREATED = 1711061307
 
 
-def new_mock_completion(content: Optional[str] = None) -> ChatCompletion:
+def new_mock_completion(content: Optional[str] = None) -> ChatCompletion[BaseModel]:
     """Create new mock completion"""
     return ChatCompletion.from_original_completion(new_mock_orig_completion(content))
 

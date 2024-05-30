@@ -37,19 +37,22 @@ class SupportsCache(Protocol[K_contra, V]):
         """Property to get the currentsize of the cache"""
 
 
+T = TypeVar("T", bound=BaseModel)
+
+
 # Pydantic models do not pickle well, so make a class that serializes and
 # deserializes the ChatCompletion. To do deserialization, we need to know the
 # BaseModel class to use.
 class SupportsChatCompletionCache(
-    SupportsCache[List[ChatCompletionMessageParam], ChatCompletion], Protocol
+    SupportsCache[List[ChatCompletionMessageParam], ChatCompletion[BaseModel]], Protocol
 ):
     """A cache protocol for chat completions"""
 
     def get(
         self,
         key: List[ChatCompletionMessageParam],
-        structured_data_cls: Optional[Type[BaseModel]] = None,
-    ) -> Union[ChatCompletion, None]:
+        response_model: Optional[Type[T]] = None,
+    ) -> Union[ChatCompletion[T], None]:
         """Retrieve an item by key, optionally populating the structured output field"""
 
 
