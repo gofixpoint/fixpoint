@@ -15,10 +15,11 @@ from ..completions import (
     ChatCompletionToolParam,
     ChatCompletionToolChoiceOptionParam,
 )
-from .protocol import BaseAgent, CompletionCallback, PreCompletionFn
 from ..memory import SupportsMemory
 from ..workflow import SupportsWorkflow
-from ..cache.protocol import SupportsCache
+from ..cache import ChatCompletionCache
+from .protocol import BaseAgent, CompletionCallback, PreCompletionFn
+from ._shared import request_cached_completion, CacheMode
 
 
 class MockAgent(BaseAgent):
@@ -28,6 +29,7 @@ class MockAgent(BaseAgent):
     _pre_completion_fns: List[PreCompletionFn]
     _completion_callbacks: List[CompletionCallback]
     _memory: Optional[SupportsMemory] = None
+    _cache_mode: CacheMode = "normal"
 
     def __init__(
         self,
@@ -35,9 +37,7 @@ class MockAgent(BaseAgent):
         pre_completion_fns: Optional[List[PreCompletionFn]] = None,
         completion_callbacks: Optional[List[CompletionCallback]] = None,
         memory: Optional[SupportsMemory] = None,
-        cache: Optional[
-            SupportsCache[List[ChatCompletionMessageParam], ChatCompletion]
-        ] = None,
+        cache: Optional[ChatCompletionCache] = None,
     ):
         self._completion_fn = completion_fn
         self._pre_completion_fns = pre_completion_fns or []
@@ -50,22 +50,25 @@ class MockAgent(BaseAgent):
         *,
         messages: List[ChatCompletionMessageParam],
         model: Optional[str] = None,
+        workflow: Optional[SupportsWorkflow] = None,
+        response_model: Optional[Any] = None,
         tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
         tools: Optional[Iterable[ChatCompletionToolParam]] = None,
-        response_model: Optional[Any] = None,
-        workflow: Optional[SupportsWorkflow] = None,
+        cache_mode: Optional[CacheMode] = None,
         **kwargs: Any,
     ) -> ChatCompletion:
         for fn in self._pre_completion_fns:
             messages = fn(messages)
 
-        if self._cache is not None:
-            cmpl = self._cache.get(messages)
-            if cmpl is None:
-                cmpl = self._completion_fn()
-                self._cache.set(messages, cmpl)
-        else:
-            cmpl = self._completion_fn()
+        if cache_mode is None:
+            cache_mode = self._cache_mode
+
+        cmpl = request_cached_completion(
+            cache_mode=cache_mode,
+            cache=self._cache,
+            messages=messages,
+            completion_fn=self._completion_fn,
+        )
 
         if self._memory:
             self._memory.store_memory(
@@ -84,6 +87,14 @@ class MockAgent(BaseAgent):
 
     def count_tokens(self, s: str) -> int:
         return 42
+
+    def set_cache_mode(self, mode: CacheMode) -> None:
+        """If the agent has a cache, set its cache mode"""
+        self._cache_mode = mode
+
+    def get_cache_mode(self) -> CacheMode:
+        """If the agent has a cache, set its cache mode"""
+        return self._cache_mode
 
 
 _COMPLETION_ID = "chatcmpl-95LUxn8nTls6Ti5ES1D5LRXv4lwTg"

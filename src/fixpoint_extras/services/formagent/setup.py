@@ -2,8 +2,10 @@
 
 from dataclasses import dataclass
 import logging
+from typing import Optional
 
 import fixpoint
+from fixpoint.cache import ChatCompletionCache
 from fixpoint.agents.protocol import TikTokenLogger
 from fixpoint.agents.openai import OpenAIClients
 from fixpoint.analyze.memory import DataframeMemory
@@ -21,9 +23,12 @@ class WorkflowContext:
     logger: logging.Logger
     memory: DataframeMemory
     workflow: fixpoint.workflow.SupportsWorkflow
+    cache: Optional[ChatCompletionCache]
 
 
-def setup_workflow(openai_key: str, model_name: str) -> WorkflowContext:
+def setup_workflow(
+    openai_key: str, model_name: str, cache: Optional[ChatCompletionCache] = None
+) -> WorkflowContext:
     """Set up the workflow context
 
     Set up the workflow context, which includes the workflow ojbect, the agent,
@@ -37,6 +42,7 @@ def setup_workflow(openai_key: str, model_name: str) -> WorkflowContext:
         openai_clients=OpenAIClients.from_api_key(openai_key),
         memory=agent_mem,
         pre_completion_fns=[tokenlogger.tiktoken_logger],
+        cache=cache,
     )
 
     workflow = fixpoint.workflow.Workflow(display_name="form filler agent workflow")
@@ -46,4 +52,5 @@ def setup_workflow(openai_key: str, model_name: str) -> WorkflowContext:
         memory=agent_mem,
         workflow=workflow,
         logger=logging.getLogger(f"fixpoint_workflow_{workflow.id}"),
+        cache=cache,
     )
