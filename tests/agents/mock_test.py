@@ -1,3 +1,4 @@
+import json
 from typing import List
 from freezegun import freeze_time
 
@@ -35,7 +36,7 @@ class TestMockAgent:
     def test_tlru_cache_ttl(self) -> None:
 
         cache = TLRUCache[List[ChatCompletionMessageParam], ChatCompletion](
-            maxsize=10, ttl=10
+            maxsize=10, ttl=10, serialize_key_fn=json.dumps
         )
 
         mock_gen = MockCompletionGenerator()

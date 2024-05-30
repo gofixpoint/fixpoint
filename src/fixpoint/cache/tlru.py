@@ -4,11 +4,10 @@ TLRU Cache
 
 import time
 from threading import RLock
-from typing import Union, Any
+from typing import Any, Callable, Union
 from cachetools import TLRUCache as CachetoolsTLRUCache
 
 from .protocol import SupportsCache, K_contra, V, SupportsTTLCacheItem
-from ._shared import hash_key
 
 
 class TLRUCacheItem(SupportsTTLCacheItem):
@@ -45,13 +44,15 @@ class TLRUCache(SupportsCache[K_contra, V]):
     TLRU Cache
     """
 
+    _ttl: float
+    _serialize_key_fn: Callable[[K_contra], str]
+    cache: CachetoolsTLRUCache[str, TLRUCacheItem]
+
     def __init__(
-        self,
-        maxsize: int,
-        ttl: float,
+        self, maxsize: int, ttl: float, serialize_key_fn: Callable[[K_contra], str]
     ) -> None:
 
-        def my_ttu(_key: int, value: SupportsTTLCacheItem, now: float) -> float:
+        def my_ttu(_key: str, value: SupportsTTLCacheItem, now: float) -> float:
             # assume value.ttl contains the item's time-to-live in seconds
             return now + value.ttl
 
@@ -61,15 +62,16 @@ class TLRUCache(SupportsCache[K_contra, V]):
 
         self.lock = RLock()
         self._ttl = ttl
+        self._serialize_key_fn = serialize_key_fn
 
-    def _hash_key(self, key: K_contra) -> int:
-        return hash_key(key)
+    def _serialize_key(self, key: K_contra) -> str:
+        return self._serialize_key_fn(key)
 
     def get(self, key: K_contra) -> Union[Any, None]:
         with self.lock:
             # Pre-emptively expire any expired items
             self.cache.expire()
-            _key_hash = self._hash_key(key)
+            _key_hash = self._serialize_key(key)
             item = self.cache.get(_key_hash)
             if item is not None:
                 return item.data
@@ -77,12 +79,12 @@ class TLRUCache(SupportsCache[K_contra, V]):
 
     def set(self, key: K_contra, value: V) -> None:
         with self.lock:
-            _key_hash = self._hash_key(key)
+            _key_hash = self._serialize_key(key)
             self.cache[_key_hash] = TLRUCacheItem(value, self._ttl)
 
     def delete(self, key: K_contra) -> None:
         with self.lock:
-            _key_hash = self._hash_key(key)
+            _key_hash = self._serialize_key(key)
             del self.cache[_key_hash]
 
     def clear(self) -> None:

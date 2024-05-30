@@ -1,3 +1,4 @@
+import json
 from freezegun import freeze_time
 from fixpoint.cache.tlru import TLRUCache
 
@@ -5,7 +6,7 @@ from fixpoint.cache.tlru import TLRUCache
 class TestTLRUCache:
 
     def test_tlru_cache_size_limits(self) -> None:
-        ttlCache = TLRUCache[str, str](maxsize=1, ttl=1000)
+        ttlCache = TLRUCache[str, str](maxsize=1, ttl=1000, serialize_key_fn=json.dumps)
         ttlCache.set("test", "a")
         ttlCache.set("test2", "b")
         ttlCache.set("test3", "c")
@@ -18,7 +19,7 @@ class TestTLRUCache:
 
     @freeze_time("2023-01-01")
     def test_tlru_cache_ttl(self) -> None:
-        ttlCache = TLRUCache[str, str](maxsize=1, ttl=10)
+        ttlCache = TLRUCache[str, str](maxsize=1, ttl=10, serialize_key_fn=json.dumps)
         ttlCache.set("test", "a")
         assert ttlCache.get("test") == "a"
 
