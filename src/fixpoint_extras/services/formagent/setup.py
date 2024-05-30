@@ -1,6 +1,5 @@
 """Set up the form agent workflow"""
 
-from dataclasses import dataclass
 import logging
 from typing import Mapping, Optional
 
@@ -9,21 +8,7 @@ from fixpoint.cache import ChatCompletionCache
 from fixpoint.agents.protocol import TikTokenLogger
 from fixpoint.agents.openai import OpenAIClients
 from fixpoint.analyze.memory import DataframeMemory
-
-
-@dataclass
-class WorkflowContext:
-    """Context for a workflow.
-
-    Holds all relevant context for a workflow. Pass this into every step
-    function of your workflow.
-    """
-
-    agent: fixpoint.agents.BaseAgent
-    logger: logging.Logger
-    memory: DataframeMemory
-    workflow: fixpoint.workflow.SupportsWorkflow
-    cache: Optional[ChatCompletionCache]
+from .workflowcontext import WorkflowContext
 
 
 def setup_workflow(
