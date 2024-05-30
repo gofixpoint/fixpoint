@@ -2,11 +2,13 @@
 
 from typing import List
 
-from ..completions import ChatCompletion, ChatCompletionMessageParam
-from .protocol import SupportsCache
-from .tlru import TLRUCache
-from .disktlru import DiskTLRUCache
+from .protocol import SupportsCache, SupportsChatCompletionCache
+from .tlru import ChatCompletionTLRUCache
+from .disktlru import ChatCompletionDiskTLRUCache
 
-ChatCompletionCache = SupportsCache[List[ChatCompletionMessageParam], ChatCompletion]
-
-__all__ = ["SupportsCache", "TLRUCache", "DiskTLRUCache", "ChatCompletionCache"]
+__all__ = [
+    "SupportsCache",
+    "ChatCompletionTLRUCache",
+    "ChatCompletionDiskTLRUCache",
+    "SupportsChatCompletionCache",
+]

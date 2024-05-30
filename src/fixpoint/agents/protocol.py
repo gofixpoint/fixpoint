@@ -1,7 +1,8 @@
 """A base protocol for agents"""
 
-from typing import Any, Callable, Iterable, List, Optional, Protocol
+from typing import Any, Callable, Iterable, List, Optional, Protocol, Type
 
+from pydantic import BaseModel
 import tiktoken
 
 from ..logging import logger
@@ -24,7 +25,7 @@ class BaseAgent(Protocol):
         messages: List[ChatCompletionMessageParam],
         model: Optional[str] = None,
         workflow: Optional[SupportsWorkflow] = None,
-        response_model: Optional[Any] = None,
+        response_model: Optional[Type[BaseModel]] = None,
         tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
         tools: Optional[Iterable[ChatCompletionToolParam]] = None,
         cache_mode: Optional[CacheMode] = "normal",

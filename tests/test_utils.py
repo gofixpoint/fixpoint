@@ -1,3 +1,5 @@
-class SampleStructure:
-    def __init__(self, name: str) -> None:
-        self.name = name
+from pydantic import BaseModel
+
+
+class SampleStructure(BaseModel):
+    name: str

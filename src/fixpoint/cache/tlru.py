@@ -4,10 +4,19 @@ TLRU Cache
 
 import time
 from threading import RLock
-from typing import Any, Callable, Union
+from typing import Any, Callable, List, Union, Optional, Type, cast
 from cachetools import TLRUCache as CachetoolsTLRUCache
 
-from .protocol import SupportsCache, K_contra, V, SupportsTTLCacheItem
+from pydantic import BaseModel
+
+from ..completions.chat_completion import ChatCompletion, ChatCompletionMessageParam
+from .protocol import (
+    SupportsCache,
+    K_contra,
+    V,
+    SupportsTTLCacheItem,
+    SupportsChatCompletionCache,
+)
 
 
 class TLRUCacheItem(SupportsTTLCacheItem):
@@ -106,3 +115,20 @@ class TLRUCache(SupportsCache[K_contra, V]):
         """
         with self.lock:
             return int(self.cache.maxsize)
+
+
+class ChatCompletionTLRUCache(
+    TLRUCache[List[ChatCompletionMessageParam], ChatCompletion],
+    SupportsChatCompletionCache,
+):
+    """A TLRU cache for LLM inference requests"""
+
+    def get(
+        self,
+        key: List[ChatCompletionMessageParam],
+        # pylint: disable=unused-argument
+        structured_data_cls: Optional[Type[BaseModel]] = None,
+    ) -> Union[ChatCompletion, None]:
+        # this cache doesn't need to serialize/deserialize anything because
+        # we're in the Python memory. So we can ignore the structured_data_cls
+        return cast(ChatCompletion, super().get(key))

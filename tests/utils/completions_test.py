@@ -14,7 +14,7 @@ class TestUtilsCompletions:
             _prompt: str, _response_type: SampleStructure
         ) -> tuple[SampleStructure, OpenAIChatCompletion]:
             completion = new_mock_orig_completion(content="I'm doing good.")
-            structure = SampleStructure("John")
+            structure = SampleStructure(name="John")
 
             # Return in order instructor expects them
             return structure, completion

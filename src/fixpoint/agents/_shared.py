@@ -1,8 +1,10 @@
 """Internal shared code for the "agents" module."""
 
-from typing import Callable, List, Optional, Literal
+from typing import Callable, List, Optional, Literal, Type
 
-from ..cache import ChatCompletionCache
+from pydantic import BaseModel
+
+from ..cache import SupportsChatCompletionCache
 from ..completions import ChatCompletionMessageParam, ChatCompletion
 
 
@@ -16,10 +18,11 @@ CacheMode = Literal["skip_lookup", "skip_all", "normal"]
 
 
 def request_cached_completion(
-    cache: Optional[ChatCompletionCache],
+    cache: Optional[SupportsChatCompletionCache],
     messages: List[ChatCompletionMessageParam],
     completion_fn: Callable[[], ChatCompletion],
     cache_mode: Optional[CacheMode],
+    response_model: Optional[Type[BaseModel]],
 ) -> ChatCompletion:
     """Request a completion and optionally lookup/store it in the cache.
 
@@ -33,7 +36,7 @@ def request_cached_completion(
 
     cmpl = None
     if cache_mode not in ("skip_lookup", "skip_all"):
-        cmpl = cache.get(messages)
+        cmpl = cache.get(messages, structured_data_cls=response_model)
     if cmpl is None:
         cmpl = completion_fn()
         if cache_mode != "skip_all":

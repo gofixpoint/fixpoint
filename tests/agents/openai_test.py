@@ -47,7 +47,7 @@ class TestAgents:
             messages: Any, response_model: Any
         ) -> tuple[SampleStructure, OpenAIChatCompletion]:
             completion = new_mock_orig_completion("I'm doing good.")
-            structure = SampleStructure("John")
+            structure = SampleStructure(name="John")
 
             # Return in order instructor expects them
             return structure, completion
@@ -71,4 +71,5 @@ class TestAgents:
 
             assert response.choices[0].message.content == "I'm doing good."
             assert response.fixp.structured_output is not None
+            assert isinstance(response.fixp.structured_output, SampleStructure)
             assert response.fixp.structured_output.name == "John"

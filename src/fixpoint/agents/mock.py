@@ -1,12 +1,13 @@
 """Code for mocking out agents for testing."""
 
-from typing import Any, Callable, Iterable, List, Optional
+from typing import Any, Callable, Iterable, List, Optional, Type
 
 from openai.types import CompletionUsage
 from openai.types.chat.chat_completion import (
     Choice as CompletionChoice,
     ChatCompletion as OpenAIChatCompletion,
 )
+from pydantic import BaseModel
 
 from ..completions import (
     ChatCompletion,
@@ -17,7 +18,7 @@ from ..completions import (
 )
 from ..memory import SupportsMemory
 from ..workflow import SupportsWorkflow
-from ..cache import ChatCompletionCache
+from ..cache import SupportsChatCompletionCache
 from .protocol import BaseAgent, CompletionCallback, PreCompletionFn
 from ._shared import request_cached_completion, CacheMode
 
@@ -37,7 +38,7 @@ class MockAgent(BaseAgent):
         pre_completion_fns: Optional[List[PreCompletionFn]] = None,
         completion_callbacks: Optional[List[CompletionCallback]] = None,
         memory: Optional[SupportsMemory] = None,
-        cache: Optional[ChatCompletionCache] = None,
+        cache: Optional[SupportsChatCompletionCache] = None,
     ):
         self._completion_fn = completion_fn
         self._pre_completion_fns = pre_completion_fns or []
@@ -51,7 +52,7 @@ class MockAgent(BaseAgent):
         messages: List[ChatCompletionMessageParam],
         model: Optional[str] = None,
         workflow: Optional[SupportsWorkflow] = None,
-        response_model: Optional[Any] = None,
+        response_model: Optional[Type[BaseModel]] = None,
         tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
         tools: Optional[Iterable[ChatCompletionToolParam]] = None,
         cache_mode: Optional[CacheMode] = None,
@@ -68,6 +69,7 @@ class MockAgent(BaseAgent):
             cache=self._cache,
             messages=messages,
             completion_fn=self._completion_fn,
+            response_model=response_model,
         )
 
         if self._memory:
