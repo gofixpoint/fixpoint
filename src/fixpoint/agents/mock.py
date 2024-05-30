@@ -69,7 +69,7 @@ class MockAgent(BaseAgent):
             cache=self._cache,
             messages=messages,
             completion_fn=self._completion_fn,
-            structured_output_cls=response_model,
+            response_model=response_model,
         )
 
         if self._memory:

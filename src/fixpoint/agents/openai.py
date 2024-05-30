@@ -157,7 +157,7 @@ class OpenAIAgent(BaseAgent):
             messages=messages,
             completion_fn=_wrapped_completion_fn,
             cache_mode=cache_mode,
-            structured_output_cls=response_model,
+            response_model=response_model,
         )
 
         if self._memory is not None:

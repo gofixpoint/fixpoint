@@ -22,7 +22,7 @@ def request_cached_completion(
     messages: List[ChatCompletionMessageParam],
     completion_fn: Callable[[], ChatCompletion],
     cache_mode: Optional[CacheMode],
-    structured_output_cls: Optional[Type[BaseModel]],
+    response_model: Optional[Type[BaseModel]],
 ) -> ChatCompletion:
     """Request a completion and optionally lookup/store it in the cache.
 
@@ -36,7 +36,7 @@ def request_cached_completion(
 
     cmpl = None
     if cache_mode not in ("skip_lookup", "skip_all"):
-        cmpl = cache.get(messages, structured_data_cls=structured_output_cls)
+        cmpl = cache.get(messages, structured_data_cls=response_model)
     if cmpl is None:
         cmpl = completion_fn()
         if cache_mode != "skip_all":

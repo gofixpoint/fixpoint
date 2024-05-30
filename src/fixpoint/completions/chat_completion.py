@@ -25,11 +25,6 @@ def _raw_set_attr(obj: Any, name: str, value: Any) -> None:
     object.__setattr__(obj, name, value)
 
 
-# value.to_json()
-# value.model_dump_json()
-# value.model_validate_json()
-
-
 class ChatCompletion(OpenAIChatCompletion):
     """
     A class that wraps a completion with a Fixpoint completion.
