@@ -1,11 +1,11 @@
 """Supabase storage"""
 
-from typing import Any, Optional, TypeVar, List, Type
+from typing import Any, Optional, TypeVar, List, Type, Union
 from postgrest import SyncRequestBuilder  # type: ignore
 from supabase import create_client, Client
-from .protocol import SupportsStorage, SupportsToDict
+from .protocol import SupportsStorage, SupportsSupabaseSerialization
 
-V = TypeVar("V", bound=SupportsToDict)
+V = TypeVar("V", bound=SupportsSupabaseSerialization[Any])
 
 
 class SupabaseStorage(SupportsStorage[V]):
@@ -39,12 +39,19 @@ class SupabaseStorage(SupportsStorage[V]):
         return self._client.table(self._table)
 
     def _deserialize_results(self, results: list[dict[str, Any]]) -> List[V]:
-        return [self._value_type(**item) for item in results]
+        return [self._value_type.deserialize(data=item) for item in results]
 
     def _pick_first(self, results: List[V]) -> V:
+        """Pick the first item from the results"""
         if results:
             return results[0]
         raise ValueError("No results found")
+
+    def _pick_first_optional(self, results: List[V]) -> Optional[V]:
+        """Pick the first item from the results"""
+        if results:
+            return results[0]
+        return None
 
     def fetch_latest(self, n: Optional[int] = None) -> List[V]:
         """Fetch the latest n items from the storage"""
@@ -58,13 +65,13 @@ class SupabaseStorage(SupportsStorage[V]):
         except Exception as e:
             raise RuntimeError(f"Failed to fetch latest data: {e}") from e
 
-    def fetch(self, resource_id: Any) -> V:
+    def fetch(self, resource_id: Any) -> Union[V, None]:
         """Fetch data items from storage"""
         try:
             query = self._query_table().select("*")
             resp = query.eq(self._id_column, resource_id).execute()
             results = self._deserialize_results(resp.data)
-            return self._pick_first(results)
+            return self._pick_first_optional(results)
         except Exception as e:
             raise RuntimeError(f"Failed to fetch data: {e}") from e
 
@@ -72,7 +79,7 @@ class SupabaseStorage(SupportsStorage[V]):
         """Insert data items to storage"""
         try:
             query = self._query_table()
-            resp = query.insert(data.to_dict()).execute()
+            resp = query.insert(data.serialize()).execute()
             results = self._deserialize_results(resp.data)
             return self._pick_first(results)
         except Exception as e:
@@ -85,7 +92,7 @@ class SupabaseStorage(SupportsStorage[V]):
         """Update items in storage (uses upsert)"""
         try:
             query = self._query_table()
-            resp = query.upsert(data.to_dict()).execute()
+            resp = query.upsert(data.serialize()).execute()
             results = self._deserialize_results(resp.data)
             return self._pick_first(results)
         except Exception as e:

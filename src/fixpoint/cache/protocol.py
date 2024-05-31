@@ -70,9 +70,6 @@ class SupportCacheItem(Protocol[V_co]):
     def value(self) -> V_co:
         """Property to get the data of the item"""
 
-    def to_dict(self) -> dict[str, Any]:
-        """Method to get the dictionary representation of the item"""
-
 
 class SupportsTTLCacheItem(SupportCacheItem[V_co], Protocol):
     """Protocol for a Time-Limited LRU cache item"""
@@ -82,5 +79,5 @@ class SupportsTTLCacheItem(SupportCacheItem[V_co], Protocol):
         """Property to get the TTL of the item"""
 
     @property
-    def created_at(self) -> float:
-        """Property to get the creation time of the item"""
+    def expired_at(self) -> float:
+        """Property to get the expiration time of the item"""
