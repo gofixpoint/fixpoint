@@ -1,12 +1,13 @@
 """The form agent step to questions about creating an invoice"""
 
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 
 from pydantic import BaseModel, Field
 
-from fixpoint.completions import ChatCompletion
+from fixpoint.completions import ChatCompletion, ChatCompletionMessageParam
 
 from ..workflowcontext import WorkflowContext
+from ..controllers.infogather import InfoGatherer
 from ._shared import SYSTEM_PREFIX
 
 
@@ -36,20 +37,46 @@ class InvoiceQuestions(BaseModel):
     )
 
 
+def gather_invoice_info(
+    wfctx: WorkflowContext,
+    info_gatherer: InfoGatherer[InvoiceQuestions],
+    user_message: str,
+) -> Tuple[InvoiceQuestions, ChatCompletion[InvoiceQuestions]]:
+    """Gather the invoice information from the user."""
+    completion = info_gatherer.process_messages(
+        _make_invoice_msgs(user_message),
+        agent=wfctx.agent,
+    )
+    sout = _validate_completion(completion)
+    return sout, completion
+
+
 def answer_invoice_questions(
     wfctx: WorkflowContext, user_message: str
 ) -> Tuple[InvoiceQuestions, ChatCompletion[InvoiceQuestions]]:
     """Answer the questions about the invoice."""
     completion = wfctx.agent.create_completion(
-        messages=[
-            {"role": "system", "content": SYSTEM_PREFIX},
-            {"role": "user", "content": user_message},
-        ],
+        messages=_make_invoice_msgs(user_message),
         response_model=InvoiceQuestions,
     )
+    sout = _validate_completion(completion)
+    return sout, completion
+
+
+def _validate_completion(
+    completion: ChatCompletion[InvoiceQuestions],
+) -> InvoiceQuestions:
+    """Validate the completion and return the invoice questions."""
     sout = completion.fixp.structured_output
     if sout is None:
         raise ValueError("No structured output found")
     if not isinstance(sout, InvoiceQuestions):
         raise ValueError("Structured output is not an instance of InvoiceQuestions")
-    return sout, completion
+    return sout
+
+
+def _make_invoice_msgs(user_msg: str) -> List[ChatCompletionMessageParam]:
+    return [
+        {"role": "system", "content": SYSTEM_PREFIX},
+        {"role": "user", "content": user_msg},
+    ]
