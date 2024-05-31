@@ -31,13 +31,13 @@ class TLRUCacheItem(SupportsTTLCacheItem[V]):
     _serialize_fn: Callable[[Any], str]
 
     def __init__(
-        self, key: Any, value: V, ttl: float, _serialize_fn: Callable[[Any], str]
+        self, key: Any, value: V, ttl: float, serialize_fn: Callable[[Any], str]
     ) -> None:
         self._key = key
         self._value = value
         self._ttl = ttl
         self._created_at = time.monotonic()
-        self._serialize_fn = _serialize_fn
+        self._serialize_fn = serialize_fn
 
     def __repr__(self) -> str:
         return (
@@ -50,8 +50,8 @@ class TLRUCacheItem(SupportsTTLCacheItem[V]):
         return self._key
 
     @key.setter
-    def key(self, value: K_contra) -> None:
-        self._key = value
+    def key(self, key: K_contra) -> None:
+        self._key = key
 
     @property
     def value(self) -> V:
@@ -66,8 +66,8 @@ class TLRUCacheItem(SupportsTTLCacheItem[V]):
         return self._ttl
 
     @ttl.setter
-    def ttl(self, value: float) -> None:
-        self._ttl = value
+    def ttl(self, ttl: float) -> None:
+        self._ttl = ttl
 
     @property
     def created_at(self) -> float:
@@ -77,7 +77,7 @@ class TLRUCacheItem(SupportsTTLCacheItem[V]):
     def to_dict(self) -> dict[str, Any]:
         """Convert the item to a dictionary"""
         return {
-            "key": self._key,
+            "key": self._serialize_fn(self._key),
             "value": self._serialize_fn(self._value),
             "ttl": self._ttl,
             "created_at": self._created_at,
@@ -116,23 +116,21 @@ class TLRUCache(SupportsCache[K_contra, V]):
         with self.lock:
             # Pre-emptively expire any expired items
             self.cache.expire()
-            _key_hash = self._serialize_key(key)
-            item = self.cache.get(_key_hash)
+            _key = self._serialize_key(key)
+            item = self.cache.get(_key)
             if item is not None:
                 return item.value
             return None
 
     def set(self, key: K_contra, value: V) -> None:
         with self.lock:
-            _key_hash = self._serialize_key(key)
-            self.cache[_key_hash] = TLRUCacheItem(
-                key, value, self._ttl, self._serialize_key
-            )
+            _key = self._serialize_key(key)
+            self.cache[_key] = TLRUCacheItem(key, value, self._ttl, self._serialize_key)
 
     def delete(self, key: K_contra) -> None:
         with self.lock:
-            _key_hash = self._serialize_key(key)
-            del self.cache[_key_hash]
+            _key = self._serialize_key(key)
+            del self.cache[_key]
 
     def clear(self) -> None:
         with self.lock:
