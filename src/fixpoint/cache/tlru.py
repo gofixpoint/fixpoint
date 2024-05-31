@@ -19,25 +19,47 @@ from .protocol import (
 )
 
 
-class TLRUCacheItem(SupportsTTLCacheItem):
+class TLRUCacheItem(SupportsTTLCacheItem[V]):
     """
     TLRU Cache Item
     """
 
-    def __init__(self, data: Any, ttl: float) -> None:
-        self._data = data
+    _key: Any
+    _value: V
+    _ttl: float
+    _created_at: float
+    _serialize_fn: Callable[[Any], str]
+
+    def __init__(
+        self, key: Any, value: V, ttl: float, _serialize_fn: Callable[[Any], str]
+    ) -> None:
+        self._key = key
+        self._value = value
         self._ttl = ttl
+        self._created_at = time.monotonic()
+        self._serialize_fn = _serialize_fn
 
     def __repr__(self) -> str:
-        return f"Item(data={self.data}, ttl={self.ttl})"
+        return (
+            f"Item(key={self.key}, value={self.value}, "
+            f"ttl={self.ttl}, created_at={self._created_at})"
+        )
 
     @property
-    def data(self) -> Any:
-        return self._data
+    def key(self) -> Any:
+        return self._key
 
-    @data.setter
-    def data(self, value: V) -> None:
-        self._data = value
+    @key.setter
+    def key(self, value: K_contra) -> None:
+        self._key = value
+
+    @property
+    def value(self) -> V:
+        return self._value
+
+    @value.setter
+    def value(self, value: V) -> None:
+        self._value = value
 
     @property
     def ttl(self) -> float:
@@ -47,6 +69,20 @@ class TLRUCacheItem(SupportsTTLCacheItem):
     def ttl(self, value: float) -> None:
         self._ttl = value
 
+    @property
+    def created_at(self) -> float:
+        """Property to get the creation time of the item"""
+        return self._created_at
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert the item to a dictionary"""
+        return {
+            "key": self._key,
+            "value": self._serialize_fn(self._value),
+            "ttl": self._ttl,
+            "created_at": self._created_at,
+        }
+
 
 class TLRUCache(SupportsCache[K_contra, V]):
     """
@@ -55,13 +91,13 @@ class TLRUCache(SupportsCache[K_contra, V]):
 
     _ttl: float
     _serialize_key_fn: Callable[[K_contra], str]
-    cache: CachetoolsTLRUCache[str, TLRUCacheItem]
+    cache: CachetoolsTLRUCache[str, TLRUCacheItem[V]]
 
     def __init__(
         self, maxsize: int, ttl: float, serialize_key_fn: Callable[[K_contra], str]
     ) -> None:
 
-        def my_ttu(_key: str, value: SupportsTTLCacheItem, now: float) -> float:
+        def my_ttu(_key: str, value: SupportsTTLCacheItem[V], now: float) -> float:
             # assume value.ttl contains the item's time-to-live in seconds
             return now + value.ttl
 
@@ -83,13 +119,15 @@ class TLRUCache(SupportsCache[K_contra, V]):
             _key_hash = self._serialize_key(key)
             item = self.cache.get(_key_hash)
             if item is not None:
-                return item.data
+                return item.value
             return None
 
     def set(self, key: K_contra, value: V) -> None:
         with self.lock:
             _key_hash = self._serialize_key(key)
-            self.cache[_key_hash] = TLRUCacheItem(value, self._ttl)
+            self.cache[_key_hash] = TLRUCacheItem(
+                key, value, self._ttl, self._serialize_key
+            )
 
     def delete(self, key: K_contra) -> None:
         with self.lock:
