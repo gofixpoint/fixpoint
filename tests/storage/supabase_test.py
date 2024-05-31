@@ -1,67 +1,31 @@
-from typing import Generator, Tuple, Any
+from typing import Tuple, Any
 import pytest
-import psycopg
 from pydantic import BaseModel
-from .postgres_helper import drop_table
 from fixpoint.storage import SupabaseStorage
-from fixpoint.utils.env import get_env_value
+from ..supabase_test_utils import test_inputs
 
 
 @pytest.mark.skip(reason="Disabled until we have a supabase instance running in CI")
 class TestSupabaseStorage:
 
-    @staticmethod
-    @pytest.fixture
-    def test_inputs() -> Generator[Tuple[str, str], None, None]:
-        url = get_env_value("SUPABASE_URL")
-        key: str = get_env_value("SUPABASE_KEY")
-        pg_url = get_env_value("POSTGRES_URL")
+    @pytest.mark.parametrize(
+        "test_inputs",
+        [
+            (
+                f"""
+        CREATE TABLE IF NOT EXISTS public.person_table (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(150),
+            age INT
+        );
 
-        TestSupabaseStorage._setup_test_tables(pg_url)
-        yield url, key
-        TestSupabaseStorage._teardown_test_tables(pg_url)
-
-    @staticmethod
-    def _setup_test_tables(pg_url: str) -> None:
-        try:
-            conn = psycopg.connect(
-                conninfo=pg_url,
+        TRUNCATE TABLE public.person_table
+        """,
+                "public.person_table",
             )
-
-            cur = conn.cursor()
-
-            sql_command = """
-            CREATE TABLE IF NOT EXISTS public.person_table (
-                id SERIAL PRIMARY KEY,
-                name VARCHAR(150),
-                age INT
-            );
-
-            TRUNCATE TABLE public.person_table
-            """
-            cur.execute(sql_command)
-
-            conn.commit()
-        except Exception as e:
-            print(f"Error creating test table: {e}")
-            conn.close()
-            raise e
-        finally:
-            cur.close()
-            conn.close()
-
-    @staticmethod
-    def _teardown_test_tables(pg_url: str) -> None:
-        try:
-            conn = psycopg.connect(
-                conninfo=pg_url,
-            )
-            drop_table(conn, "public.person_table")
-        except Exception as e:
-            print("An error occurred:", e)
-        finally:
-            conn.close()
-
+        ],
+        indirect=True,
+    )
     def test_client_instantiation(self, test_inputs: Tuple[str, str]) -> None:
         url, key = test_inputs
 
