@@ -18,7 +18,9 @@
 """MemGPT summarization code"""
 
 from dataclasses import dataclass
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Type, TypeVar, Union, overload
+
+from pydantic import BaseModel
 
 from ..logging import logger
 from ..agents.protocol import BaseAgent
@@ -32,6 +34,9 @@ class MemGPTSummarizeOpts:
 
     agent: BaseAgent
     context_window: int
+
+
+T = TypeVar("T", bound=BaseModel)
 
 
 # TODO(dbmikus) allow system message prefixes + postfixes that are never summarized
@@ -48,15 +53,37 @@ class MemGPTSummaryAgent:
         self._agent = opts.agent
         self._messages = []
 
+    @overload
     def create_completion(
         self,
         *,
         messages: List[ChatCompletionMessageParam],
+        response_model: None = None,
         model: Optional[str] = None,
         workflow: Optional[SupportsWorkflow] = None,
-        response_model: Optional[Any] = None,
         **kwargs: Any,
-    ) -> ChatCompletion:
+    ) -> ChatCompletion[BaseModel]: ...
+
+    @overload
+    def create_completion(
+        self,
+        *,
+        messages: List[ChatCompletionMessageParam],
+        response_model: Type[T],
+        model: Optional[str] = None,
+        workflow: Optional[SupportsWorkflow] = None,
+        **kwargs: Any,
+    ) -> ChatCompletion[T]: ...
+
+    def create_completion(
+        self,
+        *,
+        messages: List[ChatCompletionMessageParam],
+        response_model: Optional[Type[T]] = None,
+        model: Optional[str] = None,
+        workflow: Optional[SupportsWorkflow] = None,
+        **kwargs: Any,
+    ) -> Union[ChatCompletion[T], ChatCompletion[BaseModel]]:
         """Create a chat completion, using historical (maybe summarized) messages in context"""
         # check if old messages + new messages is too long
         context_check = _ContextLengthCheck.from_opts_and_messages(

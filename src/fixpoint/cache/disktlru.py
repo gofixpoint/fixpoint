@@ -1,7 +1,7 @@
 """A TLRU cache that stores items on disk"""
 
 import tempfile
-from typing import List, Optional, Union, Type, cast
+from typing import List, Optional, Union, Type, TypeVar, cast
 
 import diskcache
 from pydantic import BaseModel
@@ -75,15 +75,20 @@ class DiskTLRUCache(SupportsCache[K_contra, V]):
         return cast(int, self._cache.volume())
 
 
+T = TypeVar("T", bound=BaseModel)
+
+
 # Pydantic models do not pickle well, so make a class that serializes and
 # deserializes the ChatCompletion
 class ChatCompletionDiskTLRUCache(
-    DiskTLRUCache[List[ChatCompletionMessageParam], ChatCompletion],
+    DiskTLRUCache[List[ChatCompletionMessageParam], ChatCompletion[BaseModel]],
     SupportsChatCompletionCache,
 ):
     """A TLRU cache that stores chat completions on disk"""
 
-    def set(self, key: List[ChatCompletionMessageParam], value: ChatCompletion) -> None:
+    def set(
+        self, key: List[ChatCompletionMessageParam], value: ChatCompletion[T]
+    ) -> None:
         """Set an item by key"""
         logger.debug("Setting key: %s", key)
         value_str = value.serialize_json()
@@ -92,8 +97,8 @@ class ChatCompletionDiskTLRUCache(
     def get(
         self,
         key: List[ChatCompletionMessageParam],
-        structured_data_cls: Optional[Type[BaseModel]] = None,
-    ) -> Union[ChatCompletion, None]:
+        response_model: Optional[Type[T]] = None,
+    ) -> Union[ChatCompletion[T], None]:
         """Retrieve an item by key"""
         val_str = self._cache.get(key)
         if val_str is None:
@@ -101,7 +106,5 @@ class ChatCompletionDiskTLRUCache(
             return None
 
         logger.debug("Cache hit for key: %s", key)
-        val = ChatCompletion.deserialize_json(
-            val_str, structured_data_model_cls=structured_data_cls
-        )
+        val = ChatCompletion[T].deserialize_json(val_str, response_model=response_model)
         return val

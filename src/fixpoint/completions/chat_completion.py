@@ -3,7 +3,7 @@ LLM ChatCompletions
 """
 
 import json
-from typing import Any, Optional, List, Literal, Type
+from typing import Any, Optional, List, Literal, Type, TypeVar, Generic
 
 from pydantic import Field, PrivateAttr, BaseModel
 from openai.types.completion_usage import CompletionUsage
@@ -25,20 +25,24 @@ def _raw_set_attr(obj: Any, name: str, value: Any) -> None:
     object.__setattr__(obj, name, value)
 
 
-class ChatCompletion(OpenAIChatCompletion):
+T = TypeVar("T", bound=BaseModel)
+Tinner = TypeVar("Tinner", bound=BaseModel)
+
+
+class ChatCompletion(Generic[T], OpenAIChatCompletion):
     """
     A class that wraps a completion with a Fixpoint completion.
     """
 
     _original_completion: OpenAIChatCompletion = PrivateAttr()
-    fixp: "ChatCompletion.Fixp" = Field(exclude=True)
+    fixp: "ChatCompletion.Fixp[T]" = Field(exclude=True)
 
-    class Fixp:
+    class Fixp(Generic[Tinner]):
         """
         A class that represents a Fixpoint completion.
         """
 
-        structured_output: Optional[BaseModel]
+        structured_output: Optional[Tinner]
 
         def __init__(self, structured_output: Optional[Any] = None) -> None:
             self.structured_output = structured_output
@@ -56,7 +60,7 @@ class ChatCompletion(OpenAIChatCompletion):
         system_fingerprint: Optional[str] = None,
         usage: Optional[CompletionUsage] = None,
         # we added these
-        structured_output: Optional[BaseModel] = None
+        structured_output: Optional[T] = None
     ) -> None:
         # Normally, we should call the superclass here, but since we are doing a
         # weird implementation where we pass calls through to the parent via the
@@ -77,8 +81,8 @@ class ChatCompletion(OpenAIChatCompletion):
     def from_original_completion(
         cls,
         original_completion: OpenAIChatCompletion,
-        structured_output: Optional[BaseModel] = None,
-    ) -> "ChatCompletion":
+        structured_output: Optional[T] = None,
+    ) -> "ChatCompletion[T]":
         """
         Create a new ChatCompletion from an original completion.
         """
@@ -109,16 +113,16 @@ class ChatCompletion(OpenAIChatCompletion):
     def deserialize_json(
         cls,
         json_string: str,
-        structured_data_model_cls: Optional[Type[BaseModel]] = None,
-    ) -> "ChatCompletion":
+        response_model: Optional[Type[T]] = None,
+    ) -> "ChatCompletion[T]":
         """Load a JSON string into a ChatCompletion object"""
         loaded = json.loads(json_string)
         fixploaded = loaded["fixp"]
         del loaded["fixp"]
 
         orig_completion = OpenAIChatCompletion.model_validate(loaded)
-        if structured_data_model_cls:
-            structured_output = structured_data_model_cls.model_validate(
+        if response_model:
+            structured_output = response_model.model_validate(
                 fixploaded["structured_output"]
             )
         else:

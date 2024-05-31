@@ -1,6 +1,6 @@
 """Internal shared code for the "agents" module."""
 
-from typing import Callable, List, Optional, Literal, Type
+from typing import Callable, List, Optional, Literal, Type, TypeVar, cast
 
 from pydantic import BaseModel
 
@@ -17,13 +17,16 @@ from ..completions import ChatCompletionMessageParam, ChatCompletion
 CacheMode = Literal["skip_lookup", "skip_all", "normal"]
 
 
+T = TypeVar("T", bound=BaseModel)
+
+
 def request_cached_completion(
     cache: Optional[SupportsChatCompletionCache],
     messages: List[ChatCompletionMessageParam],
-    completion_fn: Callable[[], ChatCompletion],
+    completion_fn: Callable[[], ChatCompletion[T]],
     cache_mode: Optional[CacheMode],
-    response_model: Optional[Type[BaseModel]],
-) -> ChatCompletion:
+    response_model: Optional[Type[T]],
+) -> ChatCompletion[T]:
     """Request a completion and optionally lookup/store it in the cache.
 
     completion_fn should be a function that takes no arguments and returns a
@@ -36,10 +39,14 @@ def request_cached_completion(
 
     cmpl = None
     if cache_mode not in ("skip_lookup", "skip_all"):
-        cmpl = cache.get(messages, structured_data_cls=response_model)
+        cmpl = cache.get(messages, response_model=response_model)
     if cmpl is None:
         cmpl = completion_fn()
         if cache_mode != "skip_all":
-            cache.set(messages, cmpl)
+            # cast the type to resolve this error:
+            #
+            #     Argument 2 to "set" of "SupportsCache" has incompatible type
+            #     "ChatCompletion[T]"; expected "ChatCompletion[BaseModel]"
+            cache.set(messages, cast(ChatCompletion[BaseModel], cmpl))
 
     return cmpl

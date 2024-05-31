@@ -2,6 +2,8 @@ import json
 from typing import List
 from freezegun import freeze_time
 
+from pydantic import BaseModel
+
 from fixpoint.completions import ChatCompletion, ChatCompletionMessageParam
 from fixpoint.agents.mock import MockAgent, new_mock_completion
 from fixpoint.memory import Memory
@@ -74,7 +76,7 @@ class MockCompletionGenerator:
     def __init__(self) -> None:
         self._num = 0
 
-    def new_mock_completion(self) -> ChatCompletion:
+    def new_mock_completion(self) -> ChatCompletion[BaseModel]:
         cmpl = new_mock_completion(content=f"test {self._num}")
         self._num += 1
         return cmpl

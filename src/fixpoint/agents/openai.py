@@ -4,7 +4,19 @@ interaction between the user and OpenAI.
 """
 
 from dataclasses import dataclass
-from typing import Any, Iterable, List, Mapping, Optional, Type, Union, get_args, cast
+from typing import (
+    Any,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Type,
+    TypeVar,
+    Union,
+    get_args,
+    cast,
+    overload,
+)
 
 import openai
 from pydantic import BaseModel
@@ -83,6 +95,9 @@ class OpenAIClients:
     #         instructor_client.default_headers = default_headers
 
 
+T_contra = TypeVar("T_contra", bound=BaseModel, contravariant=True)
+
+
 class OpenAIAgent(BaseAgent):
     """
     An agent that follows our BaseAgent protocol, but interacts with OpenAI.
@@ -124,12 +139,12 @@ class OpenAIAgent(BaseAgent):
         messages: List[ChatCompletionMessageParam],
         model: Optional[str] = None,
         workflow: Optional[SupportsWorkflow] = None,
-        response_model: Optional[Type[BaseModel]] = None,
+        response_model: Optional[Type[T_contra]] = None,
         tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
         tools: Optional[Iterable[ChatCompletionToolParam]] = None,
         cache_mode: Optional[CacheMode] = None,
         **kwargs: Any,
-    ) -> ChatCompletion:
+    ) -> ChatCompletion[T_contra]:
         """Create a completion"""
         if "stream" in kwargs and kwargs["stream"]:
             raise ValueError("Streaming is not supported yet.")
@@ -140,7 +155,7 @@ class OpenAIAgent(BaseAgent):
         # constructed the agent with.
         mymodel = model or self.model_name
 
-        def _wrapped_completion_fn() -> ChatCompletion:
+        def _wrapped_completion_fn() -> ChatCompletion[T_contra]:
             return self._request_completion(
                 messages,
                 mymodel,
@@ -160,20 +175,21 @@ class OpenAIAgent(BaseAgent):
             response_model=response_model,
         )
 
+        basemodel_fixp_completion = cast(ChatCompletion[BaseModel], fixp_completion)
         if self._memory is not None:
-            self._memory.store_memory(messages, fixp_completion, workflow)
-        self._trigger_completion_callbacks(messages, fixp_completion)
+            self._memory.store_memory(messages, basemodel_fixp_completion, workflow)
+        self._trigger_completion_callbacks(messages, basemodel_fixp_completion)
         return fixp_completion
 
     def _request_completion(
         self,
         messages: List[ChatCompletionMessageParam],
         model: str,
-        response_model: Optional[Type[BaseModel]] = None,
+        response_model: Optional[Type[T_contra]] = None,
         tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
         tools: Optional[Iterable[ChatCompletionToolParam]] = None,
         **kwargs: Any,
-    ) -> ChatCompletion:
+    ) -> ChatCompletion[T_contra]:
         if response_model is None:
             compl = self._openai_clients.openai.chat.completions.create(
                 messages=messages,
@@ -237,7 +253,9 @@ class OpenAIAgent(BaseAgent):
     # `self.chat.completions.create` because that is a blind pass-through call
     # to the OpenAI client class, so we have no way to control it.
     def _trigger_completion_callbacks(
-        self, messages: List[ChatCompletionMessageParam], completion: ChatCompletion
+        self,
+        messages: List[ChatCompletionMessageParam],
+        completion: ChatCompletion[BaseModel],
     ) -> None:
         """Trigger the completion callbacks"""
         for callback in self._completion_callbacks:
@@ -319,17 +337,43 @@ class OpenAI:
             # Forward attribute access to the underlying client
             return getattr(self._fixpcompletions, name)
 
+        @overload
         def create(
             self,
             messages: List[ChatCompletionMessageParam],
             *,
+            response_model: None = None,
             model: Optional[str] = None,
             tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
             tools: Optional[Iterable[ChatCompletionToolParam]] = None,
-            response_model: Optional[Type[BaseModel]] = None,
             workflow: Optional[SupportsWorkflow] = None,
             **kwargs: Any,
-        ) -> ChatCompletion:
+        ) -> ChatCompletion[BaseModel]: ...
+
+        @overload
+        def create(
+            self,
+            messages: List[ChatCompletionMessageParam],
+            *,
+            response_model: Type[T_contra],
+            model: Optional[str] = None,
+            tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
+            tools: Optional[Iterable[ChatCompletionToolParam]] = None,
+            workflow: Optional[SupportsWorkflow] = None,
+            **kwargs: Any,
+        ) -> ChatCompletion[T_contra]: ...
+
+        def create(
+            self,
+            messages: List[ChatCompletionMessageParam],
+            *,
+            response_model: Optional[Type[T_contra]] = None,
+            model: Optional[str] = None,
+            tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
+            tools: Optional[Iterable[ChatCompletionToolParam]] = None,
+            workflow: Optional[SupportsWorkflow] = None,
+            **kwargs: Any,
+        ) -> ChatCompletion[T_contra]:
             """Create a chat completion"""
             return self._agent.create_completion(
                 messages=messages,

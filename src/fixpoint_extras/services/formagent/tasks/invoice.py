@@ -38,7 +38,7 @@ class InvoiceQuestions(BaseModel):
 
 def answer_invoice_questions(
     wfctx: WorkflowContext, user_message: str
-) -> Tuple[InvoiceQuestions, ChatCompletion]:
+) -> Tuple[InvoiceQuestions, ChatCompletion[InvoiceQuestions]]:
     """Answer the questions about the invoice."""
     completion = wfctx.agent.create_completion(
         messages=[
