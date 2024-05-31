@@ -56,17 +56,31 @@ class SupportsChatCompletionCache(
         """Retrieve an item by key, optionally populating the structured output field"""
 
 
-class SupportCacheItem(Protocol):
+V_co = TypeVar("V_co", covariant=True)
+
+
+class SupportCacheItem(Protocol[V_co]):
     """A basic cache item protocol"""
 
     @property
-    def data(self) -> Any:
+    def key(self) -> Any:
+        """Property to get the key of the item"""
+
+    @property
+    def value(self) -> V_co:
         """Property to get the data of the item"""
 
+    def to_dict(self) -> dict[str, Any]:
+        """Method to get the dictionary representation of the item"""
 
-class SupportsTTLCacheItem(SupportCacheItem, Protocol):
+
+class SupportsTTLCacheItem(SupportCacheItem[V_co], Protocol):
     """Protocol for a Time-Limited LRU cache item"""
 
     @property
     def ttl(self) -> float:
         """Property to get the TTL of the item"""
+
+    @property
+    def created_at(self) -> float:
+        """Property to get the creation time of the item"""
