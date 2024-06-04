@@ -1,6 +1,6 @@
 """Protocol for the storage"""
 
-from typing import Any, Optional, Protocol, Dict, List, TypeVar
+from typing import Any, Optional, Protocol, Dict, List, TypeVar, Union
 
 V = TypeVar("V")  # Value type
 
@@ -17,7 +17,7 @@ class SupportsStorage(Protocol[V]):
     def fetch(
         self,
         resource_id: Any,
-    ) -> V:
+    ) -> Union[V, None]:
         """Fetch item from storage that matches the id"""
 
     def insert(self, data: V) -> V:
@@ -41,3 +41,17 @@ class SupportsToDict(Protocol):
 
     def to_dict(self) -> Dict[str, Any]:
         """Method to convert object to dictionary format."""
+
+
+V_co = TypeVar("V_co", covariant=True)  # Value type
+
+
+class SupportsSupabaseSerialization(Protocol[V_co]):
+    """Protocol for Supabase storage serialization"""
+
+    def serialize(self) -> dict[str, Any]:
+        """Method to get the serialized data of the item"""
+
+    @classmethod
+    def deserialize(cls, data: dict[str, Any]) -> V_co:
+        """Method to get the deserialized data of the item"""

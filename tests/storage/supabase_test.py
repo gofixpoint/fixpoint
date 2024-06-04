@@ -34,8 +34,14 @@ class TestSupabaseStorage:
             name: str
             age: int
 
-            def to_dict(self) -> dict[str, Any]:
+            def serialize(self) -> dict[str, Any]:
+                """Method to get the serialized data of the item"""
                 return self.__dict__
+
+            @classmethod
+            def deserialize(cls, data: dict[str, Any]) -> "Person":
+                """Method to get the deserialized data of the item"""
+                return Person(**data)
 
         store = SupabaseStorage[Person](
             url,
@@ -89,5 +95,4 @@ class TestSupabaseStorage:
         store.delete(resource_id=2)
 
         # assert that value error is raised
-        with pytest.raises(RuntimeError):
-            store.fetch(resource_id=2)
+        assert store.fetch(resource_id=2) == None

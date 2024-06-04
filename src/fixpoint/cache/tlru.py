@@ -3,6 +3,8 @@ TLRU Cache
 """
 
 import time
+import json
+from dataclasses import dataclass
 from threading import RLock
 from typing import Any, Callable, List, Union, Optional, Type, TypeVar, cast
 from cachetools import TLRUCache as CachetoolsTLRUCache
@@ -17,6 +19,7 @@ from .protocol import (
     SupportsTTLCacheItem,
     SupportsChatCompletionCache,
 )
+from ..storage.protocol import SupportsStorage
 
 
 class TLRUCacheItem(SupportsTTLCacheItem[V]):
@@ -27,23 +30,40 @@ class TLRUCacheItem(SupportsTTLCacheItem[V]):
     _key: Any
     _value: V
     _ttl: float
-    _created_at: float
-    _serialize_fn: Callable[[Any], str]
+    _expires_at: float
+    _serialize_fn: Callable[[Any], str] = (
+        json.dumps
+    )  # Default serialization function at class level
+    _deserialize_fn: Callable[[str], Any] = (
+        json.loads
+    )  # Default deserialization function at class level
 
     def __init__(
-        self, key: Any, value: V, ttl: float, serialize_fn: Callable[[Any], str]
+        self,
+        key: Any,
+        value: V,
+        ttl: float,
+        serialize_fn: Callable[[Any], str] = json.dumps,
+        deserialize_fn: Callable[[str], Any] = json.loads,
+        expires_at: Union[float, None] = None,
     ) -> None:
         self._key = key
         self._value = value
         self._ttl = ttl
-        self._created_at = time.monotonic()
+        self._expires_at = (
+            expires_at if expires_at is not None else self._calc_expires_at()
+        )
         self._serialize_fn = serialize_fn
+        self._deserialize_fn = deserialize_fn
 
     def __repr__(self) -> str:
         return (
             f"Item(key={self.key}, value={self.value}, "
-            f"ttl={self.ttl}, created_at={self._created_at})"
+            f"ttl={self.ttl}, expires_at={self._expires_at})"
         )
+
+    def _calc_expires_at(self) -> float:
+        return time.monotonic() + self._ttl
 
     @property
     def key(self) -> Any:
@@ -70,18 +90,48 @@ class TLRUCacheItem(SupportsTTLCacheItem[V]):
         self._ttl = ttl
 
     @property
-    def created_at(self) -> float:
+    def expires_at(self) -> float:
         """Property to get the creation time of the item"""
-        return self._created_at
+        return self._expires_at
 
-    def to_dict(self) -> dict[str, Any]:
+    @expires_at.setter
+    def expires_at(self, expires_at: float) -> None:
+        self._expires_at = expires_at
+
+    def serialize(self) -> dict[str, Any]:
         """Convert the item to a dictionary"""
         return {
             "key": self._serialize_fn(self._key),
             "value": self._serialize_fn(self._value),
             "ttl": self._ttl,
-            "created_at": self._created_at,
+            "expires_at": self._expires_at,
         }
+
+    @classmethod
+    def deserialize(cls, data: dict[str, Any]) -> "TLRUCacheItem[V]":
+        """Deserialize a dictionary into a TLRUCacheItem"""
+        key = cls._deserialize_fn(data.pop("key"))
+        value = cls._deserialize_fn(data.pop("value"))
+        expires_at = data.pop("expires_at")
+        return cls(**data, key=key, value=value, expires_at=expires_at)
+
+
+@dataclass
+class StorageOptions:
+    """
+    Storage Options
+    """
+
+    init_from_storage: bool
+    persist_to_storage: bool
+
+    def __init__(
+        self,
+        init_from_storage: bool = True,
+        persist_to_storage: bool = True,
+    ) -> None:
+        self.init_from_storage = init_from_storage
+        self.persist_to_storage = persist_to_storage
 
 
 class TLRUCache(SupportsCache[K_contra, V]):
@@ -92,9 +142,16 @@ class TLRUCache(SupportsCache[K_contra, V]):
     _ttl: float
     _serialize_key_fn: Callable[[K_contra], str]
     cache: CachetoolsTLRUCache[str, TLRUCacheItem[V]]
+    _storage: Optional[SupportsStorage[TLRUCacheItem[V]]]
+    _storage_options: Optional[StorageOptions]
 
     def __init__(
-        self, maxsize: int, ttl: float, serialize_key_fn: Callable[[K_contra], str]
+        self,
+        maxsize: int,
+        ttl: float,
+        serialize_key_fn: Callable[[K_contra], str],
+        storage: Optional[SupportsStorage[TLRUCacheItem[V]]] = None,
+        storage_options: Optional[StorageOptions] = None,
     ) -> None:
 
         def my_ttu(_key: str, value: SupportsTTLCacheItem[V], now: float) -> float:
@@ -104,10 +161,62 @@ class TLRUCache(SupportsCache[K_contra, V]):
         self.cache = CachetoolsTLRUCache(
             maxsize=maxsize, ttu=my_ttu, timer=time.monotonic
         )
+        self._storage = storage
+        if self._storage is not None:
+            self._storage_options = (
+                StorageOptions(
+                    init_from_storage=True,
+                    persist_to_storage=True,
+                )
+                if storage_options is None
+                else storage_options
+            )
+        else:
+            self._storage_options = None
 
         self.lock = RLock()
         self._ttl = ttl
         self._serialize_key_fn = serialize_key_fn
+
+        if self._supports_init_from_storage():
+            self._init_from_storage()
+
+    def _supports_init_from_storage(self) -> bool:
+        return (
+            self._storage is not None
+            and self._storage_options is not None
+            and self._storage_options.init_from_storage
+        )
+
+    def _supports_persist_to_storage(self) -> bool:
+        return (
+            self._storage is not None
+            and self._storage_options is not None
+            and self._storage_options.init_from_storage
+        )
+
+    def _init_from_storage(self) -> None:
+        """Initialize the cache from the storage"""
+        if self._storage is not None:
+            # Not an ideal solution, because requires client-side expiration
+            deserialized_results = self._storage.fetch_latest(n=self.maxsize)
+            current_time = time.monotonic()
+
+            # Add non-expired-items to the cache
+            non_expired_items = [
+                item for item in deserialized_results if item.expires_at >= current_time
+            ]
+            for cache_item in non_expired_items:
+                _key = self._serialize_key(cache_item.key)
+                self.cache[_key] = cache_item
+
+            # Remove expired items from the storage
+            expired_items = [
+                item for item in deserialized_results if item.expires_at < current_time
+            ]
+            for cache_item in expired_items:
+                _key = self._serialize_key(cache_item.key)
+                self._storage.delete(_key)
 
     def _serialize_key(self, key: K_contra) -> str:
         return self._serialize_key_fn(key)
@@ -125,12 +234,17 @@ class TLRUCache(SupportsCache[K_contra, V]):
     def set(self, key: K_contra, value: V) -> None:
         with self.lock:
             _key = self._serialize_key(key)
-            self.cache[_key] = TLRUCacheItem(key, value, self._ttl, self._serialize_key)
+            cache_item = TLRUCacheItem(key, value, self._ttl)
+            self.cache[_key] = cache_item
+            if self._supports_persist_to_storage() and self._storage is not None:
+                self._storage.insert(cache_item)
 
     def delete(self, key: K_contra) -> None:
         with self.lock:
             _key = self._serialize_key(key)
             del self.cache[_key]
+            if self._supports_persist_to_storage() and self._storage is not None:
+                self._storage.delete(_key)
 
     def clear(self) -> None:
         with self.lock:
