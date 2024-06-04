@@ -46,7 +46,7 @@ class TestTLRUCacheWithStorage:
             key text PRIMARY KEY,
             value jsonb,
             ttl float,
-            expired_at float
+            expires_at float
         );
 
         TRUNCATE TABLE public.completion_cache
@@ -79,7 +79,7 @@ class TestTLRUCacheWithStorage:
             url,
             key,
             table="completion_cache",
-            order_key="expired_at",
+            order_key="expires_at",
             id_column="key",
             value_type=TLRUCacheItem[str],
         )
@@ -103,7 +103,7 @@ class TestTLRUCacheWithStorage:
         assert stored_item.key == item_key
         assert stored_item.value == item_value
         assert stored_item.ttl == 10
-        assert stored_item.expired_at is not None
+        assert stored_item.expires_at is not None
 
         # Instantiate cache from data, we should get one item in the cache
         new_cache = TLRUCache[list[dict[str, str]], str](

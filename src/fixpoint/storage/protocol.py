@@ -43,13 +43,6 @@ class SupportsToDict(Protocol):
         """Method to convert object to dictionary format."""
 
 
-class SupportsStorageOptions(Protocol):
-    """Protocol for the storage options"""
-
-    init_from_storage: bool
-    persist_to_storage: bool
-
-
 V_co = TypeVar("V_co", covariant=True)  # Value type
 
 
