@@ -1,0 +1,44 @@
+name: Docs CI
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push events but only for the master branch
+  push:
+    branches: [main]
+  # Triggers workflow on all PRs
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in
+# parallel
+jobs:
+
+  docs:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - uses: actions/checkout@v3
+
+      - uses: pnpm/action-setup@v2
+        working-directory: ${{ github.workspace }}/docs
+        with:
+          version: 8
+          run_install: |
+            - recursive: true
+              args: [--frozen-lockfile, --strict-peer-dependencies]
+
+      - name: typecheck
+        run: pnpm run typecheck
+        working-directory: ${{ github.workspace }}/docs
+
+      - name: lint
+        run: pnpm run lint
+        working-directory: ${{ github.workspace }}/docs
+
+      - name: format
+        run: pnpm run formatcheck
+        working-directory: ${{ github.workspace }}/docs
