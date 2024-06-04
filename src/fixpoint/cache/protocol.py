@@ -79,5 +79,5 @@ class SupportsTTLCacheItem(SupportCacheItem[V_co], Protocol):
         """Property to get the TTL of the item"""
 
     @property
-    def expired_at(self) -> float:
+    def expires_at(self) -> float:
         """Property to get the expiration time of the item"""
