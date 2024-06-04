@@ -21,9 +21,12 @@ jobs:
 
     steps:
 
-      - uses: actions/checkout@v3
+      - name: Install Node.js
+        uses: actions/setup-node@v4
 
-      - uses: pnpm/action-setup@v2
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
         with:
           version: 8
           cwd: ${{ github.workspace }}/docs
