@@ -4,4 +4,8 @@ set -euo pipefail
 
 cd "$(dirname "$0")"/..
 
-pnpm dlx lint-staged --relative
+pnpm dlx lint-staged --relative --cwd . --config .lintstagedrc.json
+
+pushd docs/
+pnpm dlx lint-staged --relative --cwd . --config .lintstagedrc.json
+popd
