@@ -29,7 +29,7 @@ T = TypeVar("T", bound=BaseModel)
 Tinner = TypeVar("Tinner", bound=BaseModel)
 
 
-class ChatCompletion(Generic[T], OpenAIChatCompletion):
+class ChatCompletion(OpenAIChatCompletion, Generic[T]):
     """
     A class that wraps a completion with a Fixpoint completion.
     """
@@ -37,15 +37,12 @@ class ChatCompletion(Generic[T], OpenAIChatCompletion):
     _original_completion: OpenAIChatCompletion = PrivateAttr()
     fixp: "ChatCompletion.Fixp[T]" = Field(exclude=True)
 
-    class Fixp(Generic[Tinner]):
+    class Fixp(BaseModel, Generic[Tinner]):
         """
         A class that represents a Fixpoint completion.
         """
 
         structured_output: Optional[Tinner]
-
-        def __init__(self, structured_output: Optional[Any] = None) -> None:
-            self.structured_output = structured_output
 
     # pylint: disable=super-init-not-called
     def __init__(
@@ -75,7 +72,7 @@ class ChatCompletion(Generic[T], OpenAIChatCompletion):
             usage=usage,
         )
         _raw_set_attr(self, "_original_completion", orig_completion)
-        _raw_set_attr(self, "fixp", ChatCompletion.Fixp(structured_output))
+        self.fixp = ChatCompletion.Fixp(structured_output=structured_output)
 
     @classmethod
     def from_original_completion(
