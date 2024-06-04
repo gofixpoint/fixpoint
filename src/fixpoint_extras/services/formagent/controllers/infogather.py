@@ -122,7 +122,7 @@ class InfoGatherer(Generic[T]):
         new_info_dict = _get_non_none_dict(completion.fixp.structured_output)
 
         # TODO(dbmikus) add a way to merge old and new fields when they are both
-        # set
+        # set [PRO-15]
 
         # Only copy over fields not set on the new info
         for k in old_info_dict.keys():
