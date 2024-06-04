@@ -1,16 +1,12 @@
-# Nextra Docs Template 
+# Fixpoint docs
 
-This is a template for creating documentation with [Nextra](https://nextra.site).
+The docs for Fixpoint's open source infra for reliable multi-step AI workflows.
 
-[**Live Demo →**](https://nextra-docs-template.vercel.app)
+Build and connect multiple AI agents that know your data and work together to
+run autonomous or human-in-the-loop workflows, so that the humans can focus on
+more important work.
 
-[![](.github/screenshot.png)](https://nextra-docs-template.vercel.app)
-
-## Quick Start
-
-Click the button to clone this repository and deploy it on Vercel:
-
-[![](https://vercel.com/button)](https://vercel.com/new/clone?s=https%3A%2F%2Fgithub.com%2Fshuding%2Fnextra-docs-template&showOptionalTeamCreation=false)
+The Fixpoint docs are built with [Nextra](https://nextra.site).
 
 ## Local Development
 
