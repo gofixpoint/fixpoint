@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from ..completions import ChatCompletionMessageParam, ChatCompletion
 from ..workflow import SupportsWorkflow
+from ..storage.protocol import SupportsStorage
 
 
 @dataclass
@@ -40,9 +41,11 @@ class Memory(SupportsMemory):
     """A composable class to add memory to an agent"""
 
     _memory: List[MemoryItem]
+    _storage: Optional[SupportsStorage[MemoryItem]]
 
-    def __init__(self) -> None:
+    def __init__(self, storage: Optional[SupportsStorage[MemoryItem]] = None) -> None:
         self._memory = []
+        self._storage = storage
 
     def store_memory(
         self,
@@ -56,12 +59,15 @@ class Memory(SupportsMemory):
             messages (List[ChatCompletionMessageParam]): List of message parameters.
             completion (Optional[ChatCompletion]): The completion object, if any.
         """
-        self._memory.append(
-            MemoryItem(messages=messages, completion=completion, workflow=workflow)
-        )
+        mem_item = MemoryItem(messages=messages, completion=completion, workflow=workflow)
+        self._memory.append(mem_item)
+        if self._storage is not None:
+            self._storage.insert(mem_item)
 
     def memory(self) -> List[MemoryItem]:
         """Get the memory"""
+        if self._storage is not None:
+            return self._storage.fetch_latest()
         return self._memory
 
     def to_str(self) -> str:
