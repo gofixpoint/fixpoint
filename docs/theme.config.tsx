@@ -2,8 +2,6 @@ import React from "react"
 import { DocsThemeConfig } from "nextra-theme-docs"
 import { Inter } from "next/font/google"
 
-import { cn } from "./src/lib/utils"
-
 const inter = Inter({
   subsets: ["latin"],
   display: "swap",
@@ -12,7 +10,7 @@ const inter = Inter({
 
 const config: DocsThemeConfig = {
   logo: (
-    <span className={cn("font-bold text-xl", inter.className)}>fixpoint</span>
+    <span className={`font-bold text-xl ${inter.className}`}>fixpoint</span>
   ),
   project: {
     link: "https://github.com/gofixpoint/fixpoint/",
