@@ -6,7 +6,7 @@ from typing import List, Protocol, Optional
 from pydantic import BaseModel
 
 from ..completions import ChatCompletionMessageParam, ChatCompletion
-from ..workflow import Workflow
+from ..workflow import SupportsWorkflow
 
 
 @dataclass
@@ -15,7 +15,7 @@ class MemoryItem:
 
     messages: List[ChatCompletionMessageParam]
     completion: ChatCompletion[BaseModel]
-    workflow: Optional[Workflow] = None
+    workflow: Optional[SupportsWorkflow] = None
 
 
 class SupportsMemory(Protocol):
@@ -28,7 +28,7 @@ class SupportsMemory(Protocol):
         self,
         messages: List[ChatCompletionMessageParam],
         completion: ChatCompletion[BaseModel],
-        workflow: Optional[Workflow] = None,
+        workflow: Optional[SupportsWorkflow] = None,
     ) -> None:
         """Store the memory"""
 
@@ -48,7 +48,7 @@ class Memory(SupportsMemory):
         self,
         messages: List[ChatCompletionMessageParam],
         completion: ChatCompletion[BaseModel],
-        workflow: Optional[Workflow] = None,
+        workflow: Optional[SupportsWorkflow] = None,
     ) -> None:
         """Store the memory
 

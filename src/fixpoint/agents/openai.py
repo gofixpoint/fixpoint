@@ -35,7 +35,7 @@ from ..completions import (
     ChatCompletionToolParam,
 )
 from ..memory import SupportsMemory
-from ..workflow import Workflow
+from ..workflow import SupportsWorkflow
 from ..cache import SupportsChatCompletionCache
 from .protocol import BaseAgent, CompletionCallback, PreCompletionFn
 from ._shared import request_cached_completion, CacheMode
@@ -138,7 +138,7 @@ class OpenAIAgent(BaseAgent):
         *,
         messages: List[ChatCompletionMessageParam],
         model: Optional[str] = None,
-        workflow: Optional[Workflow] = None,
+        workflow: Optional[SupportsWorkflow] = None,
         response_model: Optional[Type[T_contra]] = None,
         tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
         tools: Optional[Iterable[ChatCompletionToolParam]] = None,
@@ -346,7 +346,7 @@ class OpenAI:
             model: Optional[str] = None,
             tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
             tools: Optional[Iterable[ChatCompletionToolParam]] = None,
-            workflow: Optional[Workflow] = None,
+            workflow: Optional[SupportsWorkflow] = None,
             **kwargs: Any,
         ) -> ChatCompletion[BaseModel]: ...
 
@@ -359,7 +359,7 @@ class OpenAI:
             model: Optional[str] = None,
             tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
             tools: Optional[Iterable[ChatCompletionToolParam]] = None,
-            workflow: Optional[Workflow] = None,
+            workflow: Optional[SupportsWorkflow] = None,
             **kwargs: Any,
         ) -> ChatCompletion[T_contra]: ...
 
@@ -371,7 +371,7 @@ class OpenAI:
             model: Optional[str] = None,
             tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
             tools: Optional[Iterable[ChatCompletionToolParam]] = None,
-            workflow: Optional[Workflow] = None,
+            workflow: Optional[SupportsWorkflow] = None,
             **kwargs: Any,
         ) -> ChatCompletion[T_contra]:
             """Create a chat completion"""
