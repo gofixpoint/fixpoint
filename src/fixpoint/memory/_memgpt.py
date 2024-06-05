@@ -25,7 +25,7 @@ from pydantic import BaseModel
 from ..logging import logger
 from ..agents.protocol import BaseAgent
 from ..completions import ChatCompletionMessageParam, ChatCompletion
-from ..workflow import SupportsWorkflow
+from ..workflow import Workflow
 
 
 @dataclass
@@ -60,7 +60,7 @@ class MemGPTSummaryAgent:
         messages: List[ChatCompletionMessageParam],
         response_model: None = None,
         model: Optional[str] = None,
-        workflow: Optional[SupportsWorkflow] = None,
+        workflow: Optional[Workflow] = None,
         **kwargs: Any,
     ) -> ChatCompletion[BaseModel]: ...
 
@@ -71,7 +71,7 @@ class MemGPTSummaryAgent:
         messages: List[ChatCompletionMessageParam],
         response_model: Type[T],
         model: Optional[str] = None,
-        workflow: Optional[SupportsWorkflow] = None,
+        workflow: Optional[Workflow] = None,
         **kwargs: Any,
     ) -> ChatCompletion[T]: ...
 
@@ -81,7 +81,7 @@ class MemGPTSummaryAgent:
         messages: List[ChatCompletionMessageParam],
         response_model: Optional[Type[T]] = None,
         model: Optional[str] = None,
-        workflow: Optional[SupportsWorkflow] = None,
+        workflow: Optional[Workflow] = None,
         **kwargs: Any,
     ) -> Union[ChatCompletion[T], ChatCompletion[BaseModel]]:
         """Create a chat completion, using historical (maybe summarized) messages in context"""

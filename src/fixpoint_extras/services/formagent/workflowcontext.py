@@ -20,5 +20,5 @@ class WorkflowContext:
     agent: fixpoint.agents.BaseAgent
     logger: logging.Logger
     memory: DataframeMemory
-    workflow: fixpoint.workflow.SupportsWorkflow
+    workflow: fixpoint.workflow.Workflow
     cache: Optional[SupportsChatCompletionCache]
