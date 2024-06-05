@@ -5,6 +5,5 @@ some goal.
 """
 
 from ._workflow import Workflow
-from .protocol import SupportsWorkflow
 
-__all__ = ["Workflow", "SupportsWorkflow"]
+__all__ = ["Workflow"]
