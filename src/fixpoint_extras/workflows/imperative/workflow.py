@@ -3,7 +3,7 @@
 from uuid import uuid4
 from typing import Any, Dict, List, Optional, Type, Union
 
-from pydantic import BaseModel, Field, PrivateAttr, computed_field
+from pydantic import BaseModel, Field, PrivateAttr, ConfigDict, computed_field
 
 from .document import Document
 from .form import Form
@@ -34,6 +34,8 @@ class Workflow(BaseModel):
     It also has memory to recall previous workflow steps, tasks, and LLM
     inferences.
     """
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     _run_id: str = PrivateAttr(default_factory=lambda: str(uuid4()))
     _task_ids: List[str] = PrivateAttr(default_factory=list)

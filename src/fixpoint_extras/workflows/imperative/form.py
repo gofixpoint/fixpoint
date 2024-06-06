@@ -14,7 +14,7 @@ class Form(BaseModel, Generic[T]):
     """A form is a collection of fields for a user or agent to fill in."""
 
     _id: str = PrivateAttr(default_factory=lambda: str(uuid4()))
-    metadata: Dict[str, Any]
+    metadata: Dict[str, Any] = Field(default={}, description="Metadata for the form")
 
     name: Optional[str] = Field(
         default=None,
@@ -57,7 +57,7 @@ class Form(BaseModel, Generic[T]):
     # This is the actual form schema and contents
 
     # We can't name it "schema" because that conflicts with a Pydantic method
-    form_schema: Type[T] = Field(description="The form schema", alias="schema")
+    form_schema: Type[T] = Field(description="The form schema")
 
     _contents: T = PrivateAttr()
 
