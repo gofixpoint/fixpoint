@@ -31,7 +31,7 @@ class _DataDict(TypedDict):
     all_tool_call_names: List[List[str]]
     all_tool_call_args: List[List[str]]
 
-    workflow_id: List[Optional[str]]
+    workflow_name: List[Optional[str]]
 
 
 class DataframeMemory(Memory):
@@ -49,12 +49,12 @@ class DataframeMemory(Memory):
             "tool_call_args": [],
             "all_tool_call_names": [],
             "all_tool_call_args": [],
-            "workflow_id": [],
+            "workflow_name": [],
         }
         for idx, memitem in enumerate(self.memory()):
             messages = memitem.messages
             completion = memitem.completion
-            workflow_id = memitem.workflow.id if memitem.workflow else None
+            workflow_name = memitem.workflow.name if memitem.workflow else None
             for message in messages:
                 data["turn_id"].append(idx)
                 data["role"].append(message["role"])
@@ -64,7 +64,7 @@ class DataframeMemory(Memory):
                 data["tool_call_args"].append(None)
                 data["all_tool_call_names"].append([])
                 data["all_tool_call_args"].append([])
-                data["workflow_id"].append(workflow_id)
+                data["workflow_name"].append(workflow_name)
 
             data["turn_id"].append(idx)
             data["role"].append("assistant")
@@ -88,7 +88,7 @@ class DataframeMemory(Memory):
                 data["all_tool_call_names"].append([])
                 data["all_tool_call_args"].append([])
 
-            data["workflow_id"].append(workflow_id)
+            data["workflow_name"].append(workflow_name)
         return pd.DataFrame(data)
 
     def _format_content_parts(

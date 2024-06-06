@@ -1,10 +1,13 @@
 """Protocol for workflows"""
 
-from typing import Optional, Protocol
+from typing import Protocol
 
 
 class SupportsWorkflow(Protocol):
     """A protocol for a Workflow"""
 
-    id: str
-    display_name: Optional[str]
+    name: str
+
+    @property
+    def run_id(self) -> str:
+        """The run id of the workflow"""
