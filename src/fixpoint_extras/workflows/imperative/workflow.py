@@ -38,8 +38,24 @@ class Workflow(BaseModel):
     _run_id: str = PrivateAttr(default_factory=lambda: str(uuid4()))
     _task_ids: List[str] = PrivateAttr(default_factory=list)
 
-    documents: "_Documents" = PrivateAttr()
-    forms: "_Forms" = PrivateAttr()
+    # We make these PrivateAttrs because we don't want the user to pass them in
+    # during object construction. Pydantic gets mad if PrivateAttr fields don't
+    # start with a "_", so prefix them with "_" and then expose computed
+    # proprties for public references to these fields.
+    _documents: "_Documents" = PrivateAttr()
+    _forms: "_Forms" = PrivateAttr()
+
+    @computed_field  # type: ignore[misc]
+    @property
+    def documents(self) -> "_Documents":
+        """Interact with workflow documents"""
+        return self._documents
+
+    @computed_field  # type: ignore[misc]
+    @property
+    def forms(self) -> "_Forms":
+        """Interact with workflow forms"""
+        return self._forms
 
     node_state: NodeState = Field(
         default_factory=lambda: NodeState(task="__start__", step="__start__")
@@ -60,8 +76,8 @@ class Workflow(BaseModel):
         return self._run_id
 
     def model_post_init(self, _context: Any) -> None:
-        self.documents = _Documents(workflow=self)
-        self.forms = _Forms(workflow=self)
+        self._documents = _Documents(workflow=self)
+        self._forms = _Forms(workflow=self)
 
     # pylint: disable=unused-argument
     def goto_task(self, *, task_name: str) -> None:
