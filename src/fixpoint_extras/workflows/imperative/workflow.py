@@ -150,7 +150,9 @@ class _Forms:
     def __init__(self, workflow: Workflow) -> None:
         self.workflow = workflow
 
-    def get(self, *, form_id: Optional[str], form_name: Optional[str]) -> Form:
+    def get(
+        self, *, form_id: Optional[str], form_name: Optional[str]
+    ) -> Form[BaseModel]:
         """Get a form from the cache.
 
         Specify one of either form_id or form_name. Gets the latest
@@ -164,7 +166,7 @@ class _Forms:
         schema: Type[BaseModel],
         name: Optional[str] = None,
         path: Optional[str] = None,
-    ) -> Form:
+    ) -> Form[BaseModel]:
         """Store a form in the cache.
 
         If name is provided, the form will be stored under that name. If a
@@ -184,14 +186,14 @@ class _Forms:
         form_id: Optional[str],
         form_name: Optional[str],
         contents: Union[BaseModel, Dict[str, Any]],
-    ) -> Form:
+    ) -> Form[BaseModel]:
         """Update a form in the cache.
 
         Specify one of either form_id or form_name.
         """
         raise NotImplementedError()
 
-    def list(self, *, path: Optional[str] = None) -> List[Form]:
+    def list(self, *, path: Optional[str] = None) -> List[Form[BaseModel]]:
         """List all forms in the cache.
 
         The optional `path` is a "/" separate path of the form "/{task}/{step}".

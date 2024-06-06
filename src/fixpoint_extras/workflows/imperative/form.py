@@ -1,14 +1,16 @@
 """A form is a set of fields for a user or agent to fill in."""
 
 from uuid import uuid4
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Type, TypeVar, Generic
 
 from pydantic import BaseModel, PrivateAttr, Field, computed_field
 
 from .version import Version
 
+T = TypeVar("T", bound=BaseModel)
 
-class Form(BaseModel):
+
+class Form(BaseModel, Generic[T]):
     """A form is a collection of fields for a user or agent to fill in."""
 
     _id: str = PrivateAttr(default_factory=lambda: str(uuid4()))
@@ -51,3 +53,24 @@ class Form(BaseModel):
         if len(parts) < 3:
             return "__start__"
         return parts[2]
+
+    # This is the actual form schema and contents
+
+    # We can't name it "schema" because that conflicts with a Pydantic method
+    form_schema: Type[T] = Field(description="The form schema", alias="schema")
+
+    _contents: T = PrivateAttr()
+
+    @computed_field  # type: ignore[misc]
+    @property
+    def contents(self) -> T:
+        """The (partially or fully) filled in form contents"""
+        return self._contents
+
+    def set_contents(self, contents: T) -> None:
+        """Set the filled in form contents"""
+        self._contents = contents
+
+    def model_post_init(self, _context: Any) -> None:
+        """Run Pydantic model post init code"""
+        self._contents = self.form_schema()
