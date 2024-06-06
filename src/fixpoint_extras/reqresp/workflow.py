@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional, Union
 from pydantic import BaseModel, Field, PrivateAttr, computed_field
 
 from .document import Document
+from .form import Form
 
 
 class NodeState(BaseModel):
@@ -38,7 +39,12 @@ class Workflow(BaseModel):
     _run_id: str = PrivateAttr(default_factory=lambda: str(uuid4()))
     _task_ids: List[str] = PrivateAttr(default_factory=list)
 
-    node_state: NodeState = Field(default_factory=lambda: NodeState(task="__start__", step="__start__"))
+    documents: "_Documents" = PrivateAttr()
+    forms: "_Forms" = PrivateAttr()
+
+    node_state: NodeState = Field(
+        default_factory=lambda: NodeState(task="__start__", step="__start__")
+    )
 
     name: Optional[str] = Field(
         default=None,
@@ -60,14 +66,20 @@ class Workflow(BaseModel):
         """The workflow's unique identifier"""
         return self._run_id
 
+    def model_post_init(self, _context: Any) -> None:
+        self.documents = _Documents(workflow=self)
+        self.forms = _Forms(workflow=self)
+
+    # pylint: disable=unused-argument
     def goto_task(self, *, task_name: str) -> None:
         """Transition to the given task.
 
         Tasks do not need to be declared ahead of time. When you go to a task,
         we infer its existence.
         """
-        ...
+        raise NotImplementedError()
 
+    # pylint: disable=unused-argument
     def goto_step(self, *, step_name: str) -> None:
         """Transition to the given step.
 
@@ -76,9 +88,18 @@ class Workflow(BaseModel):
         Steps do not need to be declared ahead of time. When you go to a step,
         we infer its existence.
         """
-        ...
+        raise NotImplementedError()
 
-    def get_document(self, *, document_id: Optional[str], document_name: Optional[str]) -> Document:
+
+class _Documents:
+    workflow: Workflow
+
+    def __init__(self, workflow: Workflow) -> None:
+        self.workflow = workflow
+
+    def get(
+        self, *, document_id: Optional[str], document_name: Optional[str]
+    ) -> Document:
         """Get a document from the cache.
 
         Specify one of either document_id or document_name. Gets the latest
@@ -86,7 +107,13 @@ class Workflow(BaseModel):
         """
         raise NotImplementedError()
 
-    def store_document(self, *, contents: Union[BaseModel, Dict[str, Any]], name: Optional[str] = None, path: Optional[str] = None) -> Document:
+    def store(
+        self,
+        *,
+        contents: Union[BaseModel, Dict[str, Any]],
+        name: Optional[str] = None,
+        path: Optional[str] = None,
+    ) -> Document:
         """Store a document in the cache.
 
         If name is provided, the document will be stored under that name. If a
@@ -100,9 +127,83 @@ class Workflow(BaseModel):
         """
         raise NotImplementedError()
 
-    def update_document(self, *, document_id: Optional[str], document_name: Optional[str], contents: Union[BaseModel, Dict[str, Any]]) -> Document:
+    def update(
+        self,
+        *,
+        document_id: Optional[str],
+        document_name: Optional[str],
+        contents: Union[BaseModel, Dict[str, Any]],
+    ) -> Document:
         """Update a document in the cache.
 
         Specify one of either document_id or document_name.
+        """
+        raise NotImplementedError()
+
+    def list(self, *, path: Optional[str] = None) -> List[Document]:
+        """List all documents in the cache.
+
+        The optional `path` is a "/" separate path of the form "/{task}/{step}".
+        The "{step}" portion is optional. If you only specify the leading "/",
+        we list all documents at the root of the workflow, outside of all tasks and
+        steps.
+        """
+        raise NotImplementedError()
+
+
+class _Forms:
+    workflow: Workflow
+
+    def __init__(self, workflow: Workflow) -> None:
+        self.workflow = workflow
+
+    def get(self, *, form_id: Optional[str], form_name: Optional[str]) -> Form:
+        """Get a form from the cache.
+
+        Specify one of either form_id or form_name. Gets the latest
+        version of the form for the current workflow, task, and step.
+        """
+        raise NotImplementedError()
+
+    def store(
+        self,
+        *,
+        contents: Union[BaseModel, Dict[str, Any]],
+        name: Optional[str] = None,
+        path: Optional[str] = None,
+    ) -> Form:
+        """Store a form in the cache.
+
+        If name is provided, the form will be stored under that name. If a
+        form with that name already exists in the workflow, we will throw an
+        error.
+
+        The optional `path` is a "/" separate path of the form "/{task}/{step}".
+        The "{step}" portion is optional. If you only specify the leading "/",
+        it is stored at the root of the workflow, outside of all tasks and
+        steps. By default, we store the form at the current task and step.
+        """
+        raise NotImplementedError()
+
+    def update(
+        self,
+        *,
+        form_id: Optional[str],
+        form_name: Optional[str],
+        contents: Union[BaseModel, Dict[str, Any]],
+    ) -> Form:
+        """Update a form in the cache.
+
+        Specify one of either form_id or form_name.
+        """
+        raise NotImplementedError()
+
+    def list(self, *, path: Optional[str] = None) -> List[Form]:
+        """List all forms in the cache.
+
+        The optional `path` is a "/" separate path of the form "/{task}/{step}".
+        The "{step}" portion is optional. If you only specify the leading "/",
+        we list all forms at the root of the workflow, outside of all tasks and
+        steps.
         """
         raise NotImplementedError()
