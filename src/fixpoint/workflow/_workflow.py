@@ -1,19 +1,18 @@
 """Simple implementation of a workflow"""
 
 from dataclasses import dataclass
-from uuid import uuid4
-from typing import Optional
 
-from .protocol import SupportsWorkflow
+from .protocol import SupportsWorkflowRun
 
 
 @dataclass
-class Workflow(SupportsWorkflow):
-    """A simple workflow implementation"""
+class WorkflowRun(SupportsWorkflowRun):
+    """A simple workflow run implementation"""
 
     id: str
-    display_name: Optional[str]
+    workflow_id: str
 
-    def __init__(self, display_name: Optional[str] = None):
-        self.id = str(uuid4())
-        self.display_name = display_name
+    # pylint: disable=redefined-builtin
+    def __init__(self, id: str, workflow_id: str):
+        self.id = id
+        self.workflow_id = workflow_id

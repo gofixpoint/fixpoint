@@ -4,7 +4,7 @@ A "workflow" is a series of steps that one or more agents takes to accomplish
 some goal.
 """
 
-from ._workflow import Workflow
-from .protocol import SupportsWorkflow
+from ._workflow import WorkflowRun
+from .protocol import SupportsWorkflowRun
 
-__all__ = ["Workflow", "SupportsWorkflow"]
+__all__ = ["WorkflowRun", "SupportsWorkflowRun"]

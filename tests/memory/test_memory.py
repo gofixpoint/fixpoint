@@ -27,7 +27,7 @@ class TestWithMemory:
         first_expected_memory = expected_memory[0]
         assert first_stored_memory.messages == first_expected_memory.messages
         assert first_stored_memory.completion == first_expected_memory.completion
-        assert first_stored_memory.workflow == first_expected_memory.workflow
+        assert first_stored_memory.workflow_run == first_expected_memory.workflow_run
 
 
 @pytest.mark.skip(reason="Disabled until we have a supabase instance running in CI")
@@ -86,6 +86,6 @@ class TestWithMemoryWithStorage:
             first_stored_memory.completion.serialize_json()
             == first_expected_memory.completion.serialize_json()
         )
-        assert json.dumps(first_stored_memory.workflow) == json.dumps(
-            first_expected_memory.workflow
+        assert json.dumps(first_stored_memory.workflow_run) == json.dumps(
+            first_expected_memory.workflow_run
         )

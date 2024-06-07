@@ -35,7 +35,7 @@ from ..completions import (
     ChatCompletionToolParam,
 )
 from ..memory import SupportsMemory
-from ..workflow import SupportsWorkflow
+from ..workflow import SupportsWorkflowRun
 from ..cache import SupportsChatCompletionCache
 from .protocol import BaseAgent, CompletionCallback, PreCompletionFn
 from ._shared import request_cached_completion, CacheMode
@@ -138,7 +138,7 @@ class OpenAIAgent(BaseAgent):
         *,
         messages: List[ChatCompletionMessageParam],
         model: Optional[str] = None,
-        workflow: Optional[SupportsWorkflow] = None,
+        workflow_run: Optional[SupportsWorkflowRun] = None,
         response_model: Optional[Type[T_contra]] = None,
         tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
         tools: Optional[Iterable[ChatCompletionToolParam]] = None,
@@ -177,7 +177,7 @@ class OpenAIAgent(BaseAgent):
 
         basemodel_fixp_completion = cast(ChatCompletion[BaseModel], fixp_completion)
         if self._memory is not None:
-            self._memory.store_memory(messages, basemodel_fixp_completion, workflow)
+            self._memory.store_memory(messages, basemodel_fixp_completion, workflow_run)
         self._trigger_completion_callbacks(messages, basemodel_fixp_completion)
         return fixp_completion
 
@@ -346,7 +346,7 @@ class OpenAI:
             model: Optional[str] = None,
             tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
             tools: Optional[Iterable[ChatCompletionToolParam]] = None,
-            workflow: Optional[SupportsWorkflow] = None,
+            workflow_run: Optional[SupportsWorkflowRun] = None,
             **kwargs: Any,
         ) -> ChatCompletion[BaseModel]: ...
 
@@ -359,7 +359,7 @@ class OpenAI:
             model: Optional[str] = None,
             tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
             tools: Optional[Iterable[ChatCompletionToolParam]] = None,
-            workflow: Optional[SupportsWorkflow] = None,
+            workflow_run: Optional[SupportsWorkflowRun] = None,
             **kwargs: Any,
         ) -> ChatCompletion[T_contra]: ...
 
@@ -371,7 +371,7 @@ class OpenAI:
             model: Optional[str] = None,
             tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
             tools: Optional[Iterable[ChatCompletionToolParam]] = None,
-            workflow: Optional[SupportsWorkflow] = None,
+            workflow_run: Optional[SupportsWorkflowRun] = None,
             **kwargs: Any,
         ) -> ChatCompletion[T_contra]:
             """Create a chat completion"""
@@ -381,6 +381,6 @@ class OpenAI:
                 tool_choice=tool_choice,
                 tools=tools,
                 response_model=response_model,
-                workflow=workflow,
+                workflow_run=workflow_run,
                 **kwargs,
             )

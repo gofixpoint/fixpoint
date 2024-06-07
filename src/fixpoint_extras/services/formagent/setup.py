@@ -1,6 +1,5 @@
 """Set up the form agent workflow"""
 
-import logging
 from typing import Mapping, Optional
 
 import fixpoint
@@ -8,7 +7,8 @@ from fixpoint.cache import SupportsChatCompletionCache
 from fixpoint.agents.protocol import TikTokenLogger
 from fixpoint.agents.openai import OpenAIClients
 from fixpoint.analyze.memory import DataframeMemory
-from .workflowcontext import WorkflowContext
+
+from fixpoint_extras.workflows.imperative import WorkflowContext, Workflow
 
 
 def setup_workflow(
@@ -36,12 +36,8 @@ def setup_workflow(
         cache=cache,
     )
 
-    workflow = fixpoint.workflow.Workflow(display_name="form filler agent workflow")
+    workflow_run = Workflow(id="form_filler_agent").run()
 
-    return WorkflowContext(
-        agent=agent,
-        memory=agent_mem,
-        workflow=workflow,
-        logger=logging.getLogger(f"fixpoint_workflow_{workflow.id}"),
-        cache=cache,
+    return WorkflowContext.from_workflow(
+        workflow_run, {"main": agent}, agent_mem, cache
     )
