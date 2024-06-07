@@ -1,6 +1,6 @@
-from typing import List, Literal, Optional, Union
+from typing import List, Literal, Optional, Type, Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from fixpoint.workflow import SupportsWorkflow
 from fixpoint_extras.workflows.imperative import Workflow
@@ -30,14 +30,19 @@ class ChoiceEntry(BaseModel):
     description: str
 
 
-class OmellaWorkflowDefinition(BaseModel):
+class FormAgentWorkflowDefinition(BaseModel):
     tasks: List[FormAgentTask]
 
 
-def create_workflow(
-    *,
-    workflow_name: Optional[str] = None,
-    definition: OmellaWorkflowDefinition
-) -> Workflow:
-    w = Workflow(name=workflow_name)
-    w.forms.store
+# def new_classify_model() -> Type[BaseModel]:
+#     class Classify(BaseModel):
+#         """Classify the eval and do chain of thought"""
+
+#         chain_of_thought: str = Field(description=)
+
+
+# def create_workflow(
+#     *, workflow_name: Optional[str] = None, definition: FormAgentWorkflowDefinition
+# ) -> Workflow:
+#     w = Workflow(name=workflow_name)
+#     w.forms.store()
