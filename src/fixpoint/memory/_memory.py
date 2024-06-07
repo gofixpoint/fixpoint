@@ -6,7 +6,7 @@ import json
 from pydantic import BaseModel
 
 from ..completions import ChatCompletionMessageParam, ChatCompletion
-from ..workflow import SupportsWorkflow
+from ..workflow import SupportsWorkflowRun
 from ..storage.protocol import SupportsStorage
 
 
@@ -15,19 +15,19 @@ class MemoryItem:
 
     messages: List[ChatCompletionMessageParam]
     completion: ChatCompletion[BaseModel]
-    workflow: Optional[SupportsWorkflow] = None
+    workflow_run: Optional[SupportsWorkflowRun] = None
 
     def __init__(
         self,
         messages: List[ChatCompletionMessageParam],
         completion: ChatCompletion[BaseModel],
-        workflow: Optional[SupportsWorkflow] = None,
+        workflow_run: Optional[SupportsWorkflowRun] = None,
         serialize_fn: Callable[[Any], str] = json.dumps,
         deserialize_fn: Callable[[str], Any] = json.loads,
     ) -> None:
         self.messages = messages
         self.completion = completion
-        self.workflow = workflow
+        self.workflow_run = workflow_run
         self._serialize_fn = serialize_fn
         self._deserialize_fn = deserialize_fn
 
@@ -36,7 +36,7 @@ class MemoryItem:
         return {
             "messages": self._serialize_fn(self.messages),
             "completion": self.completion.serialize_json(),
-            "workflow": self._serialize_fn(self.workflow),
+            "workflow_run": self._serialize_fn(self.workflow_run),
         }
 
     @classmethod
@@ -45,8 +45,8 @@ class MemoryItem:
 
         messages = json.loads(data.pop("messages"))
         completion = ChatCompletion[BaseModel].deserialize_json(data.pop("completion"))
-        workflow = json.loads(data.pop("workflow"))
-        return cls(messages=messages, completion=completion, workflow=workflow)
+        workflow_run = json.loads(data.pop("workflow_run"))
+        return cls(messages=messages, completion=completion, workflow_run=workflow_run)
 
 
 class SupportsMemory(Protocol):
@@ -59,7 +59,7 @@ class SupportsMemory(Protocol):
         self,
         messages: List[ChatCompletionMessageParam],
         completion: ChatCompletion[BaseModel],
-        workflow: Optional[SupportsWorkflow] = None,
+        workflow_run: Optional[SupportsWorkflowRun] = None,
     ) -> None:
         """Store the memory"""
 
@@ -81,7 +81,7 @@ class Memory(SupportsMemory):
         self,
         messages: List[ChatCompletionMessageParam],
         completion: ChatCompletion[BaseModel],
-        workflow: Optional[SupportsWorkflow] = None,
+        workflow_run: Optional[SupportsWorkflowRun] = None,
     ) -> None:
         """Store the memory
 
@@ -90,7 +90,7 @@ class Memory(SupportsMemory):
             completion (Optional[ChatCompletion]): The completion object, if any.
         """
         mem_item = MemoryItem(
-            messages=messages, completion=completion, workflow=workflow
+            messages=messages, completion=completion, workflow_run=workflow_run
         )
         self._memory.append(mem_item)
         if self._storage is not None:

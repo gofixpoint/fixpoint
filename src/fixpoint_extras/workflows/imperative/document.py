@@ -1,9 +1,8 @@
 """A document is a set of text and metadata."""
 
-from uuid import uuid4
 from typing import Dict, Any, Optional, List
 
-from pydantic import BaseModel, PrivateAttr, Field, computed_field
+from pydantic import BaseModel, Field, computed_field
 
 from .version import Version
 
@@ -11,15 +10,11 @@ from .version import Version
 class Document(BaseModel):
     """A document is a collection of text and metadata."""
 
-    _id: str = PrivateAttr(default_factory=lambda: str(uuid4()))
     metadata: Dict[str, Any]
 
-    name: Optional[str] = Field(
+    id: Optional[str] = Field(
         default=None,
-        description=(
-            "An optional name for the document. Must be unique within the"
-            " workflow the document exists in. Think of it like a filename."
-        ),
+        description=("Must be unique within the workflow the document exists in."),
     )
 
     path: str = Field(
@@ -29,12 +24,6 @@ class Document(BaseModel):
     versions: List[Version] = Field(
         default=[], description="The versions of the document"
     )
-
-    @computed_field  # type: ignore[misc]
-    @property
-    def id(self) -> str:
-        """The workflow's unique identifier"""
-        return self._id
 
     @computed_field  # type: ignore[misc]
     @property

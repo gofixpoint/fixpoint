@@ -54,7 +54,7 @@ class DataframeMemory(Memory):
         for idx, memitem in enumerate(self.memory()):
             messages = memitem.messages
             completion = memitem.completion
-            workflow_name = memitem.workflow.name if memitem.workflow else None
+            workflow_run_id = memitem.workflow_run.id if memitem.workflow_run else None
             for message in messages:
                 data["turn_id"].append(idx)
                 data["role"].append(message["role"])
@@ -64,7 +64,7 @@ class DataframeMemory(Memory):
                 data["tool_call_args"].append(None)
                 data["all_tool_call_names"].append([])
                 data["all_tool_call_args"].append([])
-                data["workflow_name"].append(workflow_name)
+                data["workflow_name"].append(workflow_run_id)
 
             data["turn_id"].append(idx)
             data["role"].append("assistant")
@@ -88,7 +88,7 @@ class DataframeMemory(Memory):
                 data["all_tool_call_names"].append([])
                 data["all_tool_call_args"].append([])
 
-            data["workflow_name"].append(workflow_name)
+            data["workflow_name"].append(workflow_run_id)
         return pd.DataFrame(data)
 
     def _format_content_parts(

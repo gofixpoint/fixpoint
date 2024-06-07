@@ -36,8 +36,8 @@ def setup_workflow(
         cache=cache,
     )
 
-    workflow = Workflow(
-        name="form_filler_agent", display_name="form filler agent workflow"
-    )
+    workflow_run = Workflow(id="form_filler_agent").run()
 
-    return WorkflowContext.from_workflow(workflow, {"main": agent}, agent_mem, cache)
+    return WorkflowContext.from_workflow(
+        workflow_run, {"main": agent}, agent_mem, cache
+    )

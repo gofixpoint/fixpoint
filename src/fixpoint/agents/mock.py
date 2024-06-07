@@ -27,7 +27,7 @@ from ..completions import (
     ChatCompletionToolChoiceOptionParam,
 )
 from ..memory import SupportsMemory
-from ..workflow import SupportsWorkflow
+from ..workflow import SupportsWorkflowRun
 from ..cache import SupportsChatCompletionCache
 from .protocol import BaseAgent, CompletionCallback, PreCompletionFn
 from ._shared import request_cached_completion, CacheMode
@@ -66,7 +66,7 @@ class MockAgent(BaseAgent):
         messages: List[ChatCompletionMessageParam],
         response_model: None = None,
         model: Optional[str] = None,
-        workflow: Optional[SupportsWorkflow] = None,
+        workflow_run: Optional[SupportsWorkflowRun] = None,
         tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
         tools: Optional[Iterable[ChatCompletionToolParam]] = None,
         cache_mode: Optional[CacheMode] = None,
@@ -80,7 +80,7 @@ class MockAgent(BaseAgent):
         messages: List[ChatCompletionMessageParam],
         response_model: Type[T_contra],
         model: Optional[str] = None,
-        workflow: Optional[SupportsWorkflow] = None,
+        workflow_run: Optional[SupportsWorkflowRun] = None,
         tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
         tools: Optional[Iterable[ChatCompletionToolParam]] = None,
         cache_mode: Optional[CacheMode] = None,
@@ -92,7 +92,7 @@ class MockAgent(BaseAgent):
         *,
         messages: List[ChatCompletionMessageParam],
         model: Optional[str] = None,
-        workflow: Optional[SupportsWorkflow] = None,
+        workflow_run: Optional[SupportsWorkflowRun] = None,
         response_model: Optional[Type[T_contra]] = None,
         tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
         tools: Optional[Iterable[ChatCompletionToolParam]] = None,
@@ -118,7 +118,7 @@ class MockAgent(BaseAgent):
         casted_cmpl = cast(ChatCompletion[BaseModel], cmpl)
         if self._memory:
             self._memory.store_memory(
-                messages=messages, completion=casted_cmpl, workflow=workflow
+                messages=messages, completion=casted_cmpl, workflow_run=workflow_run
             )
         self._trigger_completion_callbacks(messages, casted_cmpl)
         return ChatCompletion.from_original_completion(

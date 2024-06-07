@@ -3,11 +3,13 @@
 from typing import Protocol
 
 
-class SupportsWorkflow(Protocol):
+class SupportsWorkflowRun(Protocol):
     """A protocol for a Workflow"""
 
-    name: str
+    @property
+    def id(self) -> str:
+        """The id of the workflow run"""
 
     @property
-    def run_id(self) -> str:
-        """The run id of the workflow"""
+    def workflow_id(self) -> str:
+        """The id of the workflow"""

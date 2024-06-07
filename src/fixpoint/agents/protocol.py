@@ -22,7 +22,7 @@ from ..completions import (
     ChatCompletionToolChoiceOptionParam,
     ChatCompletionToolParam,
 )
-from ..workflow import SupportsWorkflow
+from ..workflow import SupportsWorkflowRun
 from ._shared import CacheMode
 
 
@@ -54,7 +54,7 @@ class BaseAgent(Protocol):
         messages: List[ChatCompletionMessageParam],
         response_model: None = None,
         model: Optional[str] = None,
-        workflow: Optional[SupportsWorkflow] = None,
+        workflow_run: Optional[SupportsWorkflowRun] = None,
         tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
         tools: Optional[Iterable[ChatCompletionToolParam]] = None,
         cache_mode: Optional[CacheMode] = "normal",
@@ -68,7 +68,7 @@ class BaseAgent(Protocol):
         messages: List[ChatCompletionMessageParam],
         response_model: Type[T_contra],
         model: Optional[str] = None,
-        workflow: Optional[SupportsWorkflow] = None,
+        workflow_run: Optional[SupportsWorkflowRun] = None,
         tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
         tools: Optional[Iterable[ChatCompletionToolParam]] = None,
         cache_mode: Optional[CacheMode] = "normal",
@@ -81,7 +81,7 @@ class BaseAgent(Protocol):
         messages: List[ChatCompletionMessageParam],
         response_model: Optional[Type[T_contra]] = None,
         model: Optional[str] = None,
-        workflow: Optional[SupportsWorkflow] = None,
+        workflow_run: Optional[SupportsWorkflowRun] = None,
         tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
         tools: Optional[Iterable[ChatCompletionToolParam]] = None,
         cache_mode: Optional[CacheMode] = "normal",
