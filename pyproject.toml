@@ -35,7 +35,7 @@ pandas = { version = "^2.2.2", optional = true }
 jinja2 = "^3.1.4"
 diskcache = "^5.6.3"
 supabase = "^2.5.0"
-psycopg = "^3.1.19"
+psycopg = {extras = ["binary", "pool"], version = "^3.1.19"}
 
 [tool.poetry.group.dev.dependencies]
 freezegun = "^1.5.1"
