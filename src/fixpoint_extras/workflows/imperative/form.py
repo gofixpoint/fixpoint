@@ -12,7 +12,9 @@ T = TypeVar("T", bound=BaseModel)
 class Form(BaseModel, Generic[T]):
     """A form is a collection of fields for a user or agent to fill in."""
 
-    id: str = Field(description='Must be unique within the workflow the form exists in.')
+    id: str = Field(
+        description="Must be unique within the workflow the form exists in."
+    )
     metadata: Dict[str, Any] = Field(default={}, description="Metadata for the form")
 
     path: str = Field(default="/", description="The path to the form in the workflow")

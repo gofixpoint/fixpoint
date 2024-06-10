@@ -68,7 +68,7 @@ def classify_form_type(
 ) -> Tuple[FormType, classification.ClassifiedChatCompletion]:
     """A workflow step that classifies the users message intent into a form type"""
     completion = classification.create_classified_chat_completion(
-        agent=wfctx.agents['main'],
+        agent=wfctx.agents["main"],
         choices=_FORM_TYPE_CHOICES,
         user_message=user_message,
         context_messages=[smsg(_INTAKE_PROMPT)],

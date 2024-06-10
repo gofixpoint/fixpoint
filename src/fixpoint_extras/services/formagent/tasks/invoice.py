@@ -45,7 +45,7 @@ def gather_invoice_info(
     """Gather the invoice information from the user."""
     completion = info_gatherer.process_messages(
         _make_invoice_msgs(user_message),
-        agent=wfctx.agents['main'],
+        agent=wfctx.agents["main"],
     )
     sout = _validate_completion(completion)
     return sout, completion
@@ -55,7 +55,7 @@ def answer_invoice_questions(
     wfctx: WorkflowContext, user_message: str
 ) -> Tuple[InvoiceQuestions, ChatCompletion[InvoiceQuestions]]:
     """Answer the questions about the invoice."""
-    completion = wfctx.agents['main'].create_completion(
+    completion = wfctx.agents["main"].create_completion(
         messages=_make_invoice_msgs(user_message),
         response_model=InvoiceQuestions,
     )
