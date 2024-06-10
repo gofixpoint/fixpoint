@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel
 from fixpoint_extras.workflows.imperative.workflow import Workflow
@@ -17,8 +17,8 @@ class TestForms:
         assert run.id is not None
 
         class Foo(BaseModel):
-            foo: str
-            bar: int
+            foo: Optional[str] = None
+            bar: Optional[int] = None
 
         # Store the form on the run
         stored_form = run.forms.store(

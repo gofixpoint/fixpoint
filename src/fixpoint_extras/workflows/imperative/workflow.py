@@ -215,7 +215,7 @@ class _Forms:
         path: Optional[str] = None,
         metadata: Optional[dict[str, Any]] = None,
     ) -> Form[T]:
-        """Store a form in the cache.
+        """Store a form in the workflow run.
 
         If a form with that id already exists in the workflow run, we will throw
         an error.
@@ -225,6 +225,8 @@ class _Forms:
         it is stored at the root of the workflow run, outside of all tasks and
         steps. By default, we store the form at the current task and step.
         """
+        self._validate_form_schema(schema)
+
         form_with_meta = FormWithMetadata[T](
             form_schema=schema,
             id=form_id,
@@ -239,6 +241,15 @@ class _Forms:
         else:
             self._memory[form_id] = cast(FormWithMetadata[BaseModel], form_with_meta)
         return form_item
+
+    def _validate_form_schema(self, form_schema: Type[T]) -> None:
+        # check that every field in the form_schema is optional. These are Pydantic fields
+        for name, field in form_schema.model_fields.items():
+            if field.get_default() is not None:
+                raise ValueError(
+                    f'Form field "{name}" must have a default value of None, '
+                    "so the agent can fill it in later"
+                )
 
     def update(
         self,
