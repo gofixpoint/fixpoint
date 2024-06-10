@@ -9,6 +9,8 @@ from fixpoint.utils.messages import umsg
 from fixpoint.completions import ChatCompletionMessageParam, ChatCompletion
 from fixpoint.agents import BaseAgent
 
+from fixpoint_extras.workflows.imperative import Form
+
 
 _QUESTION_FIELD_PREFIX = "question_"
 _QUESTION_FIELD_PREFIX_LEN = len(_QUESTION_FIELD_PREFIX)
@@ -21,24 +23,23 @@ class InfoGatherer(Generic[T]):
     """A controller that gathers info in order to fill out a form."""
 
     agent: BaseAgent
-    info_model: Type[T]
-    info: T
+    form: Form[T]
+
     # A history of all info objects, including the latest. AKA,
-    # `self.info_history[-1] == self.info`
+    # `self.info_history[-1] == self.form.contents`
     info_history: List[T]
     _questions: Dict[str, str]
 
-    def __init__(self, info_model: Type[T], agent: BaseAgent):
+    def __init__(self, form: Form[T], agent: BaseAgent):
         self.agent = agent
-        self.info = info_model()
-        self.info_model = info_model
-        self.info_history = [self.info]
+        self.form = form
+        self.info_history = [self.form.contents]
         self._questions = self.make_field_questions()
 
     def _make_questions_model(self) -> Type[BaseModel]:
         # type-checking the `create_model` is weird, so just ignore it
         new_fields: Dict[str, Any] = {}
-        for k, v in self.info_model.model_fields.items():
+        for k, v in self.form.form_schema.model_fields.items():
             new_fields[f"{_QUESTION_FIELD_PREFIX}{k}"] = (
                 str,
                 Field(description=f"Question for: {v.description}"),
@@ -66,7 +67,7 @@ class InfoGatherer(Generic[T]):
                 # Ideally every field should have a description. If it's
                 # missing, just use the field name.
                 (v.description if v.description else k)
-                for k, v in self.info_model.model_fields.items()
+                for k, v in self.form.form_schema.model_fields.items()
             ]
         )
         prompt = (
@@ -92,9 +93,9 @@ class InfoGatherer(Generic[T]):
     def missing_fields(self) -> Dict[str, FieldInfo]:
         """Get the fields that do not yet have answers."""
         missing: Dict[str, FieldInfo] = {}
-        for k, v in self.info.model_dump().items():
+        for k, v in self.form.contents.model_dump().items():
             if v is None:
-                missing[k] = self.info_model.model_fields[k]
+                missing[k] = self.form.form_schema.model_fields[k]
         return missing
 
     def is_complete(self) -> bool:
@@ -110,9 +111,9 @@ class InfoGatherer(Generic[T]):
         """Process a user's message and update the form info."""
         if not agent:
             agent = self.agent
-        old_info = self.info
+        old_info = self.form.contents
         completion = agent.create_completion(
-            messages=messages, response_model=self.info_model
+            messages=messages, response_model=self.form.form_schema
         )
 
         # get the non-None fields from the old info and the new info
@@ -129,9 +130,9 @@ class InfoGatherer(Generic[T]):
             if new_info_dict.get(k, None) is None:
                 new_info_dict[k] = old_info_dict[k]
 
-        self.info = self.info_model(**new_info_dict)
-        self.info_history.append(self.info)
-        completion.fixp.structured_output = self.info
+        self.form.set_contents(new_info_dict)
+        self.info_history.append(self.form.contents)
+        completion.fixp.structured_output = self.form.contents
         return completion
 
     def format_questions(
@@ -144,7 +145,7 @@ class InfoGatherer(Generic[T]):
         human or to another agent.
         """
         if info is None:
-            info = self.info
+            info = self.form.contents
         missing = self.missing_fields()
 
         # get the questions for the missing fields

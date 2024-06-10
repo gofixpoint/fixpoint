@@ -1,7 +1,7 @@
 """Simple implementation of a workflow"""
 
 from uuid import uuid4
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any, Dict, List, Optional, Type, TypeVar, Union, cast
 
 from pydantic import BaseModel, Field, PrivateAttr, computed_field
 
@@ -9,6 +9,7 @@ from fixpoint.storage.protocol import SupportsStorage
 
 from .document import Document
 from .form import Form
+from .shared import TASK_MAIN_ID, STEP_MAIN_ID
 
 
 class NodeState(BaseModel):
@@ -58,7 +59,7 @@ class WorkflowRun(BaseModel):
     _forms: "_Forms" = PrivateAttr()
 
     node_state: NodeState = Field(
-        default_factory=lambda: NodeState(task="__start__", step="__start__")
+        default_factory=lambda: NodeState(task=TASK_MAIN_ID, step=STEP_MAIN_ID)
     )
 
     @computed_field  # type: ignore[misc]
@@ -128,7 +129,7 @@ class _Documents:
         *,
         contents: Union[BaseModel, Dict[str, Any]],
         # pylint: disable=redefined-builtin
-        id: Optional[str] = None,
+        id: str,
         path: Optional[str] = None,
     ) -> Document:
         """Store a document in the cache.
@@ -146,7 +147,7 @@ class _Documents:
     def update(
         self,
         *,
-        document_id: Optional[str],
+        document_id: str,
         contents: Union[BaseModel, Dict[str, Any]],
     ) -> Document:
         """Update a document in the cache."""
@@ -163,8 +164,10 @@ class _Documents:
         raise NotImplementedError()
 
 
+T = TypeVar("T", bound=BaseModel)
+
 # Class that wraps Form with WorkflowRun metadata
-class FormWithMetadata(Form):
+class FormWithMetadata(Form[T]):
     """A form with workflow run metadata.
 
     This is a convenience class that wraps a form with workflow run metadata.
@@ -175,19 +178,19 @@ class FormWithMetadata(Form):
 
 class _Forms:
     workflow_run: WorkflowRun
-    _storage: Optional[SupportsStorage[FormWithMetadata]]
-    _memory: Dict[str, FormWithMetadata]
+    _storage: Optional[SupportsStorage[FormWithMetadata[BaseModel]]]
+    _memory: Dict[str, FormWithMetadata[BaseModel]]
 
     def __init__(
         self,
         workflow_run: WorkflowRun,
-        storage: Optional[SupportsStorage[FormWithMetadata]] = None,
+        storage: Optional[SupportsStorage[FormWithMetadata[BaseModel]]] = None,
     ) -> None:
         self.workflow_run = workflow_run
         self._storage = storage
         self._memory = {}
 
-    def get(self, *, form_id: str) -> Union[Form, None]:
+    def get(self, *, form_id: str) -> Union[Form[BaseModel], None]:
         """Get a form from the cache.
 
         Gets the latest version of the form.
@@ -205,12 +208,12 @@ class _Forms:
     def store(
         self,
         *,
-        schema: Type[BaseModel],
+        schema: Type[T],
         # pylint: disable=redefined-builtin
         form_id: str,
         path: Optional[str] = None,
         metadata: Optional[dict[str, Any]] = None,
-    ) -> Form:
+    ) -> Form[T]:
         """Store a form in the cache.
 
         If a form with that id already exists in the workflow run, we will throw
@@ -221,29 +224,30 @@ class _Forms:
         it is stored at the root of the workflow run, outside of all tasks and
         steps. By default, we store the form at the current task and step.
         """
-        form_with_meta = FormWithMetadata(
-            schema=schema,
+        form_with_meta = FormWithMetadata[T](
+            form_schema=schema,
             id=form_id,
             path=path,
             metadata=metadata,
             workflow_run_id=self.workflow_run.id,
         )
-        form_item = Form(**form_with_meta.model_dump())
+        form_item = Form[T](**form_with_meta.model_dump())
         if self._storage:
-            self._storage.insert(form_with_meta)
+            # Storage layer only expects "BaseModel"
+            self._storage.insert(cast(FormWithMetadata[BaseModel], form_with_meta))
         else:
-            self._memory[form_id] = form_with_meta
+            self._memory[form_id] = cast(FormWithMetadata[BaseModel], form_with_meta)
         return form_item
 
     def update(
         self,
         *,
         form_id: str,
-        contents: Union[BaseModel, Dict[str, Any]],
-    ) -> Form:
-        """Update a form in the cache."""
+        contents: Union[T, Dict[str, Any]],
+    ) -> Form[T]:
+        """Update a form in the workflow run."""
         if isinstance(contents, BaseModel):
-            form_with_meta = FormWithMetadata(
+            form_with_meta = FormWithMetadata[T](
                 id=form_id,
                 workflow_run_id=self.workflow_run.id,
                 **contents.model_dump(),
@@ -253,13 +257,13 @@ class _Forms:
                 id=form_id, workflow_run_id=self.workflow_run.id, **contents
             )
         if self._storage:
-            self._storage.update(form_with_meta)
+            self._storage.update(cast(FormWithMetadata[BaseModel], form_with_meta))
         else:
-            self._memory[form_id] = form_with_meta
+            self._memory[form_id] = cast(FormWithMetadata[BaseModel], form_with_meta)
 
         return Form(**form_with_meta.model_dump())
 
-    def list(self, *, path: Optional[str] = None) -> List[Form]:
+    def list(self, *, path: Optional[str] = None) -> List[Form[BaseModel]]:
         """List all forms in the cache.
 
         The optional `path` is a "/" separate path of the form "/{task}/{step}".
@@ -267,8 +271,8 @@ class _Forms:
         we list all forms at the root of the workflow run, outside of all tasks
         and steps.
         """
-        forms_with_meta: List[FormWithMetadata] = []
-        forms: List[Form] = []
+        forms_with_meta: List[FormWithMetadata[BaseModel]] = []
+        forms: List[Form[BaseModel]] = []
         conditions = {"workflow_run_id": self.workflow_run.id}
         if path:
             conditions["path"] = path

@@ -40,7 +40,7 @@ class TestForms:
         assert retrieved_form.metadata == {"foo": "bar"}
 
         # Updated form
-        updated_form = run.forms.update(
+        updated_form: Form[Foo] = run.forms.update(
             form_id="foo", contents={"metadata": {"foo": "zar"}}
         )
         assert isinstance(updated_form, Form)
