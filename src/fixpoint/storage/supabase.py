@@ -65,6 +65,19 @@ class SupabaseStorage(SupportsStorage[V]):
         except Exception as e:
             raise RuntimeError(f"Failed to fetch latest data: {e}") from e
 
+    def fetch_with_conditions(self, conditions: dict[str, Any]) -> List[V]:
+        """Fetch items from storage based on arbitrary conditions"""
+        try:
+            query = self._query_table().select("*")
+            for column, value in conditions.items():
+                query = query.eq(column, value)
+            resp = query.execute()
+            return self._deserialize_results(resp.data)
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to fetch data with conditions {conditions}: {e}"
+            ) from e
+
     def fetch(self, resource_id: Any) -> Union[V, None]:
         """Fetch data items from storage"""
         try:

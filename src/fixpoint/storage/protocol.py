@@ -20,6 +20,9 @@ class SupportsStorage(Protocol[V]):
     ) -> Union[V, None]:
         """Fetch item from storage that matches the id"""
 
+    def fetch_with_conditions(self, conditions: dict[str, Any]) -> List[V]:
+        """Fetch items from storage based on arbitrary conditions"""
+
     def insert(self, data: V) -> V:
         """Insert a data item to storage"""
 
