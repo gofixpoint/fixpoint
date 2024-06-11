@@ -19,6 +19,7 @@ goals of your AI and your application.
 
 Agents have memory about past users, sessions, and interactions. They can also
 connect to your data sources or the web to retrieve and store more information.
+([memory docs][memory])
 
 ### Durability
 
@@ -26,11 +27,13 @@ Inference providers time out and fail, but that doesn't mean your users should
 suffer. Set up model fallbacks and retries, multi-plex inference requests and
 return the first response. Cache LLM agent requests so you don't waste money
 repeating the same tokens.
+([durability docs][durability])
 
 ### Structured Data and Workflows
 
 Control the structure of your LLM output so that the rest of your program can
 easily work with it.
+([structured data docs][structured-data] and [workflow docs][workflows])
 
 ### Human-in-the-loop
 
@@ -69,8 +72,8 @@ You can use Fixpoint in three ways:
 
 ## Getting started
 
-Under the hood, we're working towards supporting every programming language, but
-for now we only support Python. You can install Fixpoint with pip:
+We're working towards supporting every programming language, but for now we only
+support Python. You can install Fixpoint with pip:
 
 ```bash
 pip install fixpoint
@@ -84,6 +87,10 @@ Then the best way to get started is to look at one of these examples:
 You can also continue on to read the rest of the Fixpoint docs, or take a look
 at our [Github repo](https://github.com/gofixpoint/fixpoint/).
 
-[lego-brick-mode]: ./lego-brick-mode.md
-[library-mode]: ./library-mode.md
-[infra-mode]: ./infra-mode.md
+[lego-brick-mode]: /lego-brick-mode
+[library-mode]: /library-mode
+[infra-mode]: /infra-mode
+[memory]: /memory
+[durability]: /durability
+[structured-data]: /structured-data
+[workflows]: /workflows

@@ -1,10 +1,22 @@
 {
   "index": "Overview",
-  "another": "Another Page",
-  "advanced": "Advanced (A Folder)",
+  "getting-started": "Getting Started",
   "about": {
     "title": "About",
     "type": "page"
+  },
+  "-- Features": {
+    "type": "separator",
+    "title": "Features"
+  },
+  "agents": "Agents",
+  "memory": "Memory",
+  "durability": "Durability",
+  "structured-data": "Structured Data",
+  "workflows": "Workflows",
+  "-- Fixpoint Modes": {
+    "type": "separator",
+    "title": "Fixpoint Modes"
   },
   "contact": {
     "title": "Homepage ↗",
