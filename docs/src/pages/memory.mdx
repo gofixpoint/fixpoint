@@ -1,0 +1,53 @@
+# Memory
+
+Memory is the ability for your LLM to recall past information. The simplest
+memory implementation remembers all past chat completions that an LLM produced.
+More complex memory implementations summarize past LLM inferences and extract
+important topics.
+
+## Getting started with memory
+
+In the simplest use case, you can add memory to an AI agent, and then continue
+on as normal, using an OpenAI compatible interface. Every chat completion
+inference request will be stored in memory.
+
+```python
+import os
+import fixpoint
+from fixpoint.agents.openai import OpenAIClients
+from fixpoint.memory import memgpt_summarize, MemGPTSummarizeOpts, MemGPTSummaryAgent, Memory
+
+agent_mem = Memory()
+agent = fixpoint.agents.OpenAI(
+    model_name='gpt-3.5-turbo',
+    openai_clients=OpenAIClients.from_api_key(os.environ['OPENAI_API_KEY']),
+    memory=agent_mem,
+)
+
+completion = agent.chat.completions.create(
+    messages=[{"role": "user", "content": "What is a fixpoint, in math terms?"}]
+)
+print(completion.choices[0].message.content)
+
+print("Number of memories:", len(agent_mem.memories()))
+print(agent_mem.to_str())
+```
+
+The `agent_mem.to_str()` returns a formatted string of all memories, which looks
+something like this:
+
+```text
+> user: What is a fixpoint, in math terms?
+> assistant: In mathematics, a fixpoint refers to a value ...
+> ============================================================
+```
+
+
+## Using memory in workflows
+
+If you LLM agents within a **workflow**, then all memories are stored for the
+workflow. Future workflow steps can query the memory bank for memories from
+earlier in the workflow, and filter by agent, or by the relevant task or step
+within the workflow.
+
+_code example coming soon_
