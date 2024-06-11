@@ -438,7 +438,10 @@ disable=raw-checker-failed,
         too-many-return-statements,
         no-else-return,
         consider-iterating-dictionary,
-        no-member # disabled because pylint gets this wrong on Pydantic and mypy covers it
+        no-else-raise,
+        no-member, # disabled because pylint gets this wrong on Pydantic and mypy covers it
+        not-callable # disabled because pylint gets this wrong sometimes and mypy covers it
+
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
