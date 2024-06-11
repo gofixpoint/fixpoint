@@ -225,8 +225,6 @@ class _Forms:
         it is stored at the root of the workflow run, outside of all tasks and
         steps. By default, we store the form at the current task and step.
         """
-        self._validate_form_schema(schema)
-
         form_with_meta = FormWithMetadata[T](
             form_schema=schema,
             id=form_id,
@@ -234,46 +232,54 @@ class _Forms:
             metadata=metadata,
             workflow_run_id=self.workflow_run.id,
         )
-        form_item = Form[T](**form_with_meta.model_dump())
         if self._storage:
             # Storage layer only expects "BaseModel"
             self._storage.insert(cast(FormWithMetadata[BaseModel], form_with_meta))
         else:
             self._memory[form_id] = cast(FormWithMetadata[BaseModel], form_with_meta)
-        return form_item
 
-    def _validate_form_schema(self, form_schema: Type[T]) -> None:
-        # check that every field in the form_schema is optional. These are Pydantic fields
-        for name, field in form_schema.model_fields.items():
-            if field.get_default() is not None:
-                raise ValueError(
-                    f'Form field "{name}" must have a default value of None, '
-                    "so the agent can fill it in later"
-                )
+        return form_with_meta
 
     def update(
         self,
         *,
         form_id: str,
         contents: Union[T, Dict[str, Any]],
+        metadata: Optional[dict[str, Any]] = None,
     ) -> Form[T]:
-        """Update a form in the workflow run."""
-        if isinstance(contents, BaseModel):
-            form_with_meta = FormWithMetadata[T](
-                id=form_id,
-                workflow_run_id=self.workflow_run.id,
-                **contents.model_dump(),
-            )
-        else:
-            form_with_meta = FormWithMetadata(
-                id=form_id, workflow_run_id=self.workflow_run.id, **contents
-            )
-        if self._storage:
-            self._storage.update(cast(FormWithMetadata[BaseModel], form_with_meta))
-        else:
-            self._memory[form_id] = cast(FormWithMetadata[BaseModel], form_with_meta)
+        """Update a form in the workflow run.
 
-        return Form(**form_with_meta.model_dump())
+        Updates a form, setting the specified fields. If a field is not preset,
+        it is not set. To set a field to None, specify it.
+        """
+        if self._storage:
+            raise NotImplementedError("Cannot update form in storage")
+
+        else:
+            form = self._memory[form_id]
+            if metadata:
+                form.metadata = metadata
+            old_contents = form.contents.model_copy()
+
+            # merge the new contents with the old contents, and then explicilty
+            # validate it because passing in an `update` parameter to
+            # `model_copy` does not validate the values.
+
+            # TODO(dbmikus) make sure that model_copy works
+            if isinstance(contents, BaseModel):
+                new_contents = old_contents.model_copy(update=contents.model_dump())
+            else:
+                new_contents = old_contents.model_copy(update=contents)
+            # TODO(dbmikus) make sure this validation works
+            new_contents.model_validate(new_contents)
+            form.set_contents(new_contents)
+
+        if self._storage:
+            self._storage.update(form)
+        else:
+            self._memory[form_id] = form
+
+        return cast(Form[T], form)
 
     def list(self, *, path: Optional[str] = None) -> List[Form[BaseModel]]:
         """List all forms in the cache.

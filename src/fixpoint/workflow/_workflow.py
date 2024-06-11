@@ -9,10 +9,18 @@ from .protocol import SupportsWorkflowRun
 class WorkflowRun(SupportsWorkflowRun):
     """A simple workflow run implementation"""
 
-    id: str
-    workflow_id: str
+    _id: str
+    _workflow_id: str
 
     # pylint: disable=redefined-builtin
     def __init__(self, id: str, workflow_id: str):
-        self.id = id
-        self.workflow_id = workflow_id
+        self._id = id
+        self._workflow_id = workflow_id
+
+    @property
+    def id(self) -> str:
+        return self._id
+
+    @property
+    def workflow_id(self) -> str:
+        return self._workflow_id

@@ -2,7 +2,7 @@
 
 from typing import Dict, Any, List, Type, TypeVar, Generic, Union
 
-from pydantic import BaseModel, PrivateAttr, Field, computed_field
+from pydantic import BaseModel, PrivateAttr, Field, computed_field, field_validator
 
 from .version import Version
 
@@ -61,6 +61,34 @@ class Form(BaseModel, Generic[T]):
         else:
             self._contents = contents
 
+    @field_validator("form_schema")
+    @classmethod
+    def _validate_form_schema(cls, form_schema: Type[T]) -> Type[T]:
+        # TODO(dbmikus) test this
+
+        # check that every field in the form_schema is optional. These are Pydantic fields
+        for name, field in form_schema.model_fields.items():
+            if field.get_default() is not None:
+                raise ValueError(
+                    f'Form field "{name}" must have a default value of None, '
+                    "so the agent can fill it in later"
+                )
+
+        # make sure that each form field is not a nested type like a list,
+        # dictionary, object, or other complex types
+        for name, field in form_schema.model_fields.items():
+            if isinstance(field.annotation, (list, dict, BaseModel, tuple, set)):
+                raise ValueError(
+                    f'Form field "{name}" must be a primitive type, '
+                    "not a complex type like list, dict, object, tuple, or set, "
+                    "so the agent can fill it in later"
+                )
+
+        return form_schema
+
     def model_post_init(self, _context: Any) -> None:
         """Run Pydantic model post init code"""
+        print("DBM hey")
+        print(self.form_schema)
+        print("DBM stop")
         self._contents = self.form_schema()
