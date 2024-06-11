@@ -1,11 +1,89 @@
-# Introduction
+# Fixpoint
 
-Welcome to Nextra! This is a basic docs template. You can use it as a starting point for your own project :)
+Fixpoint is open-source infra for reliable multi-step AI workflows. We let you
+build and connect multiple AI agents that know your data and work together to
+run autonomous or human-in-the-loop workflows.
 
-## What is Nextra?
+Normally, when making multi-step AI workflows and agents, you need to solve a
+lot of problems: the AI needs to remember the previous workflow steps and user
+interactions. It needs to pick the right models and prompts for each step, and
+recover gracefully when the workflow fails partway through. Sometimes the
+workflow needs a human-in-the-loop to correct or review parts of the workflow.
 
-A **simple**, **powerful** and **flexible** site generation framework with everything you love from Next.js.
+Fixpoint's goal is to solve these problems for you so that can focus on the
+goals of your AI and your application.
 
-## Documentation
+## Fixpoint's features
 
-The documentation is available at [https://nextra.site](https://nextra.site).
+### Memory and Data
+
+Agents have memory about past users, sessions, and interactions. They can also
+connect to your data sources or the web to retrieve and store more information.
+
+### Durability
+
+Inference providers time out and fail, but that doesn't mean your users should
+suffer. Set up model fallbacks and retries, multi-plex inference requests and
+return the first response. Cache LLM agent requests so you don't waste money
+repeating the same tokens.
+
+### Structured Data and Workflows
+
+Control the structure of your LLM output so that the rest of your program can
+easily work with it.
+
+### Human-in-the-loop
+
+_coming soon_
+
+Incorporate human-in-the-loop into any step of your LLM workflow. You can audit
+your LLM's outputs, make corrections, or do any other human steps before
+resuming the rest of your workflow.
+
+### Routing and Multi-Plexing
+
+_coming soon_
+
+Set semantic routing based on intent, run model/prompt A/B experiments, and
+other model routing rules. Generate responses from multiple models at once and
+record which variant your users picked (or synthesize all outputs into a final
+result!).
+
+## How do I use Fixpoint?
+
+We designed Fixpoint so that can progressively use its features. We don't think
+developers should have to conform their LLM usage to a framework in order to get
+the benefits of AI memory, durability, human-in-the-loop, and multi-AI workflow
+orchestration.
+
+You can use Fixpoint in three ways:
+
+1. [**Lego-bricks mode**][lego-brick-mode]: pick and choose the "lego brick"
+   components you want to add to your existing AI application. Add memory,
+   caching, checkpointing, without changing any part of your code.
+2. [**Library mode**][library-mode]: Build multi- or single-agent workflows with
+   Fixpoint, and use your existing document stores and databases.
+3. [**Infra mode**][infra-mode]: Use Fixpoint's platform for agent workflows so
+   you don't need to operate your own durable workflow infra or set up databases
+   for AI memory and documents.
+
+## Getting started
+
+Under the hood, we're working towards supporting every programming language, but
+for now we only support Python. You can install Fixpoint with pip:
+
+```bash
+pip install fixpoint
+```
+
+Then the best way to get started is to look at one of these examples:
+
+1. TODO
+2. TODO
+
+You can also continue on to read the rest of the Fixpoint docs, or take a look
+at our [Github repo](https://github.com/gofixpoint/fixpoint/).
+
+[lego-brick-mode]: ./lego-brick-mode.md
+[library-mode]: ./library-mode.md
+[infra-mode]: ./infra-mode.md
