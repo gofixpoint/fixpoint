@@ -88,7 +88,4 @@ class Form(BaseModel, Generic[T]):
 
     def model_post_init(self, _context: Any) -> None:
         """Run Pydantic model post init code"""
-        print("DBM hey")
-        print(self.form_schema)
-        print("DBM stop")
         self._contents = self.form_schema()

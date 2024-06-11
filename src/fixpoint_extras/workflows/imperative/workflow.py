@@ -265,7 +265,8 @@ class _Forms:
             # validate it because passing in an `update` parameter to
             # `model_copy` does not validate the values.
 
-            # TODO(dbmikus) make sure that model_copy works
+            # TODO(dbmikus) make sure that model_copy works.
+            # TODO(dbmikus) differentiate between default `None` and explicit `None`
             if isinstance(contents, BaseModel):
                 new_contents = old_contents.model_copy(update=contents.model_dump())
             else:
