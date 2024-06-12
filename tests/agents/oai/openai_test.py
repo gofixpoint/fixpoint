@@ -8,6 +8,7 @@ from openai.types.chat.chat_completion import (
 )
 
 import fixpoint
+from fixpoint.agents.oai import OpenAI
 from fixpoint.agents.openai import OpenAIClients
 from fixpoint._utils.completions import decorate_instructor_completion_with_fixp
 from fixpoint.agents.mock import new_mock_orig_completion
@@ -18,14 +19,14 @@ class TestAgents:
     def test_openai_agent_bad_model_instantiation(self) -> None:
         # Check that if an invalid model is passed in then a ValueError is raised
         with pytest.raises(ValueError):
-            fixpoint.agents.OpenAI("bad-model", OpenAIClients.from_api_key("api-key"))
+            OpenAI("bad-model", OpenAIClients.from_api_key("api-key"))
         # Check that if None is passed in then a ValueError is raised
         with pytest.raises(ValueError):
-            fixpoint.agents.OpenAI(None, OpenAIClients.from_api_key("api-key"))  # type: ignore
+            OpenAI(None, OpenAIClients.from_api_key("api-key"))  # type: ignore
 
     def test_openai_agent_valid_model_instantiation(self) -> None:
         # Instantiate an agent
-        agent = fixpoint.agents.OpenAI(
+        agent = OpenAI(
             model_name="gpt-3.5-turbo",
             openai_clients=OpenAIClients.from_api_key("api-key"),
         )
@@ -38,7 +39,7 @@ class TestAgents:
 
     def test_openai_agent_completions_proxy(self) -> None:
         # Instantiate an agent
-        agent = fixpoint.agents.OpenAI(
+        agent = OpenAI(
             model_name="gpt-3.5-turbo",
             openai_clients=OpenAIClients.from_api_key("api-key"),
         )
