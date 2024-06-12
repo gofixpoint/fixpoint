@@ -30,10 +30,10 @@ class TestMemGPTSummaryAgent:
         )
 
         # We are under the token limit, so we don't summarize.
-        assert len(mem.memory()) == 1
+        assert len(mem.memories()) == 1
         # We are under the token limit, so we did not summarize and product any
         # extra messages.
-        assert len(mem.memory()[0].messages) == 2
+        assert len(mem.memories()[0].messages) == 2
 
 
 def test_context_length_check() -> None:

@@ -51,7 +51,7 @@ class DataframeMemory(Memory):
             "all_tool_call_args": [],
             "workflow_name": [],
         }
-        for idx, memitem in enumerate(self.memory()):
+        for idx, memitem in enumerate(self.memories()):
             messages = memitem.messages
             completion = memitem.completion
             workflow_run_id = memitem.workflow_run.id if memitem.workflow_run else None

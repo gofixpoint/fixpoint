@@ -11,14 +11,14 @@ from ..supabase_test_utils import test_inputs
 class TestWithMemory:
     def test_store_memory(self) -> None:
         memstore = Memory()
-        assert memstore.memory() == []
+        assert memstore.memories() == []
         msgs: List[ChatCompletionMessageParam] = [
             {"role": "system", "content": "hello!"}
         ]
         cmpl = new_mock_completion()
         memstore.store_memory(msgs, cmpl)
 
-        stored_memory = memstore.memory()
+        stored_memory = memstore.memories()
         expected_memory = [MemoryItem(messages=msgs, completion=cmpl)]
 
         assert len(stored_memory) == len(expected_memory) == 1
@@ -63,14 +63,14 @@ class TestWithMemoryWithStorage:
         )
 
         memstore = Memory(storage=storage)
-        assert memstore.memory() == []
+        assert memstore.memories() == []
         msgs: List[ChatCompletionMessageParam] = [
             {"role": "system", "content": "hello!"}
         ]
         cmpl = new_mock_completion()
         memstore.store_memory(msgs, cmpl)
 
-        stored_memory = memstore.memory()
+        stored_memory = memstore.memories()
         expected_memory = [MemoryItem(messages=msgs, completion=cmpl)]
 
         assert len(stored_memory) == len(expected_memory) == 1

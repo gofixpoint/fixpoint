@@ -52,8 +52,8 @@ class MemoryItem:
 class SupportsMemory(Protocol):
     """A protocol for adding memory to an agent"""
 
-    def memory(self) -> List[MemoryItem]:
-        """Get the memory"""
+    def memories(self) -> List[MemoryItem]:
+        """Get the list of memories"""
 
     def store_memory(
         self,
@@ -96,8 +96,8 @@ class Memory(SupportsMemory):
         if self._storage is not None:
             self._storage.insert(mem_item)
 
-    def memory(self) -> List[MemoryItem]:
-        """Get the memory"""
+    def memories(self) -> List[MemoryItem]:
+        """Get the list of memories"""
         if self._storage is not None:
             return self._storage.fetch_latest()
         return self._memory
@@ -106,7 +106,7 @@ class Memory(SupportsMemory):
         """Return the formatted string of messages. Useful for printing/debugging"""
         delim = "============================================================"
         lines = []
-        for mem in self.memory():
+        for mem in self.memories():
             lines.extend(self._format_single_mem(mem))
             lines.append(delim)
         return "\n".join(lines)
