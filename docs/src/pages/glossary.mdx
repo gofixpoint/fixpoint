@@ -8,11 +8,11 @@ whether you define the next steps or whether AIs help define the next steps. It
 is the highest level of work that Fixpoint does, but one can chain together
 workflows. You can think of a workflow as a dynamically constructed graph of
 tasks/steps, although we do not require the user to design this graph like a
-state machine. They can just use plain function calling.
+state machine. They can just have one task or step call another function.
 
 ## Agents
 
-An agent
+An agent is an
 [intelligent agent (IA)](https://en.wikipedia.org/wiki/Intelligent_agent),
 although we abuse the terminology slightly so that agents are not necessarily
 autonomous. The simplest agent simply calls an underlying LLM, but more complex
@@ -27,14 +27,14 @@ A workflow can be comprised of tasks and/or steps. Steps are the smallest unit
 of work, so a task can have multiple steps. Here is the difference: a “task” is
 a sequence of one or more steps to accomplish some discrete part of a workflow.
 A “step” is the smallest unit of work by which the program steps through a
-Fixpoint workflow.
+Fixpoint workflow, and checkpoints each step.
 
 If make a workflow without defining any tasks, the steps within the workflow
-roll up to a default task.
+roll up to a default "main" task.
 
 ## Document
 
-A document is an arbitrary document. It can be namespaced to a workflow, or
+A document is an arbitrary text document. It can be namespaced to a workflow, or
 exist outside the workflow. For example, a Form Agent spec could be a document,
 and when we create a Form Agent workflow instance we can clone a document from
 the Form Agent spec and start filling it out for that workflow.
@@ -56,7 +56,7 @@ or other AIs. They are meta-agents that coordinate or modify the behavior of
 other agent(s) and let those agents easily integrate with other software
 systems.
 
-In general, controllers do not have a uniform interface between controllers.
+In general, there is no uniform interface between controllers.
 
 ## Memory
 
@@ -89,15 +89,7 @@ A workspace is a way of grouping AI agents, workflows, and human users so that
 different workspaces can operate without having name collisions and while
 performing access control.
 
-There is a similar concept, “namespaces”, which Temporal uses in
-[the computer science sense](https://en.wikipedia.org/wiki/Namespace).
-We aren’t going to expose namespaces explicitly in our API (at least not yet),
-but each workspace has its own namespace, and each organization has a default
-namespace.
-
-It should be possible to refer to agents or workflows in another workspace if
-configured as such. We will likely have a “global” workspace where one can put
-“library” agents and such that you want to share across different workspaces.
+If authorized, you can refer to agents or workflows in another workspace.
 
 A workspace can have “accounts” from different “organizations”, and can be owned
 by one or more organizations.
@@ -106,12 +98,7 @@ by one or more organizations.
 
 An organization represents a human organization within Fixpoint. This is how we
 can segment customer accounts, etc. By default, all workspaces, agents, etc.
-within an organization are namespaced to that organization,
-
-I thought about the term “team”, which is sometimes used, but I think we might
-want to use either “team” or “squad” to refer to a collection of agents sometime
-in the future. There is also the UNIX concept of “group”, but we’re not going to
-use that. At least not right now.
+within an organization are namespaced to that organization.
 
 ## Account
 
