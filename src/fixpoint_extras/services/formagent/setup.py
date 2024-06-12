@@ -4,7 +4,7 @@ from typing import Mapping, Optional
 
 import fixpoint
 from fixpoint.cache import SupportsChatCompletionCache
-from fixpoint.agents.protocol import TikTokenLogger
+from fixpoint.agents.callbacks import TikTokenLogger
 from fixpoint.agents.openai import OpenAIClients
 from fixpoint.analyze.memory import DataframeMemory
 
