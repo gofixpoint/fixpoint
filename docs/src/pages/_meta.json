@@ -18,6 +18,14 @@
     "type": "separator",
     "title": "Fixpoint Modes"
   },
+  "lego-brick-mode": "Lego Brick Mode",
+  "library-mode": "Library Mode",
+  "infra-mode": "Infra Mode",
+  "---": {
+    "type": "separator"
+  },
+  "glossary": "Glossary",
+  "faq": "FAQ",
   "contact": {
     "title": "Homepage ↗",
     "type": "page",
