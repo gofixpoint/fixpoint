@@ -1,6 +1,7 @@
 """A form is a set of fields for a user or agent to fill in."""
 
-from typing import Dict, Any, List, Type, TypeVar, Generic, Union
+import importlib
+from typing import Dict, Any, List, Type, TypeVar, Generic, Union, cast
 
 from pydantic import BaseModel, PrivateAttr, Field, computed_field, field_validator
 
@@ -23,6 +24,16 @@ class Form(BaseModel, Generic[T]):
         default=[], description="The versions of the document"
     )
 
+    workflow_run_id: str = Field(description="The workflow run id")
+
+    # Manually override model_dump_json
+    def model_dump(self, *_: Any, **__: Any) -> dict[str, Any]:
+        data = super().model_dump()
+        data["form_schema"] = (
+            f"{self.form_schema.__module__}.{self.form_schema.__name__}"
+        )
+        return data
+
     @computed_field  # type: ignore[misc]
     @property
     def task(self) -> str:
@@ -42,6 +53,16 @@ class Form(BaseModel, Generic[T]):
         return parts[2]
 
     # This is the actual form schema and contents
+    @field_validator("form_schema", mode="before")
+    @classmethod
+    def convert_string_to_class(cls, v: str) -> Type[T]:
+        """Convert a string to a class"""
+        if isinstance(v, str):
+            module_name, class_name = v.rsplit(".", 1)
+            module = importlib.import_module(module_name)
+            v = getattr(module, class_name)
+            return cast(Type[T], v)
+        return v
 
     # We can't name it "schema" because that conflicts with a Pydantic method
     form_schema: Type[T] = Field(description="The form schema")

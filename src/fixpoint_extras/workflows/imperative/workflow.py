@@ -3,13 +3,22 @@
 from uuid import uuid4
 from typing import Any, Dict, List, Optional, Type, TypeVar, Union, cast
 
-from pydantic import BaseModel, Field, PrivateAttr, computed_field
+from pydantic import (
+    BaseModel,
+    Field,
+    PrivateAttr,
+    computed_field,
+    ConfigDict,
+    SkipValidation,
+)
 
 from fixpoint.storage.protocol import SupportsStorage
 
 from .document import Document
 from .form import Form
 from .shared import TASK_MAIN_ID, STEP_MAIN_ID
+
+T = TypeVar("T", bound=BaseModel)
 
 
 class NodeState(BaseModel):
@@ -34,11 +43,16 @@ class Workflow(BaseModel):
     From the Workflow, you can spawn Workflow Runs.
     """
 
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     id: str = Field(description="The unique identifier for the workflow.")
+    form_storage: SkipValidation[Optional[SupportsStorage[Form[BaseModel]]]] = Field(
+        exclude=True, default=None
+    )
 
     def run(self) -> "WorkflowRun":
         """Create and run a Workflow Run"""
-        return WorkflowRun(workflow=self)
+        return WorkflowRun(workflow=self, form_storage=self.form_storage)
 
 
 class WorkflowRun(BaseModel):
@@ -51,12 +65,17 @@ class WorkflowRun(BaseModel):
     inferences.
     """
 
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     _id: str = PrivateAttr(default_factory=lambda: str(uuid4()))
     _task_ids: List[str] = PrivateAttr(default_factory=list)
 
     workflow: Workflow
     _documents: "_Documents" = PrivateAttr()
     _forms: "_Forms" = PrivateAttr()
+    form_storage: SkipValidation[Optional[SupportsStorage[Form[BaseModel]]]] = Field(
+        exclude=True, default=None
+    )
 
     node_state: NodeState = Field(
         default_factory=lambda: NodeState(task=TASK_MAIN_ID, step=STEP_MAIN_ID)
@@ -76,7 +95,7 @@ class WorkflowRun(BaseModel):
 
     def model_post_init(self, _context: Any) -> None:
         self._documents = _Documents(workflow_run=self)
-        self._forms = _Forms(workflow_run=self)
+        self._forms = _Forms(workflow_run=self, storage=self.form_storage)
 
     @property
     def documents(self) -> "_Documents":
@@ -164,32 +183,19 @@ class _Documents:
         raise NotImplementedError()
 
 
-T = TypeVar("T", bound=BaseModel)
-
-
-# Class that wraps Form with WorkflowRun metadata
-class FormWithMetadata(Form[T]):
-    """A form with workflow run metadata.
-
-    This is a convenience class that wraps a form with workflow run metadata.
-    """
-
-    workflow_run_id: str
-
-
 class _Forms:
     workflow_run: WorkflowRun
-    _storage: Optional[SupportsStorage[FormWithMetadata[BaseModel]]]
-    _memory: Dict[str, FormWithMetadata[BaseModel]]
+    _storage: Optional[SupportsStorage[Form[BaseModel]]]
+    _memory: Dict[str, Form[BaseModel]]
 
     def __init__(
         self,
         workflow_run: WorkflowRun,
-        storage: Optional[SupportsStorage[FormWithMetadata[BaseModel]]] = None,
+        storage: Optional[SupportsStorage[Form[BaseModel]]] = None,
     ) -> None:
         self.workflow_run = workflow_run
         self._storage = storage
-        self._memory = {}
+        self._memory: Dict[str, Form[BaseModel]] = {}
 
     def get(self, *, form_id: str) -> Union[Form[BaseModel], None]:
         """Get a form from the cache.
@@ -225,7 +231,7 @@ class _Forms:
         it is stored at the root of the workflow run, outside of all tasks and
         steps. By default, we store the form at the current task and step.
         """
-        form_with_meta = FormWithMetadata[T](
+        form = Form[T](
             form_schema=schema,
             id=form_id,
             path=path,
@@ -234,11 +240,11 @@ class _Forms:
         )
         if self._storage:
             # Storage layer only expects "BaseModel"
-            self._storage.insert(cast(FormWithMetadata[BaseModel], form_with_meta))
+            self._storage.insert(cast(Form[BaseModel], form))
         else:
-            self._memory[form_id] = cast(FormWithMetadata[BaseModel], form_with_meta)
+            self._memory[form_id] = cast(Form[BaseModel], form)
 
-        return form_with_meta
+        return form
 
     def update(
         self,
@@ -252,12 +258,19 @@ class _Forms:
         Updates a form, setting the specified fields. If a field is not preset,
         it is not set. To set a field to None, specify it.
         """
+
         if self._storage:
-            raise NotImplementedError("Cannot update form in storage")
+            # This should mirror BaseModel model_copy, but work with storage
+            form = self.get(form_id=form_id)
+            if not form:
+                raise ValueError(f"Form {form_id} not found")
+            form.set_contents(contents)
+            if metadata:
+                form.metadata = metadata
 
         else:
             form = self._memory[form_id]
-            if metadata:
+            if metadata is not None:
                 form.metadata = metadata
             old_contents = form.contents.model_copy()
 
@@ -290,7 +303,7 @@ class _Forms:
         we list all forms at the root of the workflow run, outside of all tasks
         and steps.
         """
-        forms_with_meta: List[FormWithMetadata[BaseModel]] = []
+        forms_with_meta: List[Form[BaseModel]] = []
         forms: List[Form[BaseModel]] = []
         conditions = {"workflow_run_id": self.workflow_run.id}
         if path:
