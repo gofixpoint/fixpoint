@@ -139,7 +139,7 @@ class TLRUCache(SupportsCache[K_contra, V]):
     TLRU Cache
     """
 
-    _ttl: float
+    _ttl_s: float
     _serialize_key_fn: Callable[[K_contra], str]
     cache: CachetoolsTLRUCache[str, TLRUCacheItem[V]]
     _storage: Optional[SupportsStorage[TLRUCacheItem[V]]]
@@ -148,11 +148,18 @@ class TLRUCache(SupportsCache[K_contra, V]):
     def __init__(
         self,
         maxsize: int,
-        ttl: float,
+        ttl_s: float,
         serialize_key_fn: Callable[[K_contra], str],
         storage: Optional[SupportsStorage[TLRUCacheItem[V]]] = None,
         storage_options: Optional[StorageOptions] = None,
     ) -> None:
+        """
+        max_size: the max number of items to keep in the cache
+        ttl_s: the time-to-live in seconds per item
+        serialize_key_fn: a function that converts a key to a string for serialization
+        storage: an optional storage to persist the cache to
+        storage_options: if storage is specified, this lets you configure it
+        """
 
         def my_ttu(_key: str, value: SupportsTTLCacheItem[V], now: float) -> float:
             # assume value.ttl contains the item's time-to-live in seconds
@@ -175,7 +182,7 @@ class TLRUCache(SupportsCache[K_contra, V]):
             self._storage_options = None
 
         self.lock = RLock()
-        self._ttl = ttl
+        self._ttl_s = ttl_s
         self._serialize_key_fn = serialize_key_fn
 
         if self._supports_init_from_storage():
@@ -234,7 +241,7 @@ class TLRUCache(SupportsCache[K_contra, V]):
     def set(self, key: K_contra, value: V) -> None:
         with self.lock:
             _key = self._serialize_key(key)
-            cache_item = TLRUCacheItem(key, value, self._ttl)
+            cache_item = TLRUCacheItem(key, value, self._ttl_s)
             self.cache[_key] = cache_item
             if self._supports_persist_to_storage() and self._storage is not None:
                 self._storage.insert(cache_item)
@@ -275,6 +282,33 @@ class ChatCompletionTLRUCache(
     SupportsChatCompletionCache,
 ):
     """A TLRU cache for LLM inference requests"""
+
+    def __init__(
+        self,
+        maxsize: int,
+        ttl_s: float,
+        storage: Optional[
+            SupportsStorage[TLRUCacheItem[ChatCompletion[BaseModel]]]
+        ] = None,
+        storage_options: Optional[StorageOptions] = None,
+    ) -> None:
+        """
+        max_size: the max number of items to keep in the cache
+        ttl_s: the time-to-live in seconds per item
+        storage: an optional storage to persist the cache to
+        storage_options: if storage is specified, this lets you configure it
+        """
+
+        def serialize_key(messages: List[ChatCompletionMessageParam]) -> str:
+            return json.dumps(messages)
+
+        super().__init__(
+            maxsize=maxsize,
+            ttl_s=ttl_s,
+            serialize_key_fn=serialize_key,
+            storage=storage,
+            storage_options=storage_options,
+        )
 
     def get(
         self,

@@ -10,7 +10,9 @@ from ..supabase_test_utils import test_inputs
 class TestTLRUCache:
 
     def test_tlru_cache_size_limits(self) -> None:
-        ttlCache = TLRUCache[str, str](maxsize=1, ttl=1000, serialize_key_fn=json.dumps)
+        ttlCache = TLRUCache[str, str](
+            maxsize=1, ttl_s=1000, serialize_key_fn=json.dumps
+        )
         ttlCache.set("test", "a")
         ttlCache.set("test2", "b")
         ttlCache.set("test3", "c")
@@ -23,7 +25,7 @@ class TestTLRUCache:
 
     @freeze_time("2023-01-01 00:00:00")
     def test_tlru_cache_ttl(self) -> None:
-        ttlCache = TLRUCache[str, str](maxsize=1, ttl=10, serialize_key_fn=json.dumps)
+        ttlCache = TLRUCache[str, str](maxsize=1, ttl_s=10, serialize_key_fn=json.dumps)
         ttlCache.set("test", "a")
         assert ttlCache.get("test") == "a"
 
@@ -85,7 +87,7 @@ class TestTLRUCacheWithStorage:
         )
 
         cache = TLRUCache[list[dict[str, str]], str](
-            maxsize=10, ttl=10, serialize_key_fn=json.dumps, storage=storage
+            maxsize=10, ttl_s=10, serialize_key_fn=json.dumps, storage=storage
         )
 
         item_key = completion.request
@@ -107,13 +109,13 @@ class TestTLRUCacheWithStorage:
 
         # Instantiate cache from data, we should get one item in the cache
         new_cache = TLRUCache[list[dict[str, str]], str](
-            maxsize=10, ttl=10, serialize_key_fn=json.dumps, storage=storage
+            maxsize=10, ttl_s=10, serialize_key_fn=json.dumps, storage=storage
         )
         assert new_cache.get(item_key) == item_value
         # Instantiate cache from data, after ttl has expired, we should get no items in the cache
         with freeze_time("2023-01-01 00:00:22"):
             another_cache = TLRUCache[list[dict[str, str]], str](
-                maxsize=10, ttl=10, serialize_key_fn=json.dumps, storage=storage
+                maxsize=10, ttl_s=10, serialize_key_fn=json.dumps, storage=storage
             )
             # Not initialized with any data from the storage
             assert another_cache.get(item_key) is None
