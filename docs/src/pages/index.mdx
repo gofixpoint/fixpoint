@@ -29,11 +29,18 @@ return the first response. Cache LLM agent requests so you don't waste money
 repeating the same tokens.
 ([durability docs][durability])
 
-### Structured Data and Workflows
+### Workflows
+
+Workflows let you coordinate one or more LLMs together in multi-step
+interactions. Each step is checkpointed, so they are reliable in the face of LLM
+provider or other system failure.
+([workflow docs][workflows])
+
+### Structured Data
 
 Control the structure of your LLM output so that the rest of your program can
 easily work with it.
-([structured data docs][structured-data] and [workflow docs][workflows])
+([structured data docs][structured-data])
 
 ### Human-in-the-loop
 
@@ -91,6 +98,6 @@ at our [Github repo](https://github.com/gofixpoint/fixpoint/).
 [library-mode]: /library-mode
 [infra-mode]: /infra-mode
 [memory]: /memory
-[durability]: /durability
+[durability]: /workflows-and-durability
 [structured-data]: /structured-data
-[workflows]: /workflows
+[workflows]: /workflows-and-durability/workflows
