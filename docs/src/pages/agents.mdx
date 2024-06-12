@@ -1,0 +1,92 @@
+# AI Agents
+
+Fixpoint wraps all LLMs with a
+[`SupportsAgent`](https://github.com/gofixpoint/fixpoint/blob/main/src/fixpoint/agents/protocol.py)
+interface. In the simplest use case, we add extra functionality on-top of a normal LLM interaction:
+
+- caching past interactions to save on token spend
+- running hooks/callbacks before and after making inference requests
+- storing memories for the agent
+- outputing structured data
+  (via [Instructor](https://github.com/jxnl/instructor)),
+  so computer programs can easily work with the results
+
+
+More complex agents are custom-focused on specific tasks, such as searching the
+web, or RAG-agents that look up information to answer questions. If there's an
+agent you'd like us to integrate into Fixpoint, please
+[open up an issue](https://github.com/gofixpoint/fixpoint/issues/new).
+
+
+## Basic agents
+
+Fixpoint currently only supports OpenAI as an inference provider. More LLM
+integrations coming soon.
+
+### Fixpoint-style agents
+
+The agents defined within
+[`src/fixpoint/agents/`](https://github.com/gofixpoint/fixpoint/blob/main/src/fixpoint/agents/)
+implement the
+[`BaseAgent` protocol](https://github.com/gofixpoint/fixpoint/blob/main/src/fixpoint/agents/protocol.py).
+
+Here's an example making an agent that uses OpenAI:
+
+```python
+import os
+import fixpoint
+from fixpoint.agents.openai import OpenAIClients
+
+agent = fixpoint.agents.OpenAIAgent(
+    model_name='gpt-3.5-turbo',
+    openai_clients=OpenAIClients.from_api_key(os.environ['OPENAI_API_KEY']),
+)
+
+# or create one with memory, and pre-or-post inference callbacks
+from fixpoint.agents.callbacks import TikTokenLogger
+from fixpoint.memory import Memory
+
+agent_mem = Memory()
+tokenlogger = TikTokenLogger('gpt-3.5-turbo')
+
+agent = fixpoint.agents.OpenAIAgent(
+    model_name='gpt-3.5-turbo',
+    openai_clients=OpenAIClients.from_api_key(os.environ['OPENAI_API_KEY']),
+    memory=agent_mem,
+    pre_completion_fns=[tokenlogger.tiktoken_logger]
+)
+
+agent.create_completion(messages=[
+    {"role": "user", "content": "What is the meaning of life?"}
+])
+```
+
+
+### OpenAI interface-compatible agent interface
+
+OpenAI interface-compatible agents are a sub-type of agent, and they support, as
+closely as possible, the same interface as the normal OpenAI client. That is,
+you can call `agent.chat.completions.create(...)`.
+
+You can see the full class definition at
+[`src/fixpoint/agents/oai/openai.py`](https://github.com/gofixpoint/fixpoint/blob/main/src/fixpoint/agents/oai/openai.py).
+Create an OpenAI compatible agent like so:
+
+```python
+import os
+import fixpoint
+from fixpoint.agents.openai import OpenAIClients
+
+agent = fixpoint.agents.oai.OpenAI(
+    model_name='gpt-3.5-turbo',
+    openai_clients=OpenAIClients.from_api_key(os.environ['OPENAI_API_KEY']),
+)
+
+agent.chat.completions.create(messages=[
+    {"role": "user", "content": "What is the meaning of life?"}
+])
+```
+
+Within an OpenAI-compatible agent, you can always access the Fixpoint-style
+agent via the `.fixp` property. For example:
+`agent.fixp.create_completion(...)`.
