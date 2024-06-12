@@ -1,0 +1,118 @@
+# Glossary
+
+## Workflow
+
+A workflow coordinates one or more AIs into a multi-step sequence of AI or
+non-AI actions. You have full control over the steps in the workflow, and
+whether you define the next steps or whether AIs help define the next steps. It
+is the highest level of work that Fixpoint does, but one can chain together
+workflows. You can think of a workflow as a dynamically constructed graph of
+tasks/steps, although we do not require the user to design this graph like a
+state machine. They can just use plain function calling.
+
+## Agents
+
+An agent
+[intelligent agent (IA)](https://en.wikipedia.org/wiki/Intelligent_agent),
+although we abuse the terminology slightly so that agents are not necessarily
+autonomous. The simplest agent simply calls an underlying LLM, but more complex
+agents can call multiple LLMs or autonomously accomplish some task. The
+important thing, is that when you pass control to an agent, it is an AI system
+that performs some work, and then returns control to your computer program.
+
+## Tasks and Steps
+
+Tasks and steps are two similar concept, but we model them a little differently.
+A workflow can be comprised of tasks and/or steps. Steps are the smallest unit
+of work, so a task can have multiple steps. Here is the difference: a “task” is
+a sequence of one or more steps to accomplish some discrete part of a workflow.
+A “step” is the smallest unit of work by which the program steps through a
+Fixpoint workflow.
+
+If make a workflow without defining any tasks, the steps within the workflow
+roll up to a default task.
+
+## Document
+
+A document is an arbitrary document. It can be namespaced to a workflow, or
+exist outside the workflow. For example, a Form Agent spec could be a document,
+and when we create a Form Agent workflow instance we can clone a document from
+the Form Agent spec and start filling it out for that workflow.
+
+## Controller
+
+A controller can be thought of a controller (duh) or a manager of other AI
+agents and the process for how they work together to accomplish something. It's
+a higher level way to compose and coordinate agents.
+
+In some cases, there can be overlap of responsibility between "agents" and
+"controllers", but we think of the difference like this: agents are backed by
+some AI, and they can take multiple steps, but generally you just ask the agent
+to accomplish something and it does it.
+
+Controllers can layer on top of a single agent, or can coordinate multiple
+agents, and expose interfaces designed to be controlled by our software systems
+or other AIs. They are meta-agents that coordinate or modify the behavior of
+other agent(s) and let those agents easily integrate with other software
+systems.
+
+In general, controllers do not have a uniform interface between controllers.
+
+## Memory
+
+Memory lets an AI agent remember past steps within a workflow. Simple memory
+just records all past workflow steps. More advanced memory summarizes and
+indexes info from the past steps, recognized groupings and categories, and all
+the other things that a human brain could do when we think about “memory”.
+
+There is an overlap between memory of past steps and memorizing or looking up
+external info (RAG). For our purposes, RAG can be considered memory if it is
+bundled into an agent who is supposed to memorize or look up context.
+
+## Caching
+
+Caching is the method by which we store workflow steps to make them durable and
+store raw agent inference interactions to make them durable or power our memory
+systems.
+
+## Driver
+
+A driver controls and manages some some lower-level interface, such as access to
+storage or the underlying inference provider for an agent. Compared to a
+Controller, a Driver operates at a lower level and is mostly an API adapter,
+while a Controller operates at a higher level to coordinate multiple operations
+intelligently.
+
+## Workspace
+
+A workspace is a way of grouping AI agents, workflows, and human users so that
+different workspaces can operate without having name collisions and while
+performing access control.
+
+There is a similar concept, “namespaces”, which Temporal uses in
+[the computer science sense](https://en.wikipedia.org/wiki/Namespace).
+We aren’t going to expose namespaces explicitly in our API (at least not yet),
+but each workspace has its own namespace, and each organization has a default
+namespace.
+
+It should be possible to refer to agents or workflows in another workspace if
+configured as such. We will likely have a “global” workspace where one can put
+“library” agents and such that you want to share across different workspaces.
+
+A workspace can have “accounts” from different “organizations”, and can be owned
+by one or more organizations.
+
+## Organization
+
+An organization represents a human organization within Fixpoint. This is how we
+can segment customer accounts, etc. By default, all workspaces, agents, etc.
+within an organization are namespaced to that organization,
+
+I thought about the term “team”, which is sometimes used, but I think we might
+want to use either “team” or “squad” to refer to a collection of agents sometime
+in the future. There is also the UNIX concept of “group”, but we’re not going to
+use that. At least not right now.
+
+## Account
+
+These are the human and service accounts of our system. AKA the “users”.
