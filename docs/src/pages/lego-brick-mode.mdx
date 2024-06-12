@@ -1,0 +1,15 @@
+# Lego-Brick Mode
+
+With Lego-Brick Mode, the goal is that you can take an existing LLM application
+and mix in extra capabilities.
+
+That means adding memory, caching, agent callbacks, etcetera without having to
+set up any new infrastructure. There are some things you'll miss out on in this
+mode, such as data and workflow durability in the face of system failure, but
+it's a great way to get started and add some extra capabilities to your
+programs.
+
+See the docs on [setting up agents](/agents), adding [memory](/memory) and
+[caching](/workflows-and-durability/caching). For any of these, if you use
+in-memory or on-disk storage, you can effectively just drop in these
+capabilities and not change any other parts of your system.

@@ -1,0 +1,15 @@
+# Workflows and Durability
+
+Fixpoint helps make your LLM workflows "durable". By that, we mean they are
+reliable in the face of system failure or inference provider timeouts.
+[Temporal](https://temporal.io/) coined the term "durable execution", and we
+layer on top of that the powers that LLMs need to run in a reliable workflow.
+
+This helps you in a few ways:
+
+1. In production, if part of your workflow fails, you can pick up where you left off
+2. During development, if you are iterating on your code in a notebook or a test
+   script, you can save prior LLM inference requests so you don't waste money on
+   token spend
+3. In your CI environment, when you want to test code that uses an LLM inference
+   provider, but don't actually want to spend money on inference calls

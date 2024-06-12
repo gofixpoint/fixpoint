@@ -1,11 +1,31 @@
 {
-  "index": "Introduction",
-  "another": "Another Page",
-  "advanced": "Advanced (A Folder)",
+  "index": "Overview",
+  "getting-started": "Getting Started",
   "about": {
     "title": "About",
     "type": "page"
   },
+  "-- Concepts": {
+    "type": "separator",
+    "title": "Concepts"
+  },
+  "agents": "Agents",
+  "memory": "Memory",
+  "structured-data": "Structured Data and Tools",
+  "workflows-and-durability": "Workflows and Durability",
+  "-- Fixpoint Modes": {
+    "type": "separator",
+    "title": "Fixpoint Modes"
+  },
+  "modes-overview": "Modes Overview",
+  "lego-brick-mode": "Lego Brick Mode",
+  "library-mode": "Library Mode",
+  "infra-mode": "Infra Mode",
+  "---": {
+    "type": "separator"
+  },
+  "glossary": "Glossary",
+  "faq": "FAQ",
   "contact": {
     "title": "Homepage ↗",
     "type": "page",

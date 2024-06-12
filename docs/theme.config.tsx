@@ -22,6 +22,11 @@ const config: DocsThemeConfig = {
   footer: {
     text: "Fixpoint Docs",
   },
+  useNextSeoProps() {
+    return {
+      titleTemplate: "%s – Fixpoint docs",
+    }
+  },
 }
 
 export default config

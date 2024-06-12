@@ -1,0 +1,68 @@
+# Structured Data and Tool Calling
+
+AI agents become much more useful when they can interact with normal computer
+programs. This means they need to be able to reliably output structured data.
+Various LLM providers call this "tool calling" or "function calling".
+
+Inference providers such as OpenAI allow tool-calling, and you specify tools as
+JSON schemas. You can use tools in this way with Fixpoint, but we also integrate
+with [Instructor](https://python.useinstructor.com/), which makes it even easier
+to define and use tools. To keep it short, Instructor lets you define tools as
+[Pydantic](https://docs.pydantic.dev/latest/) models.
+
+## Use cases for structured outputs
+
+Tool calls and structured outputs have a variety of uses:
+
+- have your LLM produce API calls to other applications
+- parse structured data from unstructured inputs
+- force the AI to output data in a consisent format, so you don't have flaky
+  parsing logic
+
+## An example
+
+Here is an example of an LLM agent that helps you pick a car from one of a few
+options.
+
+```python
+import json
+import os
+from typing import Literal, Union
+from pydantic import BaseModel, Field
+
+import fixpoint
+from fixpoint.agents.openai import OpenAIClients
+
+class SportsCar(BaseModel):
+    explanation: str = Field(description="An explanation of why you picked the given car")
+    car: Union[Literal['Porsche 911'], Literal['Honda Fit'], Literal['Ford F-150']] = Field(
+        description="the make and model of the car"
+    )
+
+agent = fixpoint.agents.oai.OpenAI(
+    model_name='gpt-3.5-turbo',
+    openai_clients=OpenAIClients.from_api_key(os.environ['OPENAI_API_KEY']),
+)
+
+compl = agent.chat.completions.create(
+    messages=[
+        {"role": "user",
+         "content": "Can you help me pick out a new sports car? I often need to haul a lot of cargo"},
+    ],
+    response_model=SportsCar
+)
+
+# The simplest way to access the structured output, which is a filled in
+# Pydantic model
+compl.fixp.structured_output
+# The result looks something like this:
+# SportsCar(
+#   explanation='It is important to have a sports car that can haul cargo efficiently',
+#   car='Ford F-150'
+# )
+
+
+# You can also access the plain chat completion response and pull out the tool
+# call arguments
+tool_call_dict = json.loads(compl.choices[0].message.tool_calls[0].function.arguments)
+```
