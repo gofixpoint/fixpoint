@@ -1,0 +1,73 @@
+# Workflows and Durability
+
+Fixpoint helps make your LLM workflows "durable". By that, we mean they are
+reliable in the face of system failure or inference provider timeouts.
+[Temporal](https://temporal.io/) coined the term "durable execution", and we
+layer on top of that the powers that LLMs need to run in a reliable workflow.
+
+This helps you in a few ways:
+
+1. In production, if part of your workflow fails, you can pick up where you left off
+2. During development, if you are iterating on your code in a notebook or a test
+   script, you can save prior LLM inference requests so you don't waste money on
+   token spend
+3. In your CI environment, when you want to test code that uses an LLM inference
+   provider, but don't actually want to spend money on inference calls
+
+
+## Simple reliability with caching
+
+The simplest way to get reliability is via caching. If you are using Fixpoint's
+workflow constructs (see below) you get caching by default. But if you are using
+Fixpoint in [Lego Brick Mode](/lego-brick-mode), you can take your existing
+Python code and modify your OpenAI client to turn on caching:
+
+```python
+import os
+import fixpoint
+from fixpoint.agents.openai import OpenAIClients
+
+####
+# with pure in-memory Python caching, using a TTL + LRU cache
+from fixpoint.cache import ChatCompletionTLRUCache
+
+# create a cache with up to 1000 items, each with a TTL of 1 hour
+cache = ChatCompletionTLRUCache(maxsize=1000, ttl_s=60*60)
+agent = fixpoint.agents.oai.OpenAI(
+    model_name='gpt-3.5-turbo',
+    openai_clients=OpenAIClients.from_api_key(os.environ['OPENAI_API_KEY']),
+    cache=cache,
+)
+
+completion = agent.chat.completions.create(messages=[{
+    "role": "user",
+    "content": "What are the three laws of robotics? And what do you think of them?"
+}], temperature=1)
+
+
+####
+# with local disk caching
+from fixpoint.cache import ChatCompletionDiskTLRUCache
+
+cache = ChatCompletionDiskTLRUCache(
+    '../localdata/diskcache/',
+    ttl_s=60*60*24*7 # one week
+)
+
+
+####
+# Configure the agent's cache mode
+#
+# Types of cache modes:
+#
+# - skip_lookup: Don't look up keys in the cache, but write results to the
+#   cache.
+# - skip_all: Don't look up the cache, and don't store the result.
+# - normal: Look up the cache, and store the result if it's not in the cache.
+
+# on a nromal agent
+agent.set_cache_mode('skip_lookup')
+
+# on an OpenAI interface-compatible agent
+agent.fixp.set_cache_mode('skip_lookup')
+```

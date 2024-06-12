@@ -11,13 +11,13 @@
   },
   "agents": "Agents",
   "memory": "Memory",
-  "durability": "Durability",
   "structured-data": "Structured Data",
-  "workflows": "Workflows",
+  "workflows-and-durability": "Workflows and Durability",
   "-- Fixpoint Modes": {
     "type": "separator",
     "title": "Fixpoint Modes"
   },
+  "modes-overview": "Modes Overview",
   "lego-brick-mode": "Lego Brick Mode",
   "library-mode": "Library Mode",
   "infra-mode": "Infra Mode",
