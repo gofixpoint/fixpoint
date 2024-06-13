@@ -1,12 +1,10 @@
 """A document is a set of text and metadata."""
 
-from typing import Dict, Any, Optional, List, TypeVar
+from typing import Dict, Any, Optional, List
 
 from pydantic import BaseModel, Field, computed_field
 
 from .version import Version
-
-T = TypeVar("T", bound=BaseModel)
 
 
 class Document(BaseModel):
@@ -28,6 +26,8 @@ class Document(BaseModel):
     )
 
     contents: str = Field(description="The contents of the document")
+
+    workflow_run_id: str = Field(description="The workflow run id")
 
     @computed_field  # type: ignore[misc]
     @property
