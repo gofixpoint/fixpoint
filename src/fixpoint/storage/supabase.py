@@ -36,46 +36,6 @@ class SupabaseStorage(SupportsStorage[V]):
         except Exception as e:
             raise ConnectionError(f"Failed to connect to Supabase: {e}") from e
 
-    def _query_table(self) -> SyncRequestBuilder[dict[str, Any]]:
-        return self._client.table(self._table)
-
-    def _deserialize_results(self, results: list[dict[str, Any]]) -> List[V]:
-        return [self._get_deserialized_data(item) for item in results]
-
-    def _pick_first(self, results: List[V]) -> V:
-        """Pick the first item from the results"""
-        if results:
-            return results[0]
-        raise ValueError("No results found")
-
-    def _pick_first_optional(self, results: List[V]) -> Optional[V]:
-        """Pick the first item from the results"""
-        if results:
-            return results[0]
-        return None
-
-    def _get_serialized_data(self, data: V) -> dict[str, Any]:
-        if isinstance(data, BaseModel):
-            return data.model_dump()
-        elif hasattr(data, "serialize"):
-            return data.serialize()
-        else:
-            raise TypeError("Unsupported data type for serialization")
-
-    def _get_deserialized_data(self, data: Dict[str, Any]) -> V:
-        if isinstance(self._value_type, type) and issubclass(
-            self._value_type, BaseModel
-        ):
-            return cast(V, self._value_type(**data))
-        elif isinstance(self._value_type, type) and issubclass(
-            self._value_type, SupportsSerialization
-        ):
-            return cast(V, self._value_type.deserialize(data=data))
-        else:
-            raise TypeError(
-                f"The type {self._value_type} does not support deserialization"
-            )
-
     def fetch_latest(self, n: Optional[int] = None) -> List[V]:
         """Fetch the latest n items from the storage"""
         try:
@@ -144,3 +104,43 @@ class SupabaseStorage(SupportsStorage[V]):
 
         except Exception as e:
             raise RuntimeError(f"Failed to delete data: {e}") from e
+
+    def _query_table(self) -> SyncRequestBuilder[dict[str, Any]]:
+        return self._client.table(self._table)
+
+    def _deserialize_results(self, results: list[dict[str, Any]]) -> List[V]:
+        return [self._get_deserialized_data(item) for item in results]
+
+    def _pick_first(self, results: List[V]) -> V:
+        """Pick the first item from the results"""
+        if results:
+            return results[0]
+        raise ValueError("No results found")
+
+    def _pick_first_optional(self, results: List[V]) -> Optional[V]:
+        """Pick the first item from the results"""
+        if results:
+            return results[0]
+        return None
+
+    def _get_serialized_data(self, data: V) -> dict[str, Any]:
+        if isinstance(data, BaseModel):
+            return data.model_dump()
+        elif hasattr(data, "serialize"):
+            return data.serialize()
+        else:
+            raise TypeError("Unsupported data type for serialization")
+
+    def _get_deserialized_data(self, data: Dict[str, Any]) -> V:
+        if isinstance(self._value_type, type) and issubclass(
+            self._value_type, BaseModel
+        ):
+            return cast(V, self._value_type(**data))
+        elif isinstance(self._value_type, type) and issubclass(
+            self._value_type, SupportsSerialization
+        ):
+            return cast(V, self._value_type.deserialize(data=data))
+        else:
+            raise TypeError(
+                f"The type {self._value_type} does not support deserialization"
+            )
