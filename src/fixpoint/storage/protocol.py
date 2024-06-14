@@ -1,7 +1,15 @@
 """Protocol for the storage"""
 
-from typing import Any, Optional, Dict, List, TypeVar, Union
-from typing_extensions import Protocol, runtime_checkable
+from typing import (
+    Any,
+    Optional,
+    Dict,
+    List,
+    TypeVar,
+    Union,
+    Protocol,
+    runtime_checkable,
+)
 
 V = TypeVar("V")  # Value type
 
