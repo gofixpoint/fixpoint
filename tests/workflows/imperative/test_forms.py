@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from fixpoint.storage.supabase import SupabaseStorage
 from fixpoint_extras.workflows.imperative.workflow import Workflow
 from fixpoint_extras.workflows.imperative.form import Form
-from ...supabase_test_utils import test_inputs
+from ...supabase_test_utils import supabase_setup_url_and_key, is_supabase_enabled
 
 
 class Foo(BaseModel):
@@ -66,9 +66,12 @@ class TestForms:
         assert listed_forms[0].path == "/foo"
         assert listed_forms[0].metadata == {"mymeta": "data is here!"}
 
-    @pytest.mark.skip(reason="Disabled until we have a supabase instance running in CI")
+    @pytest.mark.skipif(
+        not is_supabase_enabled(),
+        reason="Disabled until we have a supabase instance running in CI",
+    )
     @pytest.mark.parametrize(
-        "test_inputs",
+        "supabase_setup_url_and_key",
         [
             (
                 f"""
@@ -91,8 +94,10 @@ class TestForms:
         ],
         indirect=True,
     )
-    def test_workflow_forms_with_storage(self, test_inputs: Tuple[str, str]) -> None:
-        url, key = test_inputs
+    def test_workflow_forms_with_storage(
+        self, supabase_setup_url_and_key: Tuple[str, str]
+    ) -> None:
+        url, key = supabase_setup_url_and_key
 
         form_storage = SupabaseStorage(
             url,

@@ -2,14 +2,17 @@ from typing import Tuple, Any
 import pytest
 from pydantic import BaseModel
 from fixpoint.storage import SupabaseStorage
-from ..supabase_test_utils import test_inputs
+from ..supabase_test_utils import supabase_setup_url_and_key, is_supabase_enabled
 
 
-@pytest.mark.skip(reason="Disabled until we have a supabase instance running in CI")
+@pytest.mark.skipif(
+    not is_supabase_enabled(),
+    reason="Disabled until we have a supabase instance running in CI",
+)
 class TestSupabaseStorage:
 
     @pytest.mark.parametrize(
-        "test_inputs",
+        "supabase_setup_url_and_key",
         [
             (
                 f"""
@@ -26,8 +29,10 @@ class TestSupabaseStorage:
         ],
         indirect=True,
     )
-    def test_client_instantiation(self, test_inputs: Tuple[str, str]) -> None:
-        url, key = test_inputs
+    def test_client_instantiation(
+        self, supabase_setup_url_and_key: Tuple[str, str]
+    ) -> None:
+        url, key = supabase_setup_url_and_key
 
         class Person(BaseModel):
             id: int

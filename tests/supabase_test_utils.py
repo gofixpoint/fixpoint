@@ -1,13 +1,28 @@
-from typing import Generator, Tuple, Any
+import os
+import time
+from typing import Generator, Tuple
+
 import psycopg
 import pytest
+
 from .storage.postgres_helper import drop_table
 
 from fixpoint.utils.env import get_env_value
 
 
+def is_supabase_enabled() -> bool:
+    return all(
+        bool(envvar)
+        for envvar in [
+            os.getenv("SUPABASE_URL"),
+            os.getenv("SUPABASE_KEY"),
+            os.getenv("POSTGRES_URL"),
+        ]
+    )
+
+
 @pytest.fixture
-def test_inputs(
+def supabase_setup_url_and_key(
     request: pytest.FixtureRequest,
 ) -> Generator[Tuple[str, str], None, None]:
     setup_sql_command, table = request.param
@@ -25,14 +40,11 @@ def _setup_test_tables(pg_url: str, setup_sql_command: str) -> None:
         conn = psycopg.connect(
             conninfo=pg_url,
         )
-
         cur = conn.cursor()
         cur.execute(setup_sql_command)
-
         conn.commit()
     except Exception as e:
         print(f"Error creating test table: {e}")
-        conn.close()
         raise e
     finally:
         cur.close()

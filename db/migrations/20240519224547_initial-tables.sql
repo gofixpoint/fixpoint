@@ -1,4 +1,6 @@
 -- migrate:up
+CREATE SCHEMA fixpoint;
+
 CREATE TABLE fixpoint.workflows(
   id text PRIMARY KEY,
   name TEXT NOT NULL,
@@ -8,21 +10,21 @@ CREATE TABLE fixpoint.workflows(
 );
 
 CREATE TABLE fixpoint.chat_completion_inputs(
-  id UUID PRIMARY KEY,
-  workflow_id UUID REFERENCES fixpoint.workflows(id),
-  session_id UUID NULL,
+  id text PRIMARY KEY,
+  workflow_id text REFERENCES fixpoint.workflows(id),
+  session_id text NULL,
   provider TEXT NOT NULL,
   model TEXT NOT NULL,
   request JSONB NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW(),    
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE fixpoint.chat_completion_outputs(
-  id UUID PRIMARY KEY,
-  input_id UUID REFERENCES fixpoint.chat_completion_inputs(id),
-  workflow_id UUID REFERENCES fixpoint.workflows(id),
-  session_id UUID NULL,
+  id text PRIMARY KEY,
+  input_id text REFERENCES fixpoint.chat_completion_inputs(id),
+  workflow_id text REFERENCES fixpoint.workflows(id),
+  session_id text NULL,
   response JSONB NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP NOT NULL DEFAULT NOW()
@@ -59,3 +61,5 @@ DROP FUNCTION fixpoint.update_updated_at_column;
 DROP TABLE fixpoint.chat_completion_outputs;
 DROP TABLE fixpoint.chat_completion_inputs;
 DROP TABLE fixpoint.workflows;
+
+DROP SCHEMA fixpoint;
