@@ -1,11 +1,12 @@
 """Supabase storage"""
 
-from typing import Any, Optional, TypeVar, List, Type, Union
+from typing import Any, Optional, TypeVar, List, Type, Union, cast, Dict
+from pydantic import BaseModel
 from postgrest import SyncRequestBuilder  # type: ignore
 from supabase import create_client, Client
 from .protocol import SupportsStorage, SupportsSupabaseSerialization
 
-V = TypeVar("V", bound=SupportsSupabaseSerialization[Any])
+V = TypeVar("V", bound=Union[BaseModel, SupportsSupabaseSerialization[Any]])
 
 
 class SupabaseStorage(SupportsStorage[V]):
@@ -39,7 +40,7 @@ class SupabaseStorage(SupportsStorage[V]):
         return self._client.table(self._table)
 
     def _deserialize_results(self, results: list[dict[str, Any]]) -> List[V]:
-        return [self._value_type.deserialize(data=item) for item in results]
+        return [self._get_deserialized_data(item) for item in results]
 
     def _pick_first(self, results: List[V]) -> V:
         """Pick the first item from the results"""
@@ -52,6 +53,28 @@ class SupabaseStorage(SupportsStorage[V]):
         if results:
             return results[0]
         return None
+
+    def _get_serialized_data(self, data: V) -> dict[str, Any]:
+        if isinstance(data, BaseModel):
+            return data.model_dump()
+        elif hasattr(data, "serialize"):
+            return data.serialize()
+        else:
+            raise TypeError("Unsupported data type for serialization")
+
+    def _get_deserialized_data(self, data: Dict[str, Any]) -> V:
+        if isinstance(self._value_type, type) and issubclass(
+            self._value_type, BaseModel
+        ):
+            return cast(V, self._value_type(**data))
+        elif isinstance(self._value_type, type) and issubclass(
+            self._value_type, SupportsSupabaseSerialization
+        ):
+            return cast(V, self._value_type.deserialize(data=data))
+        else:
+            raise TypeError(
+                f"The type {self._value_type} does not support deserialization"
+            )
 
     def fetch_latest(self, n: Optional[int] = None) -> List[V]:
         """Fetch the latest n items from the storage"""
@@ -92,7 +115,8 @@ class SupabaseStorage(SupportsStorage[V]):
         """Insert data items to storage"""
         try:
             query = self._query_table()
-            resp = query.insert(data.serialize()).execute()
+            serialized = self._get_serialized_data(data)
+            resp = query.insert(serialized).execute()
             results = self._deserialize_results(resp.data)
             return self._pick_first(results)
         except Exception as e:
@@ -105,7 +129,8 @@ class SupabaseStorage(SupportsStorage[V]):
         """Update items in storage (uses upsert)"""
         try:
             query = self._query_table()
-            resp = query.upsert(data.serialize()).execute()
+            serialized = self._get_serialized_data(data)
+            resp = query.upsert(serialized).execute()
             results = self._deserialize_results(resp.data)
             return self._pick_first(results)
         except Exception as e:

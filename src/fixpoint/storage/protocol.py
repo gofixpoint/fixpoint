@@ -1,6 +1,15 @@
 """Protocol for the storage"""
 
-from typing import Any, Optional, Protocol, Dict, List, TypeVar, Union
+from typing import (
+    Any,
+    Optional,
+    Dict,
+    List,
+    TypeVar,
+    Union,
+    Protocol,
+    runtime_checkable,
+)
 
 V = TypeVar("V")  # Value type
 
@@ -49,6 +58,7 @@ class SupportsToDict(Protocol):
 V_co = TypeVar("V_co", covariant=True)  # Value type
 
 
+@runtime_checkable
 class SupportsSupabaseSerialization(Protocol[V_co]):
     """Protocol for Supabase storage serialization"""
 
