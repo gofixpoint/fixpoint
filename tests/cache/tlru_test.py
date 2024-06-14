@@ -88,7 +88,11 @@ class TestTLRUCacheWithStorage:
             table="completion_cache",
             order_key="expires_at",
             id_column="key",
-            value_type=TLRUCacheItem[str],
+            # We cannot not specify the generic type parameter for
+            # TLRUCacheItem, because then when we try to do `isinstance(cls,
+            # type)`, the class will actually be a `typing.GenericAlias` and not
+            # a type (class definition).
+            value_type=TLRUCacheItem,
         )
 
         cache = TLRUCache[list[dict[str, str]], str](

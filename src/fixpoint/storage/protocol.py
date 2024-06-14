@@ -59,7 +59,7 @@ V_co = TypeVar("V_co", covariant=True)  # Value type
 
 
 @runtime_checkable
-class SupportsSupabaseSerialization(Protocol[V_co]):
+class SupportsSerialization(Protocol[V_co]):
     """Protocol for Supabase storage serialization"""
 
     def serialize(self) -> dict[str, Any]:

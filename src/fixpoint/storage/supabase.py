@@ -4,9 +4,9 @@ from typing import Any, Optional, TypeVar, List, Type, Union, cast, Dict
 from pydantic import BaseModel
 from postgrest import SyncRequestBuilder  # type: ignore
 from supabase import create_client, Client
-from .protocol import SupportsStorage, SupportsSupabaseSerialization
+from .protocol import SupportsStorage, SupportsSerialization
 
-V = TypeVar("V", bound=Union[BaseModel, SupportsSupabaseSerialization[Any]])
+V = TypeVar("V", bound=Union[BaseModel, SupportsSerialization[Any]])
 
 
 class SupabaseStorage(SupportsStorage[V]):
@@ -68,7 +68,7 @@ class SupabaseStorage(SupportsStorage[V]):
         ):
             return cast(V, self._value_type(**data))
         elif isinstance(self._value_type, type) and issubclass(
-            self._value_type, SupportsSupabaseSerialization
+            self._value_type, SupportsSerialization
         ):
             return cast(V, self._value_type.deserialize(data=data))
         else:
