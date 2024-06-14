@@ -1,15 +1,39 @@
 """Simple implementation of a workflow"""
 
-from uuid import uuid4
+from enum import Enum
 from typing import Any, Dict, List, Optional, Type, TypeVar, Union, cast
+from uuid import uuid4
 
-from pydantic import BaseModel, Field, PrivateAttr, computed_field
+from pydantic import BaseModel, Field, PrivateAttr, SkipValidation, computed_field
 
 from fixpoint.storage.protocol import SupportsStorage
 
 from .document import Document
 from .form import Form
 from .shared import TASK_MAIN_ID, STEP_MAIN_ID
+
+
+class StorageMode(str, Enum):
+    in_memory = "in_memory"
+    diskcache = "diskcache"
+    sqlite = "sqlite"
+    postgres = "postgres"
+
+
+_WorkflowRunStorage = SupportsStorage['WorkflowRun']
+_FormStorage = SupportsStorage['FormWithMetadata[BaseModel]']
+_DocsStorage = SupportsStorage[Document]
+
+
+class Storage:
+    """Storage for a workflow, its runs, docs, forms, and everything else within it."""
+
+    workflow_run_storage: _WorkflowRunStorage
+    form_storage: _FormStorage
+    docs_storage: _DocsStorage
+
+    def __init__(self, storage_mode: StorageMode) -> None:
+        pass
 
 
 class NodeState(BaseModel):
@@ -28,6 +52,19 @@ class NodeState(BaseModel):
         return f"/{self.task}/{self.step}"
 
 
+class WorkflowRunConfig:
+    form_storage: Optional[_FormStorage]
+    docs_storage: Optional[_DocsStorage]
+
+    def __init__(self, *, form_storage: Optional[_FormStorage] = None, docs_storage: Optional[_DocsStorage] = None) -> None:
+        self.form_storage = form_storage
+        self.docs_storage = docs_storage
+
+    @classmethod
+    def from_default(cls) -> "WorkflowRunConfig":
+        return cls()
+
+
 class Workflow(BaseModel):
     """A simple workflow implementation.
 
@@ -36,9 +73,13 @@ class Workflow(BaseModel):
 
     id: str = Field(description="The unique identifier for the workflow.")
 
-    def run(self) -> "WorkflowRun":
+    def run(self, *, config: Optional[WorkflowRunConfig] = None) -> "WorkflowRun":
         """Create and run a Workflow Run"""
-        return WorkflowRun(workflow=self)
+        return WorkflowRun(workflow=self, config=config)
+
+    def load_run(self, *, workflow_run_id: str, config: Optional[WorkflowRunConfig] = None) -> "WorkflowRun":
+        """Load a workflow run from the database."""
+        raise NotImplementedError()
 
 
 class WorkflowRun(BaseModel):
@@ -53,6 +94,8 @@ class WorkflowRun(BaseModel):
 
     _id: str = PrivateAttr(default_factory=lambda: str(uuid4()))
     _task_ids: List[str] = PrivateAttr(default_factory=list)
+
+    config: SkipValidation[WorkflowRunConfig] = Field(exclude=True, default_factory=WorkflowRunConfig.from_default)
 
     workflow: Workflow
     _documents: "_Documents" = PrivateAttr()
@@ -75,8 +118,9 @@ class WorkflowRun(BaseModel):
         return self._id
 
     def model_post_init(self, _context: Any) -> None:
+        # TODO(dbmikus) set up storage for documents
         self._documents = _Documents(workflow_run=self)
-        self._forms = _Forms(workflow_run=self)
+        self._forms = _Forms(workflow_run=self, storage=self.config.form_storage)
 
     @property
     def documents(self) -> "_Documents":
@@ -166,7 +210,6 @@ class _Documents:
 
 T = TypeVar("T", bound=BaseModel)
 
-
 # Class that wraps Form with WorkflowRun metadata
 class FormWithMetadata(Form[T]):
     """A form with workflow run metadata.
@@ -179,13 +222,13 @@ class FormWithMetadata(Form[T]):
 
 class _Forms:
     workflow_run: WorkflowRun
-    _storage: Optional[SupportsStorage[FormWithMetadata[BaseModel]]]
+    _storage: Optional[_FormStorage]
     _memory: Dict[str, FormWithMetadata[BaseModel]]
 
     def __init__(
         self,
         workflow_run: WorkflowRun,
-        storage: Optional[SupportsStorage[FormWithMetadata[BaseModel]]] = None,
+        storage: Optional[_FormStorage] = None,
     ) -> None:
         self.workflow_run = workflow_run
         self._storage = storage
