@@ -5,7 +5,7 @@ from fixpoint.completions import ChatCompletionMessageParam
 from fixpoint.memory import Memory, MemoryItem
 from fixpoint.agents.mock import new_mock_completion
 from fixpoint.storage.supabase import SupabaseStorage
-from ..supabase_test_utils import test_inputs
+from ..supabase_test_utils import supabase_setup_url_and_key, is_supabase_enabled
 
 
 class TestWithMemory:
@@ -30,29 +30,35 @@ class TestWithMemory:
         assert first_stored_memory.workflow_run == first_expected_memory.workflow_run
 
 
-@pytest.mark.skip(reason="Disabled until we have a supabase instance running in CI")
+@pytest.mark.skipif(
+    not is_supabase_enabled(),
+    reason="Disabled until we have a supabase instance running in CI",
+)
 class TestWithMemoryWithStorage:
 
     @pytest.mark.parametrize(
-        "test_inputs",
+        "supabase_setup_url_and_key",
         [
             (
                 f"""
         CREATE TABLE IF NOT EXISTS public.memory_store (
             messages jsonb PRIMARY KEY,
             completion jsonb,
-            workflow jsonb
+            workflow jsonb,
+            workflow_run jsonb
         );
 
-        TRUNCATE TABLE public.memory_store
+        TRUNCATE TABLE public.memory_store;
         """,
                 "public.memory_store",
             )
         ],
         indirect=True,
     )
-    def test_store_memory_with_storage(self, test_inputs: Tuple[str, str]) -> None:
-        url, key = test_inputs
+    def test_store_memory_with_storage(
+        self, supabase_setup_url_and_key: Tuple[str, str]
+    ) -> None:
+        url, key = supabase_setup_url_and_key
         storage = SupabaseStorage(
             url,
             key,

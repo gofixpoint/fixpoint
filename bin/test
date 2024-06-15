@@ -7,4 +7,21 @@ ROOT_DIR=$(realpath "${SCRIPT_DIR}/..")
 
 cd $ROOT_DIR
 
+SUPABASE_URL=$(\
+    supabase status -o env | grep API_URL | sed 's/API_URL=//' \
+    | sed 's/"//g'
+)
+SUPABASE_KEY=$(\
+    supabase status -o env | grep SERVICE_ROLE_KEY | sed 's/SERVICE_ROLE_KEY=//' \
+    | sed 's/"//g'
+)
+POSTGRES_URL=$(\
+    supabase status -o env | grep DB_URL | sed 's/DB_URL=//' \
+    | sed 's/"//g'
+)
+
+export SUPABASE_URL=$SUPABASE_URL
+export SUPABASE_KEY=$SUPABASE_KEY
+export POSTGRES_URL=$POSTGRES_URL
+
 poetry run pytest

@@ -19,10 +19,10 @@ from .protocol import (
     SupportsTTLCacheItem,
     SupportsChatCompletionCache,
 )
-from ..storage.protocol import SupportsStorage
+from ..storage.protocol import SupportsStorage, SupportsSerialization
 
 
-class TLRUCacheItem(SupportsTTLCacheItem[V]):
+class TLRUCacheItem(SupportsTTLCacheItem[V], SupportsSerialization["TLRUCacheItem[V]"]):
     """
     TLRU Cache Item
     """

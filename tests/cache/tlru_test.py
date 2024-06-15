@@ -4,7 +4,7 @@ import pytest
 from freezegun import freeze_time
 from fixpoint.cache.tlru import TLRUCache, TLRUCacheItem
 from fixpoint.storage.supabase import SupabaseStorage
-from ..supabase_test_utils import test_inputs
+from ..supabase_test_utils import supabase_setup_url_and_key, is_supabase_enabled
 
 
 class TestTLRUCache:
@@ -34,13 +34,16 @@ class TestTLRUCache:
             assert ttlCache.get("test") is None  # evicted
 
 
-@pytest.mark.skip(reason="Disabled until we have a supabase instance running in CI")
+@pytest.mark.skipif(
+    not is_supabase_enabled(),
+    reason="Disabled until we have a supabase instance running in CI",
+)
 @freeze_time("2023-01-01 00:00:00")
 class TestTLRUCacheWithStorage:
 
     @freeze_time("2023-01-01 00:00:00")
     @pytest.mark.parametrize(
-        "test_inputs",
+        "supabase_setup_url_and_key",
         [
             (
                 f"""
@@ -58,8 +61,10 @@ class TestTLRUCacheWithStorage:
         ],
         indirect=True,
     )
-    def test_tlru_cache_with_storage(self, test_inputs: Tuple[str, str]) -> None:
-        url, key = test_inputs
+    def test_tlru_cache_with_storage(
+        self, supabase_setup_url_and_key: Tuple[str, str]
+    ) -> None:
+        url, key = supabase_setup_url_and_key
 
         class MockChatCompletion:
             request: list[dict[str, str]]
@@ -83,7 +88,11 @@ class TestTLRUCacheWithStorage:
             table="completion_cache",
             order_key="expires_at",
             id_column="key",
-            value_type=TLRUCacheItem[str],
+            # We cannot not specify the generic type parameter for
+            # TLRUCacheItem, because then when we try to do `isinstance(cls,
+            # type)`, the class will actually be a `typing.GenericAlias` and not
+            # a type (class definition).
+            value_type=TLRUCacheItem,
         )
 
         cache = TLRUCache[list[dict[str, str]], str](
