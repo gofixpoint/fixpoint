@@ -130,7 +130,7 @@ class InfoGatherer(Generic[T]):
             if new_info_dict.get(k, None) is None:
                 new_info_dict[k] = old_info_dict[k]
 
-        self.form.set_contents(new_info_dict)
+        self.form.update_contents(new_info_dict)
         self.info_history.append(self.form.contents)
         completion.fixp.structured_output = self.form.contents
         return completion

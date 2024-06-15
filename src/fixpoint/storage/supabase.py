@@ -124,22 +124,22 @@ class SupabaseStorage(SupportsStorage[V]):
         return None
 
     def _get_serialized_data(self, data: V) -> dict[str, Any]:
-        if isinstance(data, BaseModel):
-            return data.model_dump()
-        elif hasattr(data, "serialize"):
+        if hasattr(data, "serialize"):
             return data.serialize()
+        elif isinstance(data, BaseModel):
+            return data.model_dump()
         else:
             raise TypeError("Unsupported data type for serialization")
 
     def _get_deserialized_data(self, data: Dict[str, Any]) -> V:
         if isinstance(self._value_type, type) and issubclass(
-            self._value_type, BaseModel
-        ):
-            return cast(V, self._value_type(**data))
-        elif isinstance(self._value_type, type) and issubclass(
             self._value_type, SupportsSerialization
         ):
             return cast(V, self._value_type.deserialize(data=data))
+        elif isinstance(self._value_type, type) and issubclass(
+            self._value_type, BaseModel
+        ):
+            return cast(V, self._value_type(**data))
         else:
             raise TypeError(
                 f"The type {self._value_type} does not support deserialization"
