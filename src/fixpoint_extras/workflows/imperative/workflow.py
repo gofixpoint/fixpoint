@@ -150,10 +150,7 @@ class _Documents:
         """
         document = None
         if self._storage:
-            fetched_document = self._storage.fetch(resource_id=document_id)
-            document = (
-                Document(**fetched_document.model_dump()) if fetched_document else None
-            )
+            document = self._storage.fetch(resource_id=document_id)
         else:
             document = self._memory.get(document_id, None)
         return document
