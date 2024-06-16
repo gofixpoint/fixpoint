@@ -128,25 +128,38 @@ class WorkflowRun(BaseModel):
 
 class _Documents:
     workflow_run: WorkflowRun
+    _memory: Dict[str, Document]
 
-    def __init__(self, workflow_run: WorkflowRun) -> None:
+    def __init__(
+        self,
+        workflow_run: WorkflowRun,
+        storage: Optional[SupportsStorage[Document]] = None,
+    ) -> None:
         self.workflow_run = workflow_run
+        self._storage = storage
+        self._memory: Dict[str, Document] = {}
 
     def get(
         self,
         *,
-        document_id: Optional[str],
-    ) -> Document:
+        document_id: str,
+    ) -> Union[Document, None]:
         """Get a document from the cache.
 
         Gets the latest version of the document.
         """
-        raise NotImplementedError()
+        document = None
+        if self._storage:
+            document = self._storage.fetch(resource_id=document_id)
+        else:
+            document = self._memory.get(document_id, None)
+        return document
 
     def store(
         self,
         *,
-        contents: Union[BaseModel, Dict[str, Any]],
+        contents: str,
+        metadata: Optional[dict[str, Any]] = None,
         # pylint: disable=redefined-builtin
         id: str,
         path: Optional[str] = None,
@@ -161,16 +174,47 @@ class _Documents:
         it is stored at the root of the workflow, outside of all tasks and
         steps. By default, we store the document at the current task and step.
         """
-        raise NotImplementedError()
+        document = Document(
+            id=id,
+            path=path,
+            contents=contents,
+            metadata=metadata,
+            workflow_run_id=self.workflow_run.id,
+        )
+        if self._storage:
+            self._storage.insert(document)
+        else:
+            self._memory[id] = document
+        return document
 
     def update(
         self,
         *,
         document_id: str,
-        contents: Union[BaseModel, Dict[str, Any]],
+        contents: str,
+        metadata: Optional[dict[str, Any]] = None,
     ) -> Document:
         """Update a document in the cache."""
-        raise NotImplementedError()
+        if self._storage:
+            document = self.get(document_id=document_id)
+            if not document:
+                raise ValueError(f"Document {document_id} not found")
+            document.contents = contents
+            if metadata:
+                document.metadata = metadata
+
+        else:
+            document = self._memory[document_id]
+            if metadata is not None:
+                document.metadata = metadata
+            document.contents = contents
+
+        if self._storage:
+            self._storage.update(document)
+        else:
+            self._memory[document_id] = document
+
+        return document
 
     def list(self, *, path: Optional[str] = None) -> List[Document]:
         """List all documents in the cache.
@@ -180,7 +224,24 @@ class _Documents:
         we list all documents at the root of the workflow, outside of all tasks and
         steps.
         """
-        raise NotImplementedError()
+        documents: List[Document] = []
+        conditions = {"workflow_run_id": self.workflow_run.id}
+        if path:
+            conditions["path"] = path
+
+        if self._storage:
+            fetched_docs = self._storage.fetch_with_conditions(conditions=conditions)
+            documents = [Document(**doc.model_dump()) for doc in fetched_docs]
+        else:
+            documents = [
+                Document(**doc.model_dump())
+                for doc in self._memory.values()
+                if all(
+                    getattr(doc, key, None) == value
+                    for key, value in conditions.items()
+                )
+            ]
+        return documents
 
 
 class _Forms:

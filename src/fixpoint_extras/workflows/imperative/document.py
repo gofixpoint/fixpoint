@@ -1,10 +1,12 @@
 """A document is a set of text and metadata."""
 
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, TypeVar
 
 from pydantic import BaseModel, Field, computed_field
 
 from .version import Version
+
+T = TypeVar("T", bound=BaseModel)
 
 
 class Document(BaseModel):
@@ -24,6 +26,8 @@ class Document(BaseModel):
     versions: List[Version] = Field(
         default=[], description="The versions of the document"
     )
+
+    contents: str = Field(description="The contents of the document")
 
     @computed_field  # type: ignore[misc]
     @property
