@@ -29,12 +29,12 @@ a sequence of one or more steps to accomplish some discrete part of a workflow.
 A “step” is the smallest unit of work by which the program steps through a
 Fixpoint workflow, and checkpoints each step.
 
-If make a workflow without defining any tasks, the steps within the workflow
+If making a workflow without defining any tasks, the steps within the workflow
 roll up to a default "main" task.
 
 ## Document
 
-A document is an arbitrary text document. It can be namespaced to a workflow, or
+A document is an arbitrary text content. It can be namespaced to a workflow, or
 exist outside the workflow. For example, a Form Agent spec could be a document,
 and when we create a Form Agent workflow instance we can clone a document from
 the Form Agent spec and start filling it out for that workflow.
@@ -71,13 +71,12 @@ bundled into an agent who is supposed to memorize or look up context.
 
 ## Caching
 
-Caching is the method by which we store workflow steps to make them durable and
-store raw agent inference interactions to make them durable or power our memory
-systems.
+Caching is the method by which we store workflow steps and raw agent inference
+interactions to make them durable or power our memory systems.
 
 ## Driver
 
-A driver controls and manages some some lower-level interface, such as access to
+A driver controls and manages some lower-level interface, such as access to
 storage or the underlying inference provider for an agent. Compared to a
 Controller, a Driver operates at a lower level and is mostly an API adapter,
 while a Controller operates at a higher level to coordinate multiple operations
