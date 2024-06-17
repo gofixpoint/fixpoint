@@ -55,11 +55,20 @@ class Workflow(BaseModel):
     form_storage: SkipValidation[Optional[SupportsStorage[Form[BaseModel]]]] = Field(
         exclude=True, default=None
     )
+    _memory: Dict[str, "WorkflowRun"] = PrivateAttr(default_factory=dict)
 
     def run(self, storage_config: Optional[StorageConfig] = None) -> "WorkflowRun":
         """Create and run a Workflow Run"""
         storage_config = storage_config or get_default_storage_config()
-        return WorkflowRun(workflow=self, form_storage=self.form_storage)
+        new_workflow_run = WorkflowRun(workflow=self, form_storage=self.form_storage)
+        self._memory[new_workflow_run.id] = new_workflow_run
+        return new_workflow_run
+
+    def load_run(self, workflow_run_id: str) -> Union["WorkflowRun", None]:
+        """Load a workflow run from memory."""
+        # TODO(jakub): This should work with storage layers: postgres / supabase, in-memory
+        # and on-disk
+        return self._memory.get(workflow_run_id)
 
 
 class WorkflowRun(BaseModel):
@@ -132,7 +141,7 @@ class WorkflowRun(BaseModel):
         Tasks do not need to be declared ahead of time. When you go to a task,
         we infer its existence.
         """
-        raise NotImplementedError()
+        self.node_state = NodeState(task=task_id, step=STEP_MAIN_ID)
 
     # pylint: disable=unused-argument
     def goto_step(self, *, step_id: str) -> None:
@@ -141,7 +150,7 @@ class WorkflowRun(BaseModel):
         Steps do not need to be declared ahead of time. When you go to a step,
         we infer its existence.
         """
-        raise NotImplementedError()
+        self.node_state = NodeState(task=self.node_state.task, step=step_id)
 
 
 class _Documents:
