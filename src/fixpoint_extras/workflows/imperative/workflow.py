@@ -128,6 +128,7 @@ class WorkflowRun(BaseModel):
 
 class _Documents:
     workflow_run: WorkflowRun
+    _storage: Optional[SupportsStorage[Document]]
     _memory: Dict[str, Document]
 
     def __init__(
@@ -224,17 +225,15 @@ class _Documents:
         we list all documents at the root of the workflow, outside of all tasks and
         steps.
         """
-        documents: List[Document] = []
         conditions = {"workflow_run_id": self.workflow_run.id}
         if path:
             conditions["path"] = path
 
         if self._storage:
-            fetched_docs = self._storage.fetch_with_conditions(conditions=conditions)
-            documents = [Document(**doc.model_dump()) for doc in fetched_docs]
+            documents = self._storage.fetch_with_conditions(conditions=conditions)
         else:
             documents = [
-                Document(**doc.model_dump())
+                doc
                 for doc in self._memory.values()
                 if all(
                     getattr(doc, key, None) == value
