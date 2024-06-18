@@ -265,8 +265,7 @@ class _Forms:
         form = None
         if self._storage:
             # Form id is the primary identifier for a form, so specifying more fields is unecessary
-            form_with_meta = self._storage.fetch(resource_id=form_id)
-            form = Form(**form_with_meta.model_dump()) if form_with_meta else None
+            form = self._storage.fetch(resource_id=form_id)
         else:
             # If we are not using a storage backend, we assume that the form is in memory
             form = self._memory.get(form_id, None)
@@ -324,7 +323,7 @@ class _Forms:
             form = self.get(form_id=form_id)
             if not form:
                 raise ValueError(f"Form {form_id} not found")
-            form.set_contents(contents)
+            form.update_contents(contents)
             if metadata:
                 form.metadata = metadata
 
@@ -332,21 +331,7 @@ class _Forms:
             form = self._memory[form_id]
             if metadata is not None:
                 form.metadata = metadata
-            old_contents = form.contents.model_copy()
-
-            # merge the new contents with the old contents, and then explicilty
-            # validate it because passing in an `update` parameter to
-            # `model_copy` does not validate the values.
-
-            # TODO(dbmikus) make sure that model_copy works.
-            # TODO(dbmikus) differentiate between default `None` and explicit `None`
-            if isinstance(contents, BaseModel):
-                new_contents = old_contents.model_copy(update=contents.model_dump())
-            else:
-                new_contents = old_contents.model_copy(update=contents)
-            # TODO(dbmikus) make sure this validation works
-            new_contents.model_validate(new_contents)
-            form.set_contents(new_contents)
+            form.update_contents(contents)
 
         if self._storage:
             self._storage.update(form)
