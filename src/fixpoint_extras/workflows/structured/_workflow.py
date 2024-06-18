@@ -2,6 +2,7 @@ from typing import Any, Callable, Dict, Optional, Sequence, Type, TypeVar, cast
 
 from .. import imperative
 from ._task import get_task_fixp
+from .errors import DefinitionError
 
 
 T = TypeVar("T")
@@ -37,7 +38,7 @@ class _WorkflowMeta(type):
         attrs["__init__"] = __init__
 
         if not _WorkflowMeta._has_one_main_task(attrs):
-            raise ValueError(f"Workflow {name} has no main task")
+            raise DefinitionError(f"Workflow {name} has no main task")
 
         retclass = super(_WorkflowMeta, cls).__new__(cls, name, bases, attrs)  # type: ignore[misc]
         return cast(C, retclass)
@@ -45,7 +46,7 @@ class _WorkflowMeta(type):
     @classmethod
     def _has_one_main_task(cls, attrs: Dict[str, Any]) -> bool:
         num_main_tasks = 0
-        for k, v in attrs.items():
+        for v in attrs.values():
             if not callable(v):
                 continue
             fixp = get_task_fixp(v)
