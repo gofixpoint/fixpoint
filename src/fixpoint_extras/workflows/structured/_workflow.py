@@ -1,6 +1,7 @@
-from typing import Any, Callable, Optional, Sequence, Type, TypeVar, cast
+from typing import Any, Callable, Dict, Optional, Sequence, Type, TypeVar, cast
 
 from .. import imperative
+from ._task import get_task_fixp
 
 
 T = TypeVar("T")
@@ -22,7 +23,7 @@ class _WorkflowMeta(type):
     __fixp: Optional["_FixpointInstance"] = None
 
     def __new__(
-        cls: Type[C], name: str, bases: tuple[type, ...], attrs: dict[str, Any]
+        cls: Type[C], name: str, bases: tuple[type, ...], attrs: Dict[str, Any]
     ) -> "C":
         attrs = dict(attrs)
         orig_init = attrs.get("__init__")
@@ -35,8 +36,22 @@ class _WorkflowMeta(type):
         attrs["__fixp"] = None
         attrs["__init__"] = __init__
 
+        if not _WorkflowMeta._has_one_main_task(attrs):
+            raise ValueError(f"Workflow {name} has no main task")
+
         retclass = super(_WorkflowMeta, cls).__new__(cls, name, bases, attrs)  # type: ignore[misc]
         return cast(C, retclass)
+
+    @classmethod
+    def _has_one_main_task(cls, attrs: Dict[str, Any]) -> bool:
+        num_main_tasks = 0
+        for k, v in attrs.items():
+            if not callable(v):
+                continue
+            fixp = get_task_fixp(v)
+            if fixp and fixp.main:
+                num_main_tasks += 1
+        return num_main_tasks == 1
 
 
 class _FixpointMeta:
