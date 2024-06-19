@@ -1,7 +1,10 @@
-from typing import List, Tuple
 import json
 import pytest
-from fixpoint.completions import ChatCompletionMessageParam
+from typing import List, Tuple
+
+from pydantic import BaseModel
+
+from fixpoint.completions import ChatCompletionMessageParam, ChatCompletion
 from fixpoint.memory import Memory, MemoryItem
 from fixpoint.agents.mock import new_mock_completion
 from fixpoint.storage.supabase import SupabaseStorage
@@ -15,7 +18,7 @@ class TestWithMemory:
         msgs: List[ChatCompletionMessageParam] = [
             {"role": "system", "content": "hello!"}
         ]
-        cmpl = new_mock_completion()
+        cmpl: ChatCompletion[BaseModel] = new_mock_completion()
         memstore.store_memory(msgs, cmpl)
 
         stored_memory = memstore.memories()
@@ -73,7 +76,7 @@ class TestWithMemoryWithStorage:
         msgs: List[ChatCompletionMessageParam] = [
             {"role": "system", "content": "hello!"}
         ]
-        cmpl = new_mock_completion()
+        cmpl: ChatCompletion[BaseModel] = new_mock_completion()
         memstore.store_memory(msgs, cmpl)
 
         stored_memory = memstore.memories()

@@ -1,14 +1,20 @@
 """A TLRU cache that stores items on disk"""
 
 import tempfile
-from typing import List, Optional, Union, Type, TypeVar, cast
+from typing import Optional, Union, Type, cast
 
 import diskcache
 from pydantic import BaseModel
 
-from ..completions import ChatCompletion, ChatCompletionMessageParam
-from .protocol import SupportsCache, K_contra, V, SupportsChatCompletionCache
-from ._shared import logger
+from ..completions import ChatCompletion
+from .protocol import (
+    SupportsCache,
+    K_contra,
+    V,
+    SupportsChatCompletionCache,
+    CreateChatCompletionRequest,
+)
+from ._shared import logger, BM
 
 # 50 MB
 _DEFAULT_SIZE_LIMIT_BYTES = 50 * 1024 * 1024
@@ -75,19 +81,25 @@ class DiskTLRUCache(SupportsCache[K_contra, V]):
         return cast(int, self._cache.volume())
 
 
-T = TypeVar("T", bound=BaseModel)
-
-
 # Pydantic models do not pickle well, so make a class that serializes and
 # deserializes the ChatCompletion
 class ChatCompletionDiskTLRUCache(
-    DiskTLRUCache[List[ChatCompletionMessageParam], ChatCompletion[BaseModel]],
+    DiskTLRUCache[CreateChatCompletionRequest[BaseModel], ChatCompletion[BaseModel]],
     SupportsChatCompletionCache,
 ):
     """A TLRU cache that stores chat completions on disk"""
 
+    @classmethod
+    def from_tmpdir(
+        cls, ttl_s: float, size_limit_bytes: int = _DEFAULT_SIZE_LIMIT_BYTES
+    ) -> "ChatCompletionDiskTLRUCache":
+        """Create a new cache from inside a temporary directory"""
+        tmpdir = tempfile.mkdtemp()
+        logger.debug("Created temporary directory for disk cache: %s", tmpdir)
+        return cls(cache_dir=tmpdir, ttl_s=ttl_s, size_limit_bytes=size_limit_bytes)
+
     def set(
-        self, key: List[ChatCompletionMessageParam], value: ChatCompletion[T]
+        self, key: CreateChatCompletionRequest[BM], value: ChatCompletion[BM]
     ) -> None:
         """Set an item by key"""
         logger.debug("Setting key: %s", key)
@@ -96,9 +108,9 @@ class ChatCompletionDiskTLRUCache(
 
     def get(
         self,
-        key: List[ChatCompletionMessageParam],
-        response_model: Optional[Type[T]] = None,
-    ) -> Union[ChatCompletion[T], None]:
+        key: CreateChatCompletionRequest[BM],
+        response_model: Optional[Type[BM]] = None,
+    ) -> Union[ChatCompletion[BM], None]:
         """Retrieve an item by key"""
         val_str = self._cache.get(key)
         if val_str is None:
@@ -106,5 +118,7 @@ class ChatCompletionDiskTLRUCache(
             return None
 
         logger.debug("Cache hit for key: %s", key)
-        val = ChatCompletion[T].deserialize_json(val_str, response_model=response_model)
+        val = ChatCompletion[BM].deserialize_json(
+            val_str, response_model=response_model
+        )
         return val

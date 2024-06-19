@@ -27,6 +27,7 @@ from openai._types import NOT_GIVEN as OPENAI_NOT_GIVEN
 import instructor
 import tiktoken
 
+from fixpoint.cache import SupportsChatCompletionCache, CreateChatCompletionRequest
 from ..completions import (
     ChatCompletion,
     ChatCompletionMessageParam,
@@ -35,7 +36,6 @@ from ..completions import (
 )
 from ..memory import SupportsMemory
 from ..workflow import SupportsWorkflowRun
-from ..cache import SupportsChatCompletionCache
 from .protocol import BaseAgent, CompletionCallback, PreCompletionFn
 from ._shared import request_cached_completion, CacheMode
 
@@ -141,6 +141,7 @@ class OpenAIAgent(BaseAgent):
         response_model: Optional[Type[T_contra]] = None,
         tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
         tools: Optional[Iterable[ChatCompletionToolParam]] = None,
+        temperature: Optional[float] = None,
         cache_mode: Optional[CacheMode] = None,
         **kwargs: Any,
     ) -> ChatCompletion[T_contra]:
@@ -154,13 +155,18 @@ class OpenAIAgent(BaseAgent):
         # constructed the agent with.
         mymodel = model or self.model_name
 
+        req = CreateChatCompletionRequest(
+            messages=messages,
+            model=mymodel,
+            tool_choice=tool_choice,
+            tools=tools,
+            response_model=response_model,
+            temperature=temperature,
+        )
+
         def _wrapped_completion_fn() -> ChatCompletion[T_contra]:
             return self._request_completion(
-                messages,
-                mymodel,
-                response_model,
-                tool_choice=tool_choice,
-                tools=tools,
+                req,
                 **kwargs,
             )
 
@@ -168,10 +174,9 @@ class OpenAIAgent(BaseAgent):
             cache_mode = self._cache_mode
         fixp_completion = request_cached_completion(
             cache=self._cache,
-            messages=messages,
+            req=req,
             completion_fn=_wrapped_completion_fn,
             cache_mode=cache_mode,
-            response_model=response_model,
         )
 
         basemodel_fixp_completion = cast(ChatCompletion[BaseModel], fixp_completion)
@@ -182,21 +187,17 @@ class OpenAIAgent(BaseAgent):
 
     def _request_completion(
         self,
-        messages: List[ChatCompletionMessageParam],
-        model: str,
-        response_model: Optional[Type[T_contra]] = None,
-        tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
-        tools: Optional[Iterable[ChatCompletionToolParam]] = None,
+        req: CreateChatCompletionRequest[T_contra],
         **kwargs: Any,
     ) -> ChatCompletion[T_contra]:
-        if response_model is None:
+        if req["response_model"] is None:
             compl = self._openai_clients.openai.chat.completions.create(
-                messages=messages,
-                model=model,
+                messages=req["messages"],
+                model=req["model"],
                 # TODO(dbmikus) support streaming mode.
                 stream=False,
-                tool_choice=tool_choice or OPENAI_NOT_GIVEN,
-                tools=tools or OPENAI_NOT_GIVEN,
+                tool_choice=req["tool_choice"] or OPENAI_NOT_GIVEN,
+                tools=req["tools"] or OPENAI_NOT_GIVEN,
                 **kwargs,
             )
             return ChatCompletion.from_original_completion(
@@ -204,8 +205,8 @@ class OpenAIAgent(BaseAgent):
                 structured_output=None,
             )
 
-        if ((tool_choice is not None) or (tools is not None)) and (
-            response_model is not None
+        if ((req["tool_choice"] is not None) or (req["tools"] is not None)) and (
+            req["response_model"] is not None
         ):
             raise ValueError(
                 "Explicit tool calls are not supported with structured output."
@@ -213,12 +214,12 @@ class OpenAIAgent(BaseAgent):
 
         structured_resp, completion = (
             self._openai_clients.instructor.chat.completions.create_with_completion(
-                messages=messages,
-                model=model,
+                messages=req["messages"],
+                model=req["model"],
                 # TODO(dbmikus) support streaming mode.
                 stream=False,
                 # Instructor gets weird if this is a BaseModel type, even though it is
-                response_model=cast(Any, response_model),
+                response_model=cast(Any, req["response_model"]),
                 **kwargs,
             )
         )

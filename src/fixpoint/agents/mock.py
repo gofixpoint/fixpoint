@@ -19,6 +19,7 @@ from openai.types.chat.chat_completion import (
 )
 from pydantic import BaseModel
 
+from fixpoint.cache import SupportsChatCompletionCache, CreateChatCompletionRequest
 from ..completions import (
     ChatCompletion,
     ChatCompletionMessage,
@@ -28,7 +29,6 @@ from ..completions import (
 )
 from ..memory import SupportsMemory
 from ..workflow import SupportsWorkflowRun
-from ..cache import SupportsChatCompletionCache
 from .protocol import BaseAgent, CompletionCallback, PreCompletionFn
 from ._shared import request_cached_completion, CacheMode
 
@@ -44,6 +44,7 @@ class MockAgent(BaseAgent):
     _completion_callbacks: List[CompletionCallback]
     _memory: Optional[SupportsMemory] = None
     _cache_mode: CacheMode = "normal"
+    _model: str
 
     def __init__(
         self,
@@ -52,12 +53,14 @@ class MockAgent(BaseAgent):
         completion_callbacks: Optional[List[CompletionCallback]] = None,
         memory: Optional[SupportsMemory] = None,
         cache: Optional[SupportsChatCompletionCache] = None,
+        model: str = "gpt-3.5-turbo-0125",
     ):
         self._completion_fn = completion_fn
         self._pre_completion_fns = pre_completion_fns or []
         self._completion_callbacks = completion_callbacks or []
         self._memory = memory
         self._cache = cache
+        self._model = model
 
     @overload
     def create_completion(
@@ -97,6 +100,7 @@ class MockAgent(BaseAgent):
         tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
         tools: Optional[Iterable[ChatCompletionToolParam]] = None,
         cache_mode: Optional[CacheMode] = None,
+        temperature: Optional[float] = None,
         **kwargs: Any,
     ) -> ChatCompletion[T_contra]:
         for fn in self._pre_completion_fns:
@@ -105,14 +109,21 @@ class MockAgent(BaseAgent):
         if cache_mode is None:
             cache_mode = self._cache_mode
 
+        req = CreateChatCompletionRequest(
+            messages=messages,
+            model=model or self._model,
+            tool_choice=tool_choice,
+            tools=tools,
+            response_model=response_model,
+            temperature=temperature,
+        )
         cmpl = request_cached_completion(
             cache_mode=cache_mode,
             cache=self._cache,
-            messages=messages,
+            req=req,
             completion_fn=cast(
                 Callable[[], ChatCompletion[T_contra]], self._completion_fn
             ),
-            response_model=response_model,
         )
 
         casted_cmpl = cast(ChatCompletion[BaseModel], cmpl)
@@ -149,9 +160,13 @@ _COMPLETION_ID = "chatcmpl-95LUxn8nTls6Ti5ES1D5LRXv4lwTg"
 _CREATED = 1711061307
 
 
-def new_mock_completion(content: Optional[str] = None) -> ChatCompletion[BaseModel]:
+def new_mock_completion(
+    content: Optional[str] = None, structured_output: Optional[T_contra] = None
+) -> ChatCompletion[T_contra]:
     """Create new mock completion"""
-    return ChatCompletion.from_original_completion(new_mock_orig_completion(content))
+    return ChatCompletion.from_original_completion(
+        new_mock_orig_completion(content), structured_output
+    )
 
 
 def new_mock_orig_completion(content: Optional[str] = None) -> OpenAIChatCompletion:

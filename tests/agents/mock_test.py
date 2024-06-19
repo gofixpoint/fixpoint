@@ -8,7 +8,8 @@ from fixpoint.completions import ChatCompletion, ChatCompletionMessageParam
 from fixpoint.agents.mock import MockAgent, new_mock_completion
 from fixpoint.memory import Memory
 from fixpoint.utils import messages
-from fixpoint.cache.tlru import ChatCompletionTLRUCache
+from fixpoint.cache import CreateChatCompletionRequest
+from fixpoint.cache.chattlru import ChatCompletionTLRUCache
 
 
 class TestMockAgent:
@@ -60,9 +61,18 @@ class TestMockAgent:
         assert cache.currentsize == 1
         assert mock_gen.num_calls() == 1
 
+        req = CreateChatCompletionRequest[BaseModel](
+            messages=msgs,
+            response_model=None,
+            temperature=None,
+            model="gpt-3.5-turbo-0125",
+            tool_choice=None,
+            tools=None,
+        )
+
         # Advance time by 12 seconds so the cache item can expire
         with freeze_time("2023-01-01 00:00:12"):
-            assert cache.get(msgs) is None  # evicted
+            assert cache.get(req, response_model=None) is None  # evicted
             assert cache.currentsize == 0
 
             cmpl = agent.create_completion(messages=msgs)
@@ -77,7 +87,9 @@ class MockCompletionGenerator:
         self._num = 0
 
     def new_mock_completion(self) -> ChatCompletion[BaseModel]:
-        cmpl = new_mock_completion(content=f"test {self._num}")
+        cmpl: ChatCompletion[BaseModel] = new_mock_completion(
+            content=f"test {self._num}"
+        )
         self._num += 1
         return cmpl
 

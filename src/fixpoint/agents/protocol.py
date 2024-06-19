@@ -55,6 +55,7 @@ class BaseAgent(Protocol):
         workflow_run: Optional[SupportsWorkflowRun] = None,
         tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
         tools: Optional[Iterable[ChatCompletionToolParam]] = None,
+        temperature: Optional[float] = None,
         cache_mode: Optional[CacheMode] = "normal",
         **kwargs: Any,
     ) -> ChatCompletion[BaseModel]: ...
@@ -69,6 +70,7 @@ class BaseAgent(Protocol):
         workflow_run: Optional[SupportsWorkflowRun] = None,
         tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
         tools: Optional[Iterable[ChatCompletionToolParam]] = None,
+        temperature: Optional[float] = None,
         cache_mode: Optional[CacheMode] = "normal",
         **kwargs: Any,
     ) -> ChatCompletion[T_contra]: ...
@@ -82,6 +84,7 @@ class BaseAgent(Protocol):
         workflow_run: Optional[SupportsWorkflowRun] = None,
         tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
         tools: Optional[Iterable[ChatCompletionToolParam]] = None,
+        temperature: Optional[float] = None,
         cache_mode: Optional[CacheMode] = "normal",
         **kwargs: Any,
     ) -> ChatCompletion[T_contra]:
