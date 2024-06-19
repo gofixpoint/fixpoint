@@ -1,8 +1,10 @@
-from typing import Any, Callable, Dict, Optional, Sequence, Type, TypeVar, cast
+from functools import wraps
+from typing import Any, Callable, Dict, Optional, ParamSpec, Sequence, Type, TypeVar, cast
 
 from .. import imperative
 from ._task import get_task_fixp
 from .errors import DefinitionError
+from ._helpers import validate_func_has_context_arg
 
 
 T = TypeVar("T")
@@ -42,6 +44,17 @@ class _WorkflowMeta(type):
 
         retclass = super(_WorkflowMeta, cls).__new__(cls, name, bases, attrs)  # type: ignore[misc]
         return cast(C, retclass)
+
+    @classmethod
+    def _has_entrypoint(cls, attrs: Dict[str, Any]) -> bool:
+        num_entrypoints = 0
+        for v in attrs.values():
+            if not callable(v):
+                continue
+            fixp = _get_workflow_entrypoint_fixp(v)
+            if fixp:
+                num_entrypoints += 1
+        return num_entrypoints == 1
 
     @classmethod
     def _has_one_main_task(cls, attrs: Dict[str, Any]) -> bool:
@@ -85,3 +98,35 @@ def workflow(id: str) -> Callable[[Type[C]], Type[C]]:
         return cast(Type[C], _WorkflowMeta(cls.__name__, cls.__bases__, attrs))
 
     return decorator
+
+
+class WorkflowEntryFixp:
+    pass
+
+
+Params = ParamSpec("Params")
+Ret = TypeVar("Ret")
+
+def entrypoint() -> Callable[[Callable[Params, Ret]], Callable[Params, Ret]]:
+    def decorator(func: Callable[Params, Ret]) -> Callable[Params, Ret]:
+        func.__fixp = WorkflowEntryFixp()  # type: ignore[attr-defined]
+
+        validate_func_has_context_arg(func)
+
+        @wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> Ret:
+            print("Before calling", func.__name__)
+            result = func(*args, **kwargs)
+            print("After calling", func.__name__)
+            return result
+
+        return cast(Callable[Params, Ret], wrapper)
+
+    return decorator
+
+
+def _get_workflow_entrypoint_fixp(fn: Callable[..., Any]) -> Optional[WorkflowEntryFixp]:
+    attr = getattr(fn, "__fixp", None)
+    if isinstance(attr, WorkflowEntryFixp):
+        return attr
+    return None

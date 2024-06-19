@@ -6,15 +6,15 @@ class TestStructuredWorkflow:
     def test_workflow_declaration(self) -> None:
         with pytest.raises(structured.DefinitionError):
 
-            @structured.workflow(id="workflow_without_main_task")
-            class WorkflowWithoutMainTask1:
+            @structured.workflow(id="workflow_without_entrypoint")
+            class WorkflowWithoutEntrypoint1:
                 pass
 
         with pytest.raises(structured.DefinitionError):
 
-            @structured.workflow(id="workflow_without_main_task")
-            class WorkflowWithoutMainTask2:
-                @structured.task(id="my_task")
+            @structured.workflow(id="workflow_without_entrypoint")
+            class WorkflowWithoutEntrypoint2:
+                @structured.entrypoint()
                 def my_task(self, _ctx: structured.WorkflowContext) -> None:
                     pass
 
@@ -22,11 +22,11 @@ class TestStructuredWorkflow:
 
             @structured.workflow(id="two_main_tasks")
             class TwoMainTasks:
-                @structured.task(id="my_task", main=True)
+                @structured.entrypoint()
                 def my_task(self, _ctx: structured.WorkflowContext) -> None:
                     pass
 
-                @structured.task(id="my_task", main=True)
+                @structured.entrypoint()
                 def my_other_task(self, _ctx: structured.WorkflowContext) -> None:
                     pass
 
