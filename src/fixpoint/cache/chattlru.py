@@ -1,5 +1,5 @@
 """
-TLRU Cache
+TLRU Cache for chat completions
 """
 
 import time
