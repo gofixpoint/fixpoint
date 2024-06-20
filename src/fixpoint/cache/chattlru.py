@@ -111,9 +111,6 @@ class ChatCompletionTLRUCacheItem(
         cls, data: dict[str, Any], response_model: Optional[Type[BM]] = None
     ) -> "ChatCompletionTLRUCacheItem[BM]":
         """Deserialize a dictionary into a TLRUCacheItem"""
-        print("DBM look")
-        print(response_model)
-        print(data)
         key: CreateChatCompletionRequest[BM] = deserialize_chat_completion_request(
             data.pop("key"),
             response_model=response_model,
