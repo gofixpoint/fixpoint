@@ -160,9 +160,10 @@ async def run_workflow(
 ) -> Ret:
     fixpmeta: "WorkflowMetaFixp" = workflow_defn.__fixp_meta  # type: ignore[attr-defined]
     if not isinstance(fixpmeta, WorkflowMetaFixp):
-        raise DefinitionException(f"Workflow {workflow_defn.__name__} is not a valid workflow definition")
+        raise DefinitionException(
+            f"Workflow {workflow_defn.__name__} is not a valid workflow definition"
+        )
     defn_instance = workflow_defn()
     # Double-underscore names get mangled to prevent conflicts
     fixp: "WorkflowInstanceFixp" = defn_instance._WorkflowMeta__fixp  # type: ignore[attr-defined]
     fixp.run(fixpmeta.ctx_factory)
-

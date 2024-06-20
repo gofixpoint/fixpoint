@@ -47,11 +47,15 @@ class CompareModels:
     async def run(
         self, ctx: WorkflowContext, prompts: List[List[ChatCompletionMessageParam]]
     ) -> None:
-        gpt3_res = structured.call(
-            RunAllPrompts, args=[RunAllPromptsArgs(agent_name="gpt3", prompts=prompts)]
+        gpt3_res = structured.call_task(
+            ctx,
+            RunAllPrompts.run_all_prompts,
+            args=[RunAllPromptsArgs(agent_name="gpt3", prompts=prompts)],
         )
-        gpt4_res = structured.call(
-            RunAllPrompts, args=[RunAllPromptsArgs(agent_name="gpt4", prompts=prompts)]
+        gpt4_res = structured.call_task(
+            ctx,
+            RunAllPrompts.run_all_prompts,
+            args=[RunAllPromptsArgs(agent_name="gpt4", prompts=prompts)],
         )
 
         results = {"gpt3": await gpt3_res, "gpt4": await gpt4_res}
@@ -74,7 +78,7 @@ class RunAllPrompts:
         step_results = []
         for prompt in args.prompts:
             step_results.append(
-                structured.call(
+                structured.call_step(
                     run_prompt,
                     args=[RunPromptArgs(agent_name=args.agent_name, prompt=prompt)],
                 )

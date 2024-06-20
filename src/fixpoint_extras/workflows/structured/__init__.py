@@ -1,8 +1,7 @@
 from ._workflow import workflow, run_workflow, workflow_entrypoint
 from ._context import WorkflowContext
-from ._task import task, task_entrypoint
-from ._step import step
-from ._process import call
+from ._task import task, task_entrypoint, call_task
+from ._step import step, call_step
 
 from .errors import DefinitionException
 from . import errors
@@ -10,7 +9,8 @@ from . import errors
 
 __all__ = [
     "DefinitionException",
-    "call",
+    "call_step",
+    "call_task",
     "errors",
     "run_workflow",
     "step",

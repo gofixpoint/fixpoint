@@ -1,8 +1,9 @@
 from functools import wraps
 import inspect
-from typing import Any, Callable, Optional, cast
+from typing import Any, Callable, Dict, List, Optional, cast
 
-from ._helpers import validate_func_has_context_arg, Params, Ret
+from fixpoint_extras.workflows.imperative import WorkflowContext
+from ._helpers import validate_func_has_context_arg, Params, Ret, DefinitionException
 
 
 class StepFixp:
@@ -39,3 +40,19 @@ def get_step_fixp(fn: Callable[..., Any]) -> Optional[StepFixp]:
     if isinstance(attr, StepFixp):
         return attr
     return None
+
+
+async def call_step(
+    ctx: WorkflowContext,
+    fn: Callable[Params, Ret],
+    args: Optional[List[Any]] = None,
+    kwargs: Optional[Dict[str, Any]] = None,
+) -> Ret:
+    args = args or []
+    kwargs = kwargs or {}
+
+    step_fixp = get_step_fixp(fn)
+    if not step_fixp:
+        raise DefinitionException(f"Step {fn.__name__} is not a valid step definition")
+
+    return fn(ctx, *args, **kwargs)

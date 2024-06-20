@@ -22,6 +22,7 @@ from ._helpers import validate_func_has_context_arg, Params, Ret
 T = TypeVar("T")
 C = TypeVar("C")
 
+
 class _TaskMeta(type):
     __fixp_meta: "TaskMetaFixp"
     __fixp: Optional["TaskInstanceFixp"] = None
@@ -146,19 +147,23 @@ def get_task_entrypoint_fixp_from_fn(fn: Callable[..., Any]) -> Optional[TaskEnt
 
 
 async def call_task(
-    task_defn: Type[C],
     ctx: WorkflowContext,
+    task_entry: Callable[Params, Ret],
     args: Optional[List[Any]] = None,
     kwargs: Optional[Dict[str, Any]] = None,
 ) -> Ret:
     fixpmeta: TaskMetaFixp = get_task_definition_meta_fixp(task_defn)
     if not fixpmeta:
-        raise DefinitionException(f"Task {task_defn.__name__} is not a valid task definition")
+        raise DefinitionException(
+            f"Task {task_defn.__name__} is not a valid task definition"
+        )
     defn_instance = task_defn()
     # Double-underscore names get mangled to prevent conflicts
     fixp: TaskInstanceFixp = get_task_instance_fixp(defn_instance)
     if not fixp:
-        raise DefinitionException(f"Task {task_defn.__name__} is not a valid task definition")
+        raise DefinitionException(
+            f"Task {task_defn.__name__} is not a valid task definition"
+        )
     fixp.run(ctx)
 
     entry_fn = get_task_entrypoint_from_defn(defn_instance)
