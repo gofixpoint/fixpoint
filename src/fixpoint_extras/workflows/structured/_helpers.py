@@ -1,13 +1,22 @@
 import inspect
-from typing import Any, Callable
+from typing import Any, Callable, ParamSpec, TypeVar
 
-from .errors import DefinitionError
+from .errors import DefinitionException
 
-def validate_func_has_context_arg(func: Callable[..., Any]):
+
+def validate_func_has_context_arg(func: Callable[..., Any]) -> None:
     sig = inspect.signature(func)
     if len(sig.parameters) < 1:
-        raise DefinitionError("Task must take at least one argument of type WorkflowContext")
+        raise DefinitionException(
+            "Task must take at least one argument of type WorkflowContext"
+        )
     first_param = [p for p in sig.parameters.values()][0]
-    if first_param.name == 'self':
+    if first_param.name == "self":
         if len(sig.parameters) < 2:
-            raise DefinitionError("In class method: first non-self parameter must be of type WorkflowContext")
+            raise DefinitionException(
+                "In class method: first non-self parameter must be of type WorkflowContext"
+            )
+
+
+Params = ParamSpec("Params")
+Ret = TypeVar("Ret")

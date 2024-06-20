@@ -17,7 +17,7 @@ def init_workflow_context(workflow_run: WorkflowRun) -> WorkflowContext:
         maxsize=1000,
         ttl_s=60 * 60 * 24 * 30,
     )
-    openaiclients = OpenAIClients(api_key=os.getenv("OPENAI_API_KEY"))
+    openaiclients = OpenAIClients.from_api_key(api_key=os.environ["OPENAI_API_KEY"])
     memory = DataframeMemory()
     # TODO(dbmikus) expose memory on an agent
     gpt3 = OpenAIAgent(
@@ -44,18 +44,20 @@ def init_workflow_context(workflow_run: WorkflowRun) -> WorkflowContext:
 @structured.workflow(id="example_workflow", ctx_factory=init_workflow_context)
 class CompareModels:
     structured.entrypoint()
-    async def run(self, ctx: WorkflowContext, prompts: List[List[ChatCompletionMessageParam]]) -> None:
-        gpt3_res = structured.spawn(RunAllPrompts, args=[RunAllPromptsArgs(agent_name="gpt3", prompts=prompts)])
-        gpt4_res = structured.spawn(RunAllPrompts, args=[RunAllPromptsArgs(agent_name="gpt4", prompts=prompts)])
 
-        results = {
-            "gpt3": gpt3_res,
-            "gpt4": gpt4_res
-        }
-        # TODO(dbmikus) this is not async, so it will block the async event loop
-        ctx.workflow_run.docs.store(
-            contents=json.dumps(results)
+    async def run(
+        self, ctx: WorkflowContext, prompts: List[List[ChatCompletionMessageParam]]
+    ) -> None:
+        gpt3_res = structured.spawn(
+            RunAllPrompts, args=[RunAllPromptsArgs(agent_name="gpt3", prompts=prompts)]
         )
+        gpt4_res = structured.spawn(
+            RunAllPrompts, args=[RunAllPromptsArgs(agent_name="gpt4", prompts=prompts)]
+        )
+
+        results = {"gpt3": gpt3_res, "gpt4": gpt4_res}
+        # TODO(dbmikus) this is not async, so it will block the async event loop
+        ctx.workflow_run.docs.store(contents=json.dumps(results))
 
 
 @dataclass
@@ -67,7 +69,9 @@ class RunAllPromptsArgs:
 @structured.task(id="run_all_prompts")
 class RunAllPrompts:
     @structured.entrypoint()
-    async def run_all_prompts(ctx: WorkflowContext, args: RunAllPromptsArgs) -> List[str]:
+    async def run_all_prompts(
+        ctx: WorkflowContext, args: RunAllPromptsArgs
+    ) -> List[str]:
         step_results = []
         for prompt in args.prompts:
             step_results.append(

@@ -4,13 +4,13 @@ from fixpoint_extras.workflows import structured
 
 class TestStructuredWorkflow:
     def test_workflow_declaration(self) -> None:
-        with pytest.raises(structured.DefinitionError):
+        with pytest.raises(structured.DefinitionException):
 
             @structured.workflow(id="workflow_without_entrypoint")
             class WorkflowWithoutEntrypoint1:
                 pass
 
-        with pytest.raises(structured.DefinitionError):
+        with pytest.raises(structured.DefinitionException):
 
             @structured.workflow(id="workflow_without_entrypoint")
             class WorkflowWithoutEntrypoint2:
@@ -18,7 +18,7 @@ class TestStructuredWorkflow:
                 def my_task(self, _ctx: structured.WorkflowContext) -> None:
                     pass
 
-        with pytest.raises(structured.DefinitionError):
+        with pytest.raises(structured.DefinitionException):
 
             @structured.workflow(id="two_main_tasks")
             class TwoMainTasks:
@@ -31,7 +31,7 @@ class TestStructuredWorkflow:
                     pass
 
     def test_at_least_ctx_arg(self) -> None:
-        with pytest.raises(structured.DefinitionError):
+        with pytest.raises(structured.DefinitionException):
 
             @structured.workflow(id="workflow_without_main_task")
             class WorkflowWithoutMainTask:

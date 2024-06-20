@@ -1,2 +1,2 @@
-class DefinitionError(Exception):
+class DefinitionException(Exception):
     pass
