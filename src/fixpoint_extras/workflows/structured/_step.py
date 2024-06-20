@@ -1,8 +1,8 @@
 from functools import wraps
 import inspect
-from typing import Any, Callable, Optional, ParamSpec, TypeVar, cast
+from typing import Any, Callable, Optional, cast
 
-from ._helpers import validate_func_has_context_arg
+from ._helpers import validate_func_has_context_arg, Params, Ret
 
 
 class StepFixp:
@@ -12,10 +12,6 @@ class StepFixp:
     def __init__(self, id: str, main: bool = False):
         self.id = id
         self.main = main
-
-
-Params = ParamSpec("Params")
-Ret = TypeVar("Ret")
 
 
 def step(

@@ -43,8 +43,7 @@ def init_workflow_context(workflow_run: WorkflowRun) -> WorkflowContext:
 
 @structured.workflow(id="example_workflow", ctx_factory=init_workflow_context)
 class CompareModels:
-    structured.entrypoint()
-
+    @structured.workflow_entrypoint()
     async def run(
         self, ctx: WorkflowContext, prompts: List[List[ChatCompletionMessageParam]]
     ) -> None:
@@ -68,7 +67,7 @@ class RunAllPromptsArgs:
 
 @structured.task(id="run_all_prompts")
 class RunAllPrompts:
-    @structured.entrypoint()
+    @structured.task_entrypoint()
     async def run_all_prompts(
         ctx: WorkflowContext, args: RunAllPromptsArgs
     ) -> List[str]:
