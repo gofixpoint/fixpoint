@@ -89,9 +89,6 @@ def deserialize_chat_completion_request(
     elif parsed["response_model"] and response_model:
         parsed["response_model"] = response_model
     else:
-        print("DBM in error")
-        print(parsed["response_model"])
-        print(response_model)
         raise TypeError("provided response_model and serialized response_model differ")
 
     # Make sure the parsed object is valid
