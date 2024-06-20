@@ -28,6 +28,7 @@ def test_task_declaration() -> None:
             def other_main(self, _ctx: structured.WorkflowContext) -> None:
                 pass
 
+
 def test_at_least_ctx_arg() -> None:
     with pytest.raises(structured.DefinitionException):
 
@@ -36,6 +37,7 @@ def test_at_least_ctx_arg() -> None:
             @structured.task_entrypoint()
             def main(self) -> None:
                 pass
+
 
 def test_valid_task() -> None:
     @structured.task(id="valid_task")

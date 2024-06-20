@@ -47,14 +47,14 @@ class CompareModels:
     async def run(
         self, ctx: WorkflowContext, prompts: List[List[ChatCompletionMessageParam]]
     ) -> None:
-        gpt3_res = structured.spawn(
+        gpt3_res = structured.call(
             RunAllPrompts, args=[RunAllPromptsArgs(agent_name="gpt3", prompts=prompts)]
         )
-        gpt4_res = structured.spawn(
+        gpt4_res = structured.call(
             RunAllPrompts, args=[RunAllPromptsArgs(agent_name="gpt4", prompts=prompts)]
         )
 
-        results = {"gpt3": gpt3_res, "gpt4": gpt4_res}
+        results = {"gpt3": await gpt3_res, "gpt4": await gpt4_res}
         # TODO(dbmikus) this is not async, so it will block the async event loop
         ctx.workflow_run.docs.store(contents=json.dumps(results))
 
@@ -95,4 +95,4 @@ def run_prompt(ctx: WorkflowContext, args: RunPromptArgs) -> str:
 
 
 if __name__ == "__main__":
-    structured.run_workflow(CompareModels, [])
+    structured.run_workflow(CompareModels.run, [])

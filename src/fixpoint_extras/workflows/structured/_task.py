@@ -3,6 +3,7 @@ from typing import (
     Any,
     Callable,
     Dict,
+    List,
     Optional,
     ParamSpec,
     Sequence,
@@ -15,12 +16,11 @@ from fixpoint.workflow import SupportsWorkflowRun
 from fixpoint_extras.workflows.imperative import WorkflowRun, WorkflowContext
 from .. import imperative
 from .errors import DefinitionException
-from ._helpers import validate_func_has_context_arg
+from ._helpers import validate_func_has_context_arg, Params, Ret
 
 
 T = TypeVar("T")
 C = TypeVar("C")
-
 
 class _TaskMeta(type):
     __fixp_meta: "TaskMetaFixp"
@@ -53,7 +53,7 @@ class _TaskMeta(type):
         for v in attrs.values():
             if not callable(v):
                 continue
-            fixp = _get_task_entrypoint_fixp(v)
+            fixp = get_task_entrypoint_fixp_from_fn(v)
             if fixp:
                 num_entrypoints += 1
         return num_entrypoints == 1
@@ -97,10 +97,6 @@ class TaskEntryFixp:
     pass
 
 
-Params = ParamSpec("Params")
-Ret = TypeVar("Ret")
-
-
 def task_entrypoint() -> Callable[[Callable[Params, Ret]], Callable[Params, Ret]]:
     def decorator(func: Callable[Params, Ret]) -> Callable[Params, Ret]:
         func.__fixp = TaskEntryFixp()  # type: ignore[attr-defined]
@@ -119,18 +115,54 @@ def task_entrypoint() -> Callable[[Callable[Params, Ret]], Callable[Params, Ret]
     return decorator
 
 
-def _get_task_entrypoint_fixp(
-    fn: Callable[..., Any]
-) -> Optional[TaskEntryFixp]:
+def get_task_entrypoint_from_defn(defn: Type[C]) -> Optional[Callable[Params, Ret]]:
+    for attr in defn.__dict__.values():
+        if callable(attr):
+            fixp = get_task_entrypoint_fixp_from_fn(attr)
+            if fixp:
+                return attr
+    return None
+
+
+def get_task_definition_meta_fixp(cls: Type[C]) -> Optional[TaskMetaFixp]:
+    attr = getattr(cls, "__fixp_meta", None)
+    if isinstance(attr, TaskMetaFixp):
+        return attr
+    return None
+
+
+def get_task_instance_fixp(instance: C) -> Optional[TaskInstanceFixp]:
+    attr = getattr(instance, "__fixp", None)
+    if isinstance(attr, TaskInstanceFixp):
+        return attr
+    return None
+
+
+def get_task_entrypoint_fixp_from_fn(fn: Callable[..., Any]) -> Optional[TaskEntryFixp]:
     attr = getattr(fn, "__fixp", None)
     if isinstance(attr, TaskEntryFixp):
         return attr
     return None
 
 
-def get_task_definition_meta_fixp(cls: Type[C]) -> Optional[TaskMetaFixp]:
-    return getattr(cls, '__fixp_meta', None)
+async def call_task(
+    task_defn: Type[C],
+    ctx: WorkflowContext,
+    args: Optional[List[Any]] = None,
+    kwargs: Optional[Dict[str, Any]] = None,
+) -> Ret:
+    fixpmeta: TaskMetaFixp = get_task_definition_meta_fixp(task_defn)
+    if not fixpmeta:
+        raise DefinitionException(f"Task {task_defn.__name__} is not a valid task definition")
+    defn_instance = task_defn()
+    # Double-underscore names get mangled to prevent conflicts
+    fixp: TaskInstanceFixp = get_task_instance_fixp(defn_instance)
+    if not fixp:
+        raise DefinitionException(f"Task {task_defn.__name__} is not a valid task definition")
+    fixp.run(ctx)
 
+    entry_fn = get_task_entrypoint_from_defn(defn_instance)
 
-def get_task_instance_fixp(instance: C) -> Optional[TaskInstanceFixp]:
-    return getattr(instance, '__fixp', None)
+    args = args or []
+    kwargs = kwargs or {}
+    return entry_fn(ctx, *args, **kwargs)

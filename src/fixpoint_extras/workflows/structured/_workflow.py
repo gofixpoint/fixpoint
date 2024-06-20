@@ -22,17 +22,6 @@ T = TypeVar("T")
 C = TypeVar("C")
 
 
-def run_workflow(
-    workflow_defn: Type[C],
-    args: Sequence[Any],
-) -> None:
-    fixpmeta: "WorkflowMetaFixp" = workflow_defn.__fixp_meta  # type: ignore[attr-defined]
-    defn_instance = workflow_defn()
-    # Double-underscore names get mangled to prevent conflicts
-    fixp: "WorkflowInstanceFixp" = defn_instance._WorkflowMeta__fixp  # type: ignore[attr-defined]
-    fixp.run(fixpmeta.ctx_factory)
-
-
 class _WorkflowMeta(type):
     __fixp_meta: "WorkflowMetaFixp"
     __fixp: Optional["WorkflowInstanceFixp"] = None
@@ -158,8 +147,22 @@ def _get_workflow_entrypoint_fixp(
 
 
 def get_workflow_definition_meta_fixp(cls: Type[C]) -> Optional[WorkflowMetaFixp]:
-    return getattr(cls, '__fixp_meta', None)
+    return getattr(cls, "__fixp_meta", None)
 
 
 def get_workflow_instance_fixp(instance: C) -> Optional[WorkflowInstanceFixp]:
-    return getattr(instance, '__fixp', None)
+    return getattr(instance, "__fixp", None)
+
+
+async def run_workflow(
+    workflow_entry: Callable[Params, Ret],
+    args: Sequence[Any],
+) -> Ret:
+    fixpmeta: "WorkflowMetaFixp" = workflow_defn.__fixp_meta  # type: ignore[attr-defined]
+    if not isinstance(fixpmeta, WorkflowMetaFixp):
+        raise DefinitionException(f"Workflow {workflow_defn.__name__} is not a valid workflow definition")
+    defn_instance = workflow_defn()
+    # Double-underscore names get mangled to prevent conflicts
+    fixp: "WorkflowInstanceFixp" = defn_instance._WorkflowMeta__fixp  # type: ignore[attr-defined]
+    fixp.run(fixpmeta.ctx_factory)
+
