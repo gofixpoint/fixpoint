@@ -19,12 +19,12 @@ def test_bad_step_definition() -> None:
 
 
 @pytest.mark.asyncio
-def test_bad_call_step() -> None:
+async def test_bad_call_step() -> None:
     async def my_step(ctx: structured.WorkflowContext, args: StepArgs) -> int:
         return args.x + args.y
 
     with pytest.raises(structured.DefinitionException):
-        structured.call_step(
+        await structured.call_step(
             new_workflow_context("my-workflow"),
             my_step,
             args=[StepArgs(x=1, y=2)],
@@ -42,7 +42,7 @@ async def test_run_step() -> None:
     assert res == 3
 
 
-def new_workflow_context(workflow_id: str):
+def new_workflow_context(workflow_id: str) -> structured.WorkflowContext:
     workflow = imperative.Workflow(id=workflow_id)
     wrun = workflow.run()
     ctx = structured.WorkflowContext.from_workflow(

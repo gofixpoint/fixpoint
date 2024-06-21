@@ -2,7 +2,7 @@ import asyncio
 from dataclasses import dataclass
 import json
 import os
-from typing import List
+from typing import Awaitable, List, Union
 
 from fixpoint.agents.openai import OpenAIClients, OpenAIAgent
 from fixpoint.completions.chat_completion import ChatCompletionMessageParam
@@ -60,7 +60,7 @@ class CompareModels:
 
         results = {"gpt3": await gpt3_res, "gpt4": await gpt4_res}
         # TODO(dbmikus) this is not async, so it will block the async event loop
-        ctx.workflow_run.docs.store(contents=json.dumps(results))
+        ctx.workflow_run.docs.store(id="inference-results.json", contents=json.dumps(results))
 
 
 @dataclass
@@ -72,13 +72,12 @@ class RunAllPromptsArgs:
 @structured.task(id="run_all_prompts")
 class RunAllPrompts:
     @structured.task_entrypoint()
-    async def run_all_prompts(
-        ctx: WorkflowContext, args: RunAllPromptsArgs
-    ) -> List[str]:
-        step_results = []
+    async def run_all_prompts(self, ctx: WorkflowContext, args: RunAllPromptsArgs) -> List[Union[str, None]]:
+        step_results: List[Awaitable[Union[str, None]]] = []
         for prompt in args.prompts:
             step_results.append(
                 structured.call_step(
+                    ctx,
                     run_prompt,
                     args=[RunPromptArgs(agent_name=args.agent_name, prompt=prompt)],
                 )
@@ -93,10 +92,11 @@ class RunPromptArgs:
 
 
 @structured.step(id="run_prompt")
-def run_prompt(ctx: WorkflowContext, args: RunPromptArgs) -> str:
+async def run_prompt(ctx: WorkflowContext, args: RunPromptArgs) -> Union[str, None]:
     agent = ctx.agents[args.agent_name]
-    return agent.create_completion(messages=args.prompt)
+    completion = agent.create_completion(messages=args.prompt)
+    return completion.choices[0].message.content
 
 
 if __name__ == "__main__":
-    structured.run_workflow(CompareModels.run, [])
+    asyncio.run(structured.run_workflow(CompareModels.run, []))
