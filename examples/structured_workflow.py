@@ -1,3 +1,5 @@
+"""An example of Fixpoint's structured LLM workflows."""
+
 import asyncio
 from dataclasses import dataclass
 import json
@@ -13,6 +15,8 @@ from fixpoint_extras.workflows import structured
 
 
 def init_workflow_context(workflow_run: WorkflowRun) -> WorkflowContext:
+    """Factory function to initialize a workflow context for a workflow definition"""
+
     cache = ChatCompletionTLRUCache(
         maxsize=1000,
         ttl_s=60 * 60 * 24 * 30,
@@ -43,10 +47,13 @@ def init_workflow_context(workflow_run: WorkflowRun) -> WorkflowContext:
 
 @structured.workflow(id="example_workflow", ctx_factory=init_workflow_context)
 class CompareModels:
+    """Compare the performance of GPT-3.5 and GPT-4"""
+
     @structured.workflow_entrypoint()
     async def run(
         self, ctx: WorkflowContext, prompts: List[List[ChatCompletionMessageParam]]
     ) -> None:
+        """Entrypoint for the workflow to compare agents"""
         gpt3_res = structured.call_task(
             ctx,
             RunAllPrompts.run_all_prompts,
@@ -60,19 +67,28 @@ class CompareModels:
 
         results = {"gpt3": await gpt3_res, "gpt4": await gpt4_res}
         # TODO(dbmikus) this is not async, so it will block the async event loop
-        ctx.workflow_run.docs.store(id="inference-results.json", contents=json.dumps(results))
+        ctx.workflow_run.docs.store(
+            id="inference-results.json", contents=json.dumps(results)
+        )
 
 
 @dataclass
 class RunAllPromptsArgs:
+    """Arguments for the "run_al_prompts" task"""
+
     agent_name: str
     prompts: List[List[ChatCompletionMessageParam]]
 
 
 @structured.task(id="run_all_prompts")
 class RunAllPrompts:
+    """A task that runs all prompts for an agent"""
+
     @structured.task_entrypoint()
-    async def run_all_prompts(self, ctx: WorkflowContext, args: RunAllPromptsArgs) -> List[Union[str, None]]:
+    async def run_all_prompts(
+        self, ctx: WorkflowContext, args: RunAllPromptsArgs
+    ) -> List[Union[str, None]]:
+        """Execute all prompt inferences for an agent"""
         step_results: List[Awaitable[Union[str, None]]] = []
         for prompt in args.prompts:
             step_results.append(
@@ -87,12 +103,15 @@ class RunAllPrompts:
 
 @dataclass
 class RunPromptArgs:
+    """Args for run_prompt"""
+
     agent_name: str
     prompt: List[ChatCompletionMessageParam]
 
 
 @structured.step(id="run_prompt")
 async def run_prompt(ctx: WorkflowContext, args: RunPromptArgs) -> Union[str, None]:
+    """Run an LLM inference request with the given agent and prompt"""
     agent = ctx.agents[args.agent_name]
     completion = agent.create_completion(messages=args.prompt)
     return completion.choices[0].message.content

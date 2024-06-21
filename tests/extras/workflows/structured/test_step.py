@@ -4,6 +4,7 @@ import fixpoint
 from fixpoint_extras.workflows import imperative
 from fixpoint_extras.workflows import structured
 
+
 @dataclass
 class StepArgs:
     x: int
@@ -13,6 +14,7 @@ class StepArgs:
 def test_bad_step_definition() -> None:
     # must have a ctx arg
     with pytest.raises(structured.DefinitionException):
+
         @structured.step(id="bad_step")
         async def bad_step() -> int:
             return 5
