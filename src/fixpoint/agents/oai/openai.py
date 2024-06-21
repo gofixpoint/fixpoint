@@ -117,6 +117,7 @@ class OpenAI:
             model: Optional[str] = None,
             tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
             tools: Optional[Iterable[ChatCompletionToolParam]] = None,
+            temperature: Optional[float] = None,
             workflow_run: Optional[SupportsWorkflowRun] = None,
             **kwargs: Any,
         ) -> ChatCompletion[BaseModel]: ...
@@ -130,6 +131,7 @@ class OpenAI:
             model: Optional[str] = None,
             tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
             tools: Optional[Iterable[ChatCompletionToolParam]] = None,
+            temperature: Optional[float] = None,
             workflow_run: Optional[SupportsWorkflowRun] = None,
             **kwargs: Any,
         ) -> ChatCompletion[T_contra]: ...
@@ -140,6 +142,7 @@ class OpenAI:
             *,
             response_model: Optional[Type[T_contra]] = None,
             model: Optional[str] = None,
+            temperature: Optional[float] = None,
             tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
             tools: Optional[Iterable[ChatCompletionToolParam]] = None,
             workflow_run: Optional[SupportsWorkflowRun] = None,
@@ -149,6 +152,7 @@ class OpenAI:
             return self._agent.create_completion(
                 messages=messages,
                 model=model,
+                temperature=temperature,
                 tool_choice=tool_choice,
                 tools=tools,
                 response_model=response_model,

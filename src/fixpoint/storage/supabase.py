@@ -4,6 +4,8 @@ from typing import Any, Optional, TypeVar, List, Type, Union, cast, Dict
 from pydantic import BaseModel
 from postgrest import SyncRequestBuilder  # type: ignore
 from supabase import create_client, Client
+
+from fixpoint.logging import logger
 from .protocol import SupportsStorage, SupportsSerialization
 
 V = TypeVar("V", bound=Union[BaseModel, SupportsSerialization[Any]])
@@ -77,10 +79,22 @@ class SupabaseStorage(SupportsStorage[V]):
             query = self._query_table()
             serialized = self._get_serialized_data(data)
             resp = query.insert(serialized).execute()
-            results = self._deserialize_results(resp.data)
-            return self._pick_first(results)
         except Exception as e:
             raise RuntimeError(f"Failed to insert data: {e}") from e
+        try:
+            # A ChatCompletion object or a CreateChatCompletionRequest has a
+            # Pydantic model instance or class (respectively) as a field member,
+            # which we cannot serialize well. In such a case, do the best effort
+            # to return the inserted data, which for many cases we can assume is
+            # just the data passed into this function.
+            results = self._deserialize_results(resp.data)
+            return self._pick_first(results)
+        # pylint: disable=broad-exception-caught
+        except Exception:
+            logger.warning(
+                "Failed to deserialize data. Returning inserted value instead"
+            )
+            return data
 
     def update(
         self,

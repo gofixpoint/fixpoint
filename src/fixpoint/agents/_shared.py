@@ -1,11 +1,11 @@
 """Internal shared code for the "agents" module."""
 
-from typing import Callable, List, Optional, Literal, Type, TypeVar, cast
+from typing import Callable, Optional, Literal, TypeVar
 
 from pydantic import BaseModel
 
-from ..cache import SupportsChatCompletionCache
-from ..completions import ChatCompletionMessageParam, ChatCompletion
+from fixpoint.cache import SupportsChatCompletionCache, CreateChatCompletionRequest
+from ..completions import ChatCompletion
 
 
 # Types of cache modes:
@@ -22,10 +22,9 @@ T = TypeVar("T", bound=BaseModel)
 
 def request_cached_completion(
     cache: Optional[SupportsChatCompletionCache],
-    messages: List[ChatCompletionMessageParam],
+    req: CreateChatCompletionRequest[T],
     completion_fn: Callable[[], ChatCompletion[T]],
     cache_mode: Optional[CacheMode],
-    response_model: Optional[Type[T]],
 ) -> ChatCompletion[T]:
     """Request a completion and optionally lookup/store it in the cache.
 
@@ -39,14 +38,10 @@ def request_cached_completion(
 
     cmpl = None
     if cache_mode not in ("skip_lookup", "skip_all"):
-        cmpl = cache.get(messages, response_model=response_model)
+        cmpl = cache.get(req, response_model=req["response_model"])
     if cmpl is None:
         cmpl = completion_fn()
         if cache_mode != "skip_all":
-            # cast the type to resolve this error:
-            #
-            #     Argument 2 to "set" of "SupportsCache" has incompatible type
-            #     "ChatCompletion[T]"; expected "ChatCompletion[BaseModel]"
-            cache.set(messages, cast(ChatCompletion[BaseModel], cmpl))
+            cache.set(req, cmpl)
 
     return cmpl

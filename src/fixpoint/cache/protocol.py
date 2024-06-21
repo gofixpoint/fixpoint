@@ -1,11 +1,11 @@
 """Protocol definitions for various cache types"""
 
-from typing import List, Optional, Protocol, TypeVar, Union, Any, Type
+from typing import Any, Optional, Protocol, Type, TypeVar, Union
 
 from pydantic import BaseModel
 
-from fixpoint.completions.chat_completion import ChatCompletion
-from fixpoint.completions.chat_completion import ChatCompletionMessageParam
+from fixpoint.completions import ChatCompletion
+from ._shared import CreateChatCompletionRequest, BM
 
 
 # Rename K to K_contra to indicate contravariance
@@ -37,23 +37,26 @@ class SupportsCache(Protocol[K_contra, V]):
         """Property to get the currentsize of the cache"""
 
 
-T = TypeVar("T", bound=BaseModel)
-
-
 # Pydantic models do not pickle well, so make a class that serializes and
 # deserializes the ChatCompletion. To do deserialization, we need to know the
 # BaseModel class to use.
 class SupportsChatCompletionCache(
-    SupportsCache[List[ChatCompletionMessageParam], ChatCompletion[BaseModel]], Protocol
+    SupportsCache[CreateChatCompletionRequest[BaseModel], ChatCompletion[BaseModel]],
+    Protocol,
 ):
     """A cache protocol for chat completions"""
 
     def get(
         self,
-        key: List[ChatCompletionMessageParam],
-        response_model: Optional[Type[T]] = None,
-    ) -> Union[ChatCompletion[T], None]:
+        key: CreateChatCompletionRequest[BM],
+        response_model: Optional[Type[BM]] = None,
+    ) -> Union[ChatCompletion[BM], None]:
         """Retrieve an item by key, optionally populating the structured output field"""
+
+    def set(
+        self, key: CreateChatCompletionRequest[BM], value: ChatCompletion[BM]
+    ) -> None:
+        """Set an item by key"""
 
 
 V_co = TypeVar("V_co", covariant=True)
@@ -71,13 +74,9 @@ class SupportCacheItem(Protocol[V_co]):
         """Property to get the data of the item"""
 
 
-class SupportsTTLCacheItem(SupportCacheItem[V_co], Protocol):
-    """Protocol for a Time-Limited LRU cache item"""
-
-    @property
-    def ttl(self) -> float:
-        """Property to get the TTL of the item"""
-
-    @property
-    def expires_at(self) -> float:
-        """Property to get the expiration time of the item"""
+__all__ = [
+    "SupportsCache",
+    "SupportsChatCompletionCache",
+    "SupportCacheItem",
+    "CreateChatCompletionRequest",
+]
