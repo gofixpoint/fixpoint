@@ -12,7 +12,6 @@ from typing import (
     cast,
 )
 
-from fixpoint.workflow import SupportsWorkflowRun
 from fixpoint_extras.workflows.imperative import WorkflowRun, WorkflowContext
 from .. import imperative
 from .errors import DefinitionException
@@ -35,32 +34,46 @@ class _TaskMeta(type):
 
         def __init__(self: C, *args: Any, **kargs: Any) -> None:
             fixp_meta: TaskMetaFixp = attrs["__fixp_meta"]
-            self.__fixp = TaskInstanceFixp(workflow_id=fixp_meta.workflow.id)  # type: ignore[attr-defined]
+            self.__fixp = TaskInstanceFixp(task_id=fixp_meta.task_id)  # type: ignore[attr-defined]
             if orig_init:
                 orig_init(self, *args, **kargs)
 
         attrs["__fixp"] = None
         attrs["__init__"] = __init__
 
-        if not _TaskMeta._has_entrypoint(attrs):
-            raise DefinitionException(f"Workflow {name} has no main task")
+        entry_fixp = _TaskMeta._get_entrypoint_fixp(attrs)
+        if not entry_fixp:
+            raise DefinitionException(f"Task {name} has no entrypoint")
 
         retclass = super(_TaskMeta, cls).__new__(cls, name, bases, attrs)  # type: ignore[misc]
+
+        # Make sure that the entrypoint function has a reference to its
+        # containing class. We do this because before a class instance is
+        # created, class methods are unbound. This means that by default we
+        # would not be able to get a reference to the class when provided the
+        # entrypoint function.
+        #
+        # By adding this reference, when a function receives an arg like
+        # `Task.entry` it can look up the class of `Task` and create an instance
+        # of it.
+        entry_fixp.task_cls = retclass
+
         return cast(C, retclass)
 
     @classmethod
-    def _has_entrypoint(cls, attrs: Dict[str, Any]) -> bool:
+    def _get_entrypoint_fixp(cls, attrs: Dict[str, Any]) -> Optional['TaskEntryFixp']:
         num_entrypoints = 0
+        entrypoint_fixp = None
         for v in attrs.values():
             if not callable(v):
                 continue
             fixp = get_task_entrypoint_fixp_from_fn(v)
             if fixp:
+                entrypoint_fixp = fixp
                 num_entrypoints += 1
-        return num_entrypoints == 1
-
-
-CtxFactory = Callable[[imperative.WorkflowRun], WorkflowContext]
+        if num_entrypoints == 1:
+            return entrypoint_fixp
+        return None
 
 
 class TaskMetaFixp:
@@ -71,18 +84,18 @@ class TaskMetaFixp:
 
 
 class TaskInstanceFixp:
-    workflow: imperative.Workflow
+    task_id: str
+    workflow: Optional[imperative.Workflow]
     ctx: Optional[WorkflowContext]
-    # TODO(dbmikus) use imperative.WorkflowRun instead of SupportsWorkflowRun
-    # workflow_run: Optional[imperative.WorkflowRun] = None
-    workflow_run: Optional[SupportsWorkflowRun] = None
+    workflow_run: Optional[WorkflowRun] = None
 
-    def __init__(self, workflow_id: str) -> None:
-        self.workflow = imperative.Workflow(id=workflow_id)
+    def __init__(self, task_id: str) -> None:
+        self.task_id = task_id
 
-    def run(self, ctx: WorkflowContext) -> None:
+    def init_workflow_run(self, ctx: WorkflowContext) -> None:
         self.ctx = ctx
         self.workflow_run = ctx.workflow_run
+        self.workflow = ctx.workflow_run.workflow
 
 
 def task(id: str) -> Callable[[Type[C]], Type[C]]:
@@ -95,7 +108,7 @@ def task(id: str) -> Callable[[Type[C]], Type[C]]:
 
 
 class TaskEntryFixp:
-    pass
+    task_cls: Optional[Type[Any]] = None
 
 
 def task_entrypoint() -> Callable[[Callable[Params, Ret]], Callable[Params, Ret]]:
@@ -116,12 +129,12 @@ def task_entrypoint() -> Callable[[Callable[Params, Ret]], Callable[Params, Ret]
     return decorator
 
 
-def get_task_entrypoint_from_defn(defn: Type[C]) -> Optional[Callable[Params, Ret]]:
+def get_task_entrypoint_from_defn(defn: Type[C]) -> Optional[Callable[..., Any]]:
     for attr in defn.__dict__.values():
         if callable(attr):
             fixp = get_task_entrypoint_fixp_from_fn(attr)
             if fixp:
-                return attr
+                return cast(Callable[..., Any], attr)
     return None
 
 
@@ -152,22 +165,36 @@ async def call_task(
     args: Optional[List[Any]] = None,
     kwargs: Optional[Dict[str, Any]] = None,
 ) -> Ret:
-    fixpmeta: TaskMetaFixp = get_task_definition_meta_fixp(task_defn)
+    entryfixp = get_task_entrypoint_fixp_from_fn(task_entry)
+    if not entryfixp:
+        raise DefinitionException(
+            f"Task \"{task_entry.__name__}\" is not a valid task entrypoint"
+        )
+
+    task_defn = entryfixp.task_cls
+    if not task_defn:
+        raise DefinitionException(
+            f"Task \"{task_entry.__name__}\" is not a valid task entrypoint"
+        )
+    fixpmeta = get_task_definition_meta_fixp(task_defn)
     if not fixpmeta:
         raise DefinitionException(
-            f"Task {task_defn.__name__} is not a valid task definition"
+            f"Task \"{task_defn.__name__}\" is not a valid task definition"
         )
+
     defn_instance = task_defn()
     # Double-underscore names get mangled to prevent conflicts
-    fixp: TaskInstanceFixp = get_task_instance_fixp(defn_instance)
+    fixp = get_task_instance_fixp(defn_instance)
     if not fixp:
         raise DefinitionException(
-            f"Task {task_defn.__name__} is not a valid task definition"
+            f"Task \"{task_defn.__name__}\" is not a valid task definition"
         )
-    fixp.run(ctx)
 
-    entry_fn = get_task_entrypoint_from_defn(defn_instance)
+    fixp.init_workflow_run(ctx)
 
     args = args or []
     kwargs = kwargs or {}
-    return entry_fn(ctx, *args, **kwargs)
+    # The Params type gets confused because we are injecting an additional
+    # WorkflowContext. Ignore that error.
+    res = task_entry(ctx, *args, **kwargs)  # type: ignore[arg-type]
+    return res

@@ -46,7 +46,17 @@ class _WorkflowMeta(type):
             raise DefinitionException(f"Workflow {name} has no entrypoint")
 
         retclass = super(_WorkflowMeta, cls).__new__(cls, name, bases, attrs)  # type: ignore[misc]
+
+        # Make sure that the entrypoint function has a reference to its
+        # containing class. We do this because before a class instance is
+        # created, class methods are unbound. This means that by default we
+        # would not be able to get a reference to the class when provided the
+        # entrypoint function.
+        #
+        # By adding this reference, when a function receives an arg like `Workflow.entry`
+        # it can look up the class of `Workflow` and create an instance of it.
         entrypoint_fixp.workflow_cls = retclass
+
         return cast(C, retclass)
 
     @classmethod
@@ -173,6 +183,7 @@ def get_workflow_instance_fixp(instance: C) -> Optional[WorkflowInstanceFixp]:
 def run_workflow(
     workflow_entry: Callable[Params, Ret],
     args: Optional[Sequence[Any]] = None,
+    kwargs: Optional[Dict[str, Any]] = None,
 ) -> Ret:
     entryfixp = get_workflow_entrypoint_fixp(workflow_entry)
     if not entryfixp:
@@ -187,10 +198,8 @@ def run_workflow(
             f"Workflow \"{workflow_defn.__name__}\" is not a valid workflow definition"
         )
     workflow_instance = workflow_defn()
-    print("Workflow uuid =", workflow_instance.x)
-    # Double-underscore names get mangled to prevent conflicts
     fixp = get_workflow_instance_fixp(workflow_instance)
-    if not isinstance(fixp, WorkflowInstanceFixp):
+    if not fixp:
         raise DefinitionException(
             f"Workflow \"{workflow_defn.__name__}\" is not a valid workflow instance"
         )
@@ -201,7 +210,8 @@ def run_workflow(
         raise ValueError("workflow run context is None")
 
     args = args or []
+    kwargs = kwargs or {}
     # The Params type gets confused because we are injecting an additional
     # WorkflowContext. Ignore that error.
-    res = workflow_entry(workflow_instance, fixp.ctx, *args) # type: ignore[arg-type]
+    res = workflow_entry(workflow_instance, fixp.ctx, *args, **kwargs) # type: ignore[arg-type]
     return res
