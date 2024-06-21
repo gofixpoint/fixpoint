@@ -64,5 +64,5 @@ async def test_call_task() -> None:
         agents={},
         memory=fixpoint.memory.Memory(),
     )
-    res = await structured.call_task(ctx, MyTask.run, "Dylan")
+    res = await structured.call_task(ctx, MyTask.run, args=["Dylan"])
     assert res == "Hello, Dylan"

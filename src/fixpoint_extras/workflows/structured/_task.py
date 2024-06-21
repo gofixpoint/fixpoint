@@ -146,7 +146,9 @@ def get_task_definition_meta_fixp(cls: Type[C]) -> Optional[TaskMetaFixp]:
 
 
 def get_task_instance_fixp(instance: C) -> Optional[TaskInstanceFixp]:
-    attr = getattr(instance, "__fixp", None)
+    # double-underscore names get mangled on class instances, so "__fixp"
+    # becomes "_TaskMeta__fixp"
+    attr = getattr(instance, "_TaskMeta__fixp", None)
     if isinstance(attr, TaskInstanceFixp):
         return attr
     return None
@@ -182,19 +184,19 @@ async def call_task(
             f"Task \"{task_defn.__name__}\" is not a valid task definition"
         )
 
-    defn_instance = task_defn()
+    task_instance = task_defn()
     # Double-underscore names get mangled to prevent conflicts
-    fixp = get_task_instance_fixp(defn_instance)
-    if not fixp:
+    instancefixp = get_task_instance_fixp(task_instance)
+    if not instancefixp:
         raise DefinitionException(
             f"Task \"{task_defn.__name__}\" is not a valid task definition"
         )
 
-    fixp.init_workflow_run(ctx)
+    instancefixp.init_workflow_run(ctx)
 
     args = args or []
     kwargs = kwargs or {}
     # The Params type gets confused because we are injecting an additional
     # WorkflowContext. Ignore that error.
-    res = task_entry(ctx, *args, **kwargs)  # type: ignore[arg-type]
+    res = task_entry(task_instance, ctx, *args, **kwargs)  # type: ignore[arg-type]
     return res
