@@ -5,9 +5,9 @@ import logging
 from typing import Dict, Optional
 
 import fixpoint
-from fixpoint.workflow import SupportsWorkflowRun
 from fixpoint.cache import SupportsChatCompletionCache
 from fixpoint.analyze.memory import DataframeMemory
+from .workflow import WorkflowRun
 
 
 @dataclass
@@ -21,13 +21,13 @@ class WorkflowContext:
     agents: Dict[str, fixpoint.agents.BaseAgent]
     logger: logging.Logger
     memory: DataframeMemory
-    workflow_run: SupportsWorkflowRun
+    workflow_run: WorkflowRun
     cache: Optional[SupportsChatCompletionCache]
 
     @classmethod
     def from_workflow(
         cls,
-        workflow_run: SupportsWorkflowRun,
+        workflow_run: WorkflowRun,
         agents: Dict[str, fixpoint.agents.BaseAgent],
         memory: DataframeMemory,
         cache: Optional[SupportsChatCompletionCache] = None,
