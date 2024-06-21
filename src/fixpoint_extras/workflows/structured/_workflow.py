@@ -45,7 +45,7 @@ class _WorkflowMeta(type):
         def __init__(self: C, *args: Any, **kargs: Any) -> None:
             fixp_meta: WorkflowMetaFixp = attrs["__fixp_meta"]
             # pylint: disable=unused-private-member,protected-access
-            self.__fixp = WorkflowInstanceFixp(   # type: ignore[attr-defined]
+            self.__fixp = WorkflowInstanceFixp(  # type: ignore[attr-defined]
                 workflow_id=fixp_meta.workflow.id
             )
             if orig_init:
@@ -170,8 +170,7 @@ def workflow(
     def decorator(cls: Type[C]) -> Type[C]:
         # pylint: disable=protected-access
         cls.__fixp_meta = WorkflowMetaFixp(  # type: ignore[attr-defined]
-            workflow_id=id,
-            ctx_factory=ctx_factory
+            workflow_id=id, ctx_factory=ctx_factory
         )
         attrs = dict(cls.__dict__)
         return cast(Type[C], _WorkflowMeta(cls.__name__, cls.__bases__, attrs))
