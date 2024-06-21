@@ -8,7 +8,7 @@ def validate_func_has_context_arg(func: Callable[..., Any]) -> None:
     sig = inspect.signature(func)
     if len(sig.parameters) < 1:
         raise DefinitionException(
-            "Task must take at least one argument of type WorkflowContext"
+            "Function must take at least one argument of type WorkflowContext"
         )
     first_param = [p for p in sig.parameters.values()][0]
     if first_param.name == "self":

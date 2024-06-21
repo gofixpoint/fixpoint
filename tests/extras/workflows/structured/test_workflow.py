@@ -1,4 +1,6 @@
+import uuid
 import pytest
+
 from fixpoint_extras.workflows import structured
 
 
@@ -45,3 +47,18 @@ def test_valid_workflow() -> None:
         @structured.workflow_entrypoint()
         def main(self, ctx: structured.WorkflowContext) -> None:
             pass
+
+
+@pytest.mark.asyncio
+async def test_run_workflow() -> None:
+    @structured.workflow(id="workflow")
+    class Workflow:
+        def __init__(self) -> None:
+            self.x = uuid.uuid4()
+
+        @structured.workflow_entrypoint()
+        async def main(self, ctx: structured.WorkflowContext) -> str:
+            return "this is a test"
+
+    res = await structured.run_workflow(Workflow.main)
+    assert res == "this is a test"

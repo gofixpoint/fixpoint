@@ -41,22 +41,28 @@ class _WorkflowMeta(type):
         attrs["__fixp"] = None
         attrs["__init__"] = __init__
 
-        if not _WorkflowMeta._has_entrypoint(attrs):
+        entrypoint_fixp = _WorkflowMeta._get_entrypoint_fixp(attrs)
+        if not entrypoint_fixp:
             raise DefinitionException(f"Workflow {name} has no entrypoint")
 
         retclass = super(_WorkflowMeta, cls).__new__(cls, name, bases, attrs)  # type: ignore[misc]
+        entrypoint_fixp.workflow_cls = retclass
         return cast(C, retclass)
 
     @classmethod
-    def _has_entrypoint(cls, attrs: Dict[str, Any]) -> bool:
+    def _get_entrypoint_fixp(cls, attrs: Dict[str, Any]) -> Optional['WorkflowEntryFixp']:
         num_entrypoints = 0
+        entrypoint_fixp = None
         for v in attrs.values():
             if not callable(v):
                 continue
-            fixp = _get_workflow_entrypoint_fixp(v)
+            fixp = get_workflow_entrypoint_fixp(v)
             if fixp:
+                entrypoint_fixp = fixp
                 num_entrypoints += 1
-        return num_entrypoints == 1
+        if num_entrypoints == 1:
+            return entrypoint_fixp
+        return None
 
 
 CtxFactory = Callable[[imperative.WorkflowRun], WorkflowContext]
@@ -78,6 +84,8 @@ class WorkflowInstanceFixp:
 
     def __init__(self, workflow_id: str) -> None:
         self.workflow = imperative.Workflow(id=workflow_id)
+        self.ctx = None
+        self.workflow_run = None
 
     def run(self, ctx_factory: CtxFactory) -> imperative.WorkflowContext:
         if self.ctx:
@@ -116,7 +124,7 @@ def workflow(
 
 
 class WorkflowEntryFixp:
-    pass
+    workflow_cls: Optional[Type[Any]] = None
 
 
 def workflow_entrypoint() -> Callable[[Callable[Params, Ret]], Callable[Params, Ret]]:
@@ -137,7 +145,7 @@ def workflow_entrypoint() -> Callable[[Callable[Params, Ret]], Callable[Params, 
     return decorator
 
 
-def _get_workflow_entrypoint_fixp(
+def get_workflow_entrypoint_fixp(
     fn: Callable[..., Any]
 ) -> Optional[WorkflowEntryFixp]:
     attr = getattr(fn, "__fixp", None)
@@ -147,23 +155,53 @@ def _get_workflow_entrypoint_fixp(
 
 
 def get_workflow_definition_meta_fixp(cls: Type[C]) -> Optional[WorkflowMetaFixp]:
-    return getattr(cls, "__fixp_meta", None)
+    attr = getattr(cls, "__fixp_meta", None)
+    if not isinstance(attr, WorkflowMetaFixp):
+        return None
+    return attr
 
 
 def get_workflow_instance_fixp(instance: C) -> Optional[WorkflowInstanceFixp]:
-    return getattr(instance, "__fixp", None)
+    # double-underscore names get mangled on class instances, so "__fixp"
+    # becomes "_WorkflowMeta__fixp"
+    attr = getattr(instance, "_WorkflowMeta__fixp", None)
+    if not isinstance(attr, WorkflowInstanceFixp):
+        return None
+    return attr
 
 
-async def run_workflow(
+def run_workflow(
     workflow_entry: Callable[Params, Ret],
-    args: Sequence[Any],
+    args: Optional[Sequence[Any]] = None,
 ) -> Ret:
-    fixpmeta: "WorkflowMetaFixp" = workflow_defn.__fixp_meta  # type: ignore[attr-defined]
+    entryfixp = get_workflow_entrypoint_fixp(workflow_entry)
+    if not entryfixp:
+        raise DefinitionException(f"Workflow \"{workflow_entry.__name__}\" is not a valid workflow entrypoint")
+    if not entryfixp.workflow_cls:
+        raise DefinitionException(f"Workflow \"{workflow_entry.__name__}\" is not inside a decorated workflow class")
+    workflow_defn = entryfixp.workflow_cls
+
+    fixpmeta = get_workflow_definition_meta_fixp(workflow_defn)
     if not isinstance(fixpmeta, WorkflowMetaFixp):
         raise DefinitionException(
-            f"Workflow {workflow_defn.__name__} is not a valid workflow definition"
+            f"Workflow \"{workflow_defn.__name__}\" is not a valid workflow definition"
         )
-    defn_instance = workflow_defn()
+    workflow_instance = workflow_defn()
+    print("Workflow uuid =", workflow_instance.x)
     # Double-underscore names get mangled to prevent conflicts
-    fixp: "WorkflowInstanceFixp" = defn_instance._WorkflowMeta__fixp  # type: ignore[attr-defined]
+    fixp = get_workflow_instance_fixp(workflow_instance)
+    if not isinstance(fixp, WorkflowInstanceFixp):
+        raise DefinitionException(
+            f"Workflow \"{workflow_defn.__name__}\" is not a valid workflow instance"
+        )
     fixp.run(fixpmeta.ctx_factory)
+
+    if not fixp.ctx:
+        # this is an internal error, not a user error
+        raise ValueError("workflow run context is None")
+
+    args = args or []
+    # The Params type gets confused because we are injecting an additional
+    # WorkflowContext. Ignore that error.
+    res = workflow_entry(workflow_instance, fixp.ctx, *args) # type: ignore[arg-type]
+    return res
