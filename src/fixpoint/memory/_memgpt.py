@@ -25,7 +25,7 @@ from pydantic import BaseModel
 from ..logging import logger
 from ..agents.protocol import BaseAgent
 from ..completions import ChatCompletionMessageParam, ChatCompletion
-from ..workflow import SupportsWorkflowRun
+from ..workflows import SupportsWorkflowRun
 
 
 @dataclass

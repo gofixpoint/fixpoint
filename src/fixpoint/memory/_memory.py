@@ -6,7 +6,7 @@ import json
 from pydantic import BaseModel
 
 from ..completions import ChatCompletionMessageParam, ChatCompletion
-from ..workflow import SupportsWorkflowRun
+from ..workflows import SupportsWorkflowRun
 from ..storage.protocol import SupportsStorage
 
 

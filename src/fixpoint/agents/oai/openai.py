@@ -24,7 +24,7 @@ from fixpoint.completions import (
     ChatCompletionToolParam,
 )
 from fixpoint.memory import SupportsMemory
-from fixpoint.workflow import SupportsWorkflowRun
+from fixpoint.workflows import SupportsWorkflowRun
 from fixpoint.cache import SupportsChatCompletionCache
 from fixpoint.agents.openai import OpenAIAgent, OpenAIClients
 from ..protocol import CompletionCallback, PreCompletionFn

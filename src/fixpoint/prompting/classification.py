@@ -11,7 +11,7 @@ from ..completions import (
     ChatCompletion,
     ChatCompletionToolParam,
 )
-from ..workflow.protocol import SupportsWorkflowRun
+from ..workflows.protocol import SupportsWorkflowRun
 from ..agents import BaseAgent, CacheMode
 from ..utils.messages import umsg
 
