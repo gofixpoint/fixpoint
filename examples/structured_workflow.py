@@ -4,7 +4,7 @@ import asyncio
 from dataclasses import dataclass
 import json
 import os
-from typing import Awaitable, List, Union
+from typing import List, Union, Dict
 
 from fixpoint.agents.openai import OpenAIClients, OpenAIAgent
 from fixpoint.completions.chat_completion import ChatCompletionMessageParam
@@ -54,18 +54,27 @@ class CompareModels:
         self, ctx: WorkflowContext, prompts: List[List[ChatCompletionMessageParam]]
     ) -> None:
         """Entrypoint for the workflow to compare agents"""
-        gpt3_res = structured.call_task(
-            ctx,
-            RunAllPrompts.run_all_prompts,
-            args=[RunAllPromptsArgs(agent_name="gpt3", prompts=prompts)],
-        )
-        gpt4_res = structured.call_task(
-            ctx,
-            RunAllPrompts.run_all_prompts,
-            args=[RunAllPromptsArgs(agent_name="gpt4", prompts=prompts)],
-        )
 
-        results = {"gpt3": await gpt3_res, "gpt4": await gpt4_res}
+        async with asyncio.TaskGroup() as tg:
+            gpt3_res = tg.create_task(
+                structured.call_task(
+                    ctx,
+                    RunAllPrompts.run_all_prompts,
+                    args=[RunAllPromptsArgs(agent_name="gpt3", prompts=prompts)],
+                )
+            )
+            gpt4_res = tg.create_task(
+                structured.call_task(
+                    ctx,
+                    RunAllPrompts.run_all_prompts,
+                    args=[RunAllPromptsArgs(agent_name="gpt4", prompts=prompts)],
+                )
+            )
+
+        results: Dict[str, List[Union[str, None]]] = {
+            "gpt3": gpt3_res.result(),
+            "gpt4": gpt4_res.result(),
+        }
         # TODO(dbmikus) this is not async, so it will block the async event loop
         ctx.workflow_run.docs.store(
             id="inference-results.json", contents=json.dumps(results)
@@ -89,16 +98,19 @@ class RunAllPrompts:
         self, ctx: WorkflowContext, args: RunAllPromptsArgs
     ) -> List[Union[str, None]]:
         """Execute all prompt inferences for an agent"""
-        step_results: List[Awaitable[Union[str, None]]] = []
-        for prompt in args.prompts:
-            step_results.append(
-                structured.call_step(
-                    ctx,
-                    run_prompt,
-                    args=[RunPromptArgs(agent_name=args.agent_name, prompt=prompt)],
+        step_tasks: List[asyncio.Task[Union[str, None]]] = []
+        async with asyncio.TaskGroup() as tg:
+            for prompt in args.prompts:
+                step_task = tg.create_task(
+                    structured.call_step(
+                        ctx,
+                        run_prompt,
+                        args=[RunPromptArgs(agent_name=args.agent_name, prompt=prompt)],
+                    )
                 )
-            )
-        return await asyncio.gather(*step_results)
+                step_tasks.append(step_task)
+        step_results = [task.result() for task in step_tasks]
+        return step_results
 
 
 @dataclass
@@ -118,4 +130,20 @@ async def run_prompt(ctx: WorkflowContext, args: RunPromptArgs) -> Union[str, No
 
 
 if __name__ == "__main__":
-    asyncio.run(structured.run_workflow(CompareModels.run, []))
+    asyncio.run(
+        structured.run_workflow(
+            CompareModels.run,
+            [
+                [
+                    [
+                        {"role": "system", "content": "You are a helpful assistant."},
+                        {"role": "user", "content": "What is the meaning of life?"},
+                    ],
+                    [
+                        {"role": "system", "content": "You are an evil AI."},
+                        {"role": "user", "content": "What is the meaning of life?"},
+                    ],
+                ]
+            ],
+        )
+    )

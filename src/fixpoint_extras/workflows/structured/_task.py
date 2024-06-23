@@ -220,7 +220,7 @@ def get_task_entrypoint_fixp_from_fn(fn: Callable[..., Any]) -> Optional[TaskEnt
     return None
 
 
-async def call_task(
+def call_task(
     ctx: WorkflowContext,
     task_entry: Callable[Params, Ret],
     args: Optional[List[Any]] = None,
