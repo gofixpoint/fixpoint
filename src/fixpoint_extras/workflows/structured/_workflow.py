@@ -258,9 +258,9 @@ def run_workflow(
     workflow_entry: Callable[Params, Ret],
     args: Optional[Sequence[Any]] = None,
     kwargs: Optional[Dict[str, Any]] = None,
+    ctx_factory: Optional[CtxFactory] = None,
 ) -> Ret:
     """Runs a structured workflow.
-
 
     You must call `call_task` from within a structured workflow definition. ie
     from a class decorated with `@structured.workflow(...)`. A more complete example:
@@ -275,6 +275,9 @@ def run_workflow(
 
     structured.run_workflow(MyWorkflow.main, args=[{"somevalue": "foobar"}])
     ```
+
+    If you pass in a `ctx_factory`, it will be used instead of the `ctx_factory`
+    defined on the workflow class.
     """
     entryfixp = get_workflow_entrypoint_fixp(workflow_entry)
     if not entryfixp:
@@ -298,7 +301,7 @@ def run_workflow(
         raise DefinitionException(
             f'Workflow "{workflow_defn.__name__}" is not a valid workflow instance'
         )
-    fixp.run(fixpmeta.ctx_factory)
+    fixp.run(ctx_factory or fixpmeta.ctx_factory)
 
     if not fixp.ctx:
         # this is an internal error, not a user error
