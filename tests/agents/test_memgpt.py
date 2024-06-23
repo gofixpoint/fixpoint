@@ -5,12 +5,12 @@ from pydantic import BaseModel
 from fixpoint.memory import Memory
 from fixpoint.completions import ChatCompletion, ChatCompletionMessageParam
 from fixpoint.agents.mock import MockAgent, new_mock_completion
-from fixpoint.utils.messages import smsg, umsg
-from fixpoint.memory._memgpt import (
+from fixpoint.agents._memgpt import (
     MemGPTSummaryAgent,
     MemGPTSummarizeOpts,
     _ContextLengthCheck,
 )
+from fixpoint.utils.messages import smsg, umsg
 
 
 class TestMemGPTSummaryAgent:

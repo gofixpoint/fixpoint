@@ -20,6 +20,7 @@ from fixpoint.completions import (
     ChatCompletionToolChoiceOptionParam,
     ChatCompletionToolParam,
 )
+from fixpoint.memory import SupportsMemory
 from ..workflows import SupportsWorkflowRun
 from ._shared import CacheMode
 
@@ -29,6 +30,8 @@ T_contra = TypeVar("T_contra", bound=BaseModel, contravariant=True)
 
 class BaseAgent(Protocol):
     """The base protocol for agents"""
+
+    memory: SupportsMemory
 
     # We create overloaded versions of the `create_completion` method so that we
     # can infer whether the returned `ChatCompletion` should have a type

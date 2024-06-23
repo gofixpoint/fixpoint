@@ -23,7 +23,7 @@ from typing import Any, List, Optional, Type, TypeVar, Union, overload
 from pydantic import BaseModel
 
 from ..logging import logger
-from ..agents.protocol import BaseAgent
+from .protocol import BaseAgent
 from ..completions import ChatCompletionMessageParam, ChatCompletion
 from ..workflows import SupportsWorkflowRun
 

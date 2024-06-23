@@ -27,7 +27,7 @@ from ..completions import (
     ChatCompletionToolParam,
     ChatCompletionToolChoiceOptionParam,
 )
-from ..memory import SupportsMemory
+from ..memory import SupportsMemory, NoOpMemory
 from ..workflows import SupportsWorkflowRun
 from .protocol import BaseAgent, CompletionCallback, PreCompletionFn
 from ._shared import request_cached_completion, CacheMode
@@ -42,7 +42,7 @@ class MockAgent(BaseAgent):
     _completion_fn: Callable[[], ChatCompletion[BaseModel]]
     _pre_completion_fns: List[PreCompletionFn]
     _completion_callbacks: List[CompletionCallback]
-    _memory: Optional[SupportsMemory] = None
+    memory: SupportsMemory
     _cache_mode: CacheMode = "normal"
     _model: str
 
@@ -58,7 +58,7 @@ class MockAgent(BaseAgent):
         self._completion_fn = completion_fn
         self._pre_completion_fns = pre_completion_fns or []
         self._completion_callbacks = completion_callbacks or []
-        self._memory = memory
+        self.memory = memory or NoOpMemory()
         self._cache = cache
         self._model = model
 
@@ -127,8 +127,8 @@ class MockAgent(BaseAgent):
         )
 
         casted_cmpl = cast(ChatCompletion[BaseModel], cmpl)
-        if self._memory:
-            self._memory.store_memory(
+        if self.memory:
+            self.memory.store_memory(
                 messages=messages, completion=casted_cmpl, workflow_run=workflow_run
             )
         self._trigger_completion_callbacks(messages, casted_cmpl)

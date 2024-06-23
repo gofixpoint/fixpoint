@@ -50,6 +50,5 @@ def new_workflow_context(workflow_id: str) -> structured.WorkflowContext:
     ctx = structured.WorkflowContext.from_workflow(
         wrun,
         agents={},
-        memory=fixpoint.memory.Memory(),
     )
     return ctx

@@ -39,8 +39,6 @@ def init_workflow_context(workflow_run: WorkflowRun) -> WorkflowContext:
     return WorkflowContext.from_workflow(
         workflow_run,
         agents={"gpt3": gpt3, "gpt4": gpt4},
-        # TODO(dbmikus) remove this and require users to pull the memory off the agents
-        memory=memory,
         cache=cache,
     )
 

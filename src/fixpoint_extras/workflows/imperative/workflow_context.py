@@ -1,15 +1,14 @@
 """The context for a workflow"""
 
-from dataclasses import dataclass
 import logging
 from typing import Dict, Optional
 
-import fixpoint
+from fixpoint.agents import BaseAgent
 from fixpoint.cache import SupportsChatCompletionCache
+from fixpoint.memory import NoOpMemory, Memory
 from .workflow import WorkflowRun
 
 
-@dataclass
 class WorkflowContext:
     """Context for a workflow.
 
@@ -17,25 +16,43 @@ class WorkflowContext:
     function of your workflow.
     """
 
-    agents: Dict[str, fixpoint.agents.BaseAgent]
-    logger: logging.Logger
-    memory: fixpoint.memory.SupportsMemory
+    agents: Dict[str, BaseAgent]
     workflow_run: WorkflowRun
     cache: Optional[SupportsChatCompletionCache]
+    logger: logging.Logger
+
+    def __init__(
+        self,
+        agents: Dict[str, BaseAgent],
+        workflow_run: WorkflowRun,
+        cache: Optional[SupportsChatCompletionCache] = None,
+        logger: Optional[logging.Logger] = None,
+    ):
+        self.agents = self._prepare_agents(agents)
+        self.workflow_run = workflow_run
+        self.cache = cache
+        self.logger = logger or logging.getLogger(
+            f"fixpoint/workflows/runs/{workflow_run.id}"
+        )
+
+    def _prepare_agents(self, agents: Dict[str, BaseAgent]) -> Dict[str, BaseAgent]:
+        for agent in agents.values():
+            # We require agents in a workflow to have working memory
+            if isinstance(agent.memory, NoOpMemory):
+                agent.memory = Memory()
+        return agents
 
     @classmethod
     def from_workflow(
         cls,
         workflow_run: WorkflowRun,
-        agents: Dict[str, fixpoint.agents.BaseAgent],
-        memory: fixpoint.memory.SupportsMemory,
+        agents: Dict[str, BaseAgent],
         cache: Optional[SupportsChatCompletionCache] = None,
     ) -> "WorkflowContext":
         """Creates a WorkflowContext for a workflow"""
         return cls(
             agents=agents,
-            logger=logging.getLogger(f"fixpoint/workflows/runs/{workflow_run.id}"),
-            memory=memory,
             workflow_run=workflow_run,
             cache=cache,
+            logger=logging.getLogger(f"fixpoint/workflows/runs/{workflow_run.id}"),
         )
