@@ -28,7 +28,7 @@ from ..completions import (
     ChatCompletionToolChoiceOptionParam,
 )
 from ..memory import SupportsMemory
-from ..workflow import SupportsWorkflowRun
+from ..workflows import SupportsWorkflowRun
 from .protocol import BaseAgent, CompletionCallback, PreCompletionFn
 from ._shared import request_cached_completion, CacheMode
 

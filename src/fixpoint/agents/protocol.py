@@ -20,7 +20,7 @@ from fixpoint.completions import (
     ChatCompletionToolChoiceOptionParam,
     ChatCompletionToolParam,
 )
-from ..workflow import SupportsWorkflowRun
+from ..workflows import SupportsWorkflowRun
 from ._shared import CacheMode
 
 
