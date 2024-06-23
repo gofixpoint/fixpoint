@@ -46,7 +46,7 @@ echo "Running migrations"
 dbmate \
     --url "$URL" \
     --migrations-dir $ROOT_DIR/db/migrations \
-    --migrations-table fixpoint.schema_migrations \
+    --migrations-table fpmeta.fixpoint_migrations \
     up
 
 echo ""

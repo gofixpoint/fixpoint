@@ -7,7 +7,7 @@ from fixpoint.storage.supabase import SupabaseStorage
 from fixpoint_extras.workflows.imperative.workflow import Workflow
 from fixpoint_extras.workflows.imperative.form import Form, _is_valid_field_annotation
 
-from ...supabase_test_utils import supabase_setup_url_and_key, is_supabase_enabled
+from tests.supabase_test_utils import supabase_setup_url_and_key, is_supabase_enabled
 
 
 class TicketOrderForm(BaseModel):
