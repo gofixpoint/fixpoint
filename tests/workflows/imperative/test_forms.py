@@ -120,7 +120,9 @@ class TestForms:
         assert new_form.contents.age == 100
 
     def test_form_serialization_no_contents(self) -> None:
+        # TODO(dbmikus) fix this test and don't skip it
         pytest.skip("skip it")
+
         form = Form[TicketOrderForm](
             id="myform",
             workflow_run_id="myworkflowrun",

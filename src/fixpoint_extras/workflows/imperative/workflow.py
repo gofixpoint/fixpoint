@@ -98,6 +98,11 @@ class WorkflowRun(BaseModel):
         self._forms = _Forms(workflow_run=self, storage=self.form_storage)
 
     @property
+    def docs(self) -> "_Documents":
+        """Documents"""
+        return self._documents
+
+    @property
     def documents(self) -> "_Documents":
         """Documents"""
         return self._documents
