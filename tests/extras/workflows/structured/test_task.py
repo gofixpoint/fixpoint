@@ -54,7 +54,7 @@ async def test_call_task() -> None:
     @structured.task("my-task")
     class MyTask:
         @structured.task_entrypoint()
-        def run(self, ctx: structured.WorkflowContext, name_to_print: str) -> str:
+        async def run(self, ctx: structured.WorkflowContext, name_to_print: str) -> str:
             return f"Hello, {name_to_print}"
 
     workflow = imperative.Workflow(id="my-workflow")

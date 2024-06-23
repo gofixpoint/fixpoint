@@ -27,14 +27,19 @@ class NodeState(BaseModel):
     node the workflow run is in.
     """
 
-    task: str = Field(description="The task that the node is in")
-    step: str = Field(description="The step that the node is in")
+    task: str = Field(description="The task that the node is in", default=TASK_MAIN_ID)
+    step: str = Field(description="The step that the node is in", default=STEP_MAIN_ID)
 
     @computed_field  # type: ignore[misc]
     @property
     def id(self) -> str:
         """The node's identifier within the workflow run"""
-        return f"/{self.task}/{self.step}"
+        partsrev: List[str] = []
+        if self.step != STEP_MAIN_ID:
+            partsrev.append(self.step)
+        if self.step != STEP_MAIN_ID or self.task != TASK_MAIN_ID:
+            partsrev.append(self.task)
+        return "/" + "/".join(reversed(partsrev))
 
 
 class Workflow(BaseModel):
@@ -180,11 +185,13 @@ class _Documents:
         it is stored at the root of the workflow, outside of all tasks and
         steps. By default, we store the document at the current task and step.
         """
+        if path is None:
+            path = self.workflow_run.node_state.id
         document = Document(
             id=id,
             path=path,
             contents=contents,
-            metadata=metadata,
+            metadata=metadata or {},
             workflow_run_id=self.workflow_run.id,
         )
         if self._storage:
@@ -295,11 +302,13 @@ class _Forms:
         it is stored at the root of the workflow run, outside of all tasks and
         steps. By default, we store the form at the current task and step.
         """
+        if path is None:
+            path = self.workflow_run.node_state.id
         form = Form[T](
             form_schema=schema,
             id=form_id,
             path=path,
-            metadata=metadata,
+            metadata=metadata or {},
             workflow_run_id=self.workflow_run.id,
         )
         if self._storage:
