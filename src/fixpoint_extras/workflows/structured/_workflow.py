@@ -27,7 +27,7 @@ import fixpoint
 from .. import imperative
 from .errors import DefinitionException, InternalException
 from ._context import WorkflowContext
-from ._helpers import validate_func_has_context_arg, Params, Ret, Ret_co
+from ._helpers import validate_func_has_context_arg, AsyncFunc, Params, Ret, Ret_co
 from ._run_config import RunConfig
 from ._workflow_run_handle import WorkflowRunHandle, WorkflowRunHandleImpl
 
@@ -183,7 +183,7 @@ class WorkflowEntryFixp:
     workflow_cls: Optional[Type[Any]] = None
 
 
-def workflow_entrypoint() -> Callable[[Callable[Params, Ret]], Callable[Params, Ret]]:
+def workflow_entrypoint() -> Callable[[AsyncFunc[Params, Ret]], AsyncFunc[Params, Ret]]:
     """Mark the entrypoint function of a workflow class definition
 
     When you have a workflow class definition, you must have exactly one class
@@ -252,7 +252,7 @@ def get_workflow_instance_fixp(instance: C) -> Optional[WorkflowInstanceFixp]:
 
 
 def spawn_workflow(
-    workflow_entry: Callable[Params, Ret_co],
+    workflow_entry: AsyncFunc[Params, Ret_co],
     *,
     run_config: RunConfig,
     agents: List[fixpoint.agents.BaseAgent],
@@ -331,8 +331,8 @@ def spawn_workflow(
     return WorkflowRunHandleImpl[Ret_co](fixp.run_fixp.workflow_run, res)
 
 
-def run_workflow(
-    workflow_entry: Callable[Params, Ret_co],
+async def run_workflow(
+    workflow_entry: AsyncFunc[Params, Ret_co],
     *,
     run_config: RunConfig,
     agents: List[fixpoint.agents.BaseAgent],
@@ -347,4 +347,4 @@ def run_workflow(
     wrun_handle = spawn_workflow(
         workflow_entry, run_config=run_config, agents=agents, args=args, kwargs=kwargs
     )
-    return wrun_handle.result()
+    return await wrun_handle.result()

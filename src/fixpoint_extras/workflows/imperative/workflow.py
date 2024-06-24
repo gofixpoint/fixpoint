@@ -179,7 +179,6 @@ class _Documents:
 
     def get(
         self,
-        *,
         document_id: str,
     ) -> Union[Document, None]:
         """Get a document from the cache.
@@ -196,10 +195,10 @@ class _Documents:
     def store(
         self,
         *,
+        id: str,
         contents: str,
         metadata: Optional[dict[str, Any]] = None,
         # pylint: disable=redefined-builtin
-        id: str,
         path: Optional[str] = None,
     ) -> Document:
         """Store a document in the cache.
@@ -296,7 +295,7 @@ class _Forms:
         self._storage = storage
         self._memory: Dict[str, Form[BaseModel]] = {}
 
-    def get(self, *, form_id: str) -> Union[Form[BaseModel], None]:
+    def get(self, form_id: str) -> Union[Form[BaseModel], None]:
         """Get a form from the cache.
 
         Gets the latest version of the form.
