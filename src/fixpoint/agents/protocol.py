@@ -31,6 +31,7 @@ T_contra = TypeVar("T_contra", bound=BaseModel, contravariant=True)
 class BaseAgent(Protocol):
     """The base protocol for agents"""
 
+    id: str
     memory: SupportsMemory
 
     # We create overloaded versions of the `create_completion` method so that we

@@ -136,7 +136,7 @@ class WorkflowInstanceFixp:
 def _default_ctx_factory(run: WorkflowRun) -> WorkflowContext:
     return WorkflowContext.from_workflow(
         workflow_run=run,
-        agents={},
+        agents=[],
         # TODO(dbmikus) change default to an in-memory cache
         cache=fixpoint.cache.ChatCompletionDiskTLRUCache.from_tmpdir(
             # 1 hour

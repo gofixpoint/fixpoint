@@ -1,6 +1,7 @@
 """Internal shared code for the "agents" module."""
 
 from typing import Callable, Optional, Literal, TypeVar
+import uuid
 
 from pydantic import BaseModel
 
@@ -45,3 +46,8 @@ def request_cached_completion(
             cache.set(req, cmpl)
 
     return cmpl
+
+
+def random_agent_id() -> str:
+    """Generate a random agent ID if not explicitly given"""
+    return "agent-" + str(uuid.uuid4())

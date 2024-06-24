@@ -49,6 +49,6 @@ def new_workflow_context(workflow_id: str) -> structured.WorkflowContext:
     wrun = workflow.run()
     ctx = structured.WorkflowContext.from_workflow(
         wrun,
-        agents={},
+        agents=[],
     )
     return ctx

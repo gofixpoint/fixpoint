@@ -105,11 +105,14 @@ class OpenAIAgent(BaseAgent):
     _openai_clients: OpenAIClients
     _completion_callbacks: List[CompletionCallback]
     _pre_completion_fns: List[PreCompletionFn]
-    memory: SupportsMemory
     _cache_mode: CacheMode = "normal"
+
+    memory: SupportsMemory
+    id: str
 
     def __init__(
         self,
+        agent_id: str,
         model_name: str,
         openai_clients: OpenAIClients,
         *,
@@ -131,6 +134,8 @@ class OpenAIAgent(BaseAgent):
         self._pre_completion_fns = pre_completion_fns or []
         self.memory = memory or NoOpMemory()
         self._cache = cache
+
+        self.id = agent_id
 
     def create_completion(
         self,
@@ -181,7 +186,9 @@ class OpenAIAgent(BaseAgent):
 
         basemodel_fixp_completion = cast(ChatCompletion[BaseModel], fixp_completion)
         if self.memory is not None:
-            self.memory.store_memory(messages, basemodel_fixp_completion, workflow_run)
+            self.memory.store_memory(
+                self.id, messages, basemodel_fixp_completion, workflow_run
+            )
         self._trigger_completion_callbacks(messages, basemodel_fixp_completion)
         return fixp_completion
 

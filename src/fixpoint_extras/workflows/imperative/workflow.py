@@ -17,6 +17,7 @@ from fixpoint.storage.protocol import SupportsStorage
 from .document import Document
 from .form import Form
 from .shared import TASK_MAIN_ID, STEP_MAIN_ID
+from .config import StorageConfig, get_default_storage_config
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -55,8 +56,9 @@ class Workflow(BaseModel):
         exclude=True, default=None
     )
 
-    def run(self) -> "WorkflowRun":
+    def run(self, storage_config: Optional[StorageConfig] = None) -> "WorkflowRun":
         """Create and run a Workflow Run"""
+        storage_config = storage_config or get_default_storage_config()
         return WorkflowRun(workflow=self, form_storage=self.form_storage)
 
 
@@ -78,7 +80,8 @@ class WorkflowRun(BaseModel):
     workflow: Workflow
     _documents: "_Documents" = PrivateAttr()
     _forms: "_Forms" = PrivateAttr()
-    form_storage: SkipValidation[Optional[SupportsStorage[Form[BaseModel]]]] = Field(
+
+    storage_config: SkipValidation[Optional[StorageConfig]] = Field(
         exclude=True, default=None
     )
 
@@ -99,8 +102,13 @@ class WorkflowRun(BaseModel):
         return self._id
 
     def model_post_init(self, _context: Any) -> None:
-        self._documents = _Documents(workflow_run=self)
-        self._forms = _Forms(workflow_run=self, storage=self.form_storage)
+        docs_storage = None
+        forms_storage = None
+        if self.storage_config:
+            docs_storage = self.storage_config.docs_storage
+            forms_storage = self.storage_config.forms_storage
+        self._documents = _Documents(workflow_run=self, storage=docs_storage)
+        self._forms = _Forms(workflow_run=self, storage=forms_storage)
 
     @property
     def docs(self) -> "_Documents":

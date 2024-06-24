@@ -3,9 +3,9 @@ import json
 import pytest
 from pydantic import BaseModel, Field
 
-from fixpoint.storage.supabase import SupabaseStorage
 from fixpoint_extras.workflows.imperative.workflow import Workflow
 from fixpoint_extras.workflows.imperative.form import Form, _is_valid_field_annotation
+from fixpoint_extras.workflows.imperative.config import create_form_supabase_storage
 
 from tests.supabase_test_utils import supabase_setup_url_and_key, is_supabase_enabled
 
@@ -213,14 +213,15 @@ class TestForms:
                 f"""
         CREATE TABLE IF NOT EXISTS public.forms_with_metadata (
             id text PRIMARY KEY,
+            workflow_id text,
             workflow_run_id text,
             metadata jsonb,
-            path text,
-            contents jsonb,
-            form_schema text,
+            path text NOT NULL,
+            contents jsonb NOT NULL,
+            form_schema text NOT NULL,
             versions jsonb,
-            step text,
-            task text
+            task text,
+            step text
         );
 
         TRUNCATE TABLE public.forms_with_metadata
@@ -235,14 +236,7 @@ class TestForms:
     ) -> None:
         url, key = supabase_setup_url_and_key
 
-        form_storage = SupabaseStorage(
-            url,
-            key,
-            table="forms_with_metadata",
-            order_key="id",
-            id_column="id",
-            value_type=Form[TicketOrderForm],
-        )
+        form_storage = create_form_supabase_storage(url, key)
 
         workflow = Workflow(
             id="test_workflow",

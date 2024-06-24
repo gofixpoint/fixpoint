@@ -8,15 +8,17 @@ from .protocol import (
     CreateChatCompletionRequest,
 )
 from ._shared import parse_create_chat_completion_request
+from .tlru import TLRUCacheItem
 from .chattlru import ChatCompletionTLRUCache, ChatCompletionTLRUCacheItem
 from .disktlru import ChatCompletionDiskTLRUCache
 
 __all__ = [
-    "SupportsCache",
+    "ChatCompletionDiskTLRUCache",
     "ChatCompletionTLRUCache",
     "ChatCompletionTLRUCacheItem",
-    "ChatCompletionDiskTLRUCache",
-    "SupportsChatCompletionCache",
     "CreateChatCompletionRequest",
     "parse_create_chat_completion_request",
+    "SupportsCache",
+    "SupportsChatCompletionCache",
+    "TLRUCacheItem",
 ]

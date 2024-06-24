@@ -25,12 +25,14 @@ def init_workflow_context(workflow_run: WorkflowRun) -> WorkflowContext:
     memory = DataframeMemory()
     # TODO(dbmikus) expose memory on an agent
     gpt3 = OpenAIAgent(
+        agent_id="gpt3",
         model_name="gpt-3.5-turbo",
         openai_clients=openaiclients,
         memory=memory,
         cache=cache,
     )
     gpt4 = OpenAIAgent(
+        agent_id="gpt4",
         model_name="gpt-4-turbo",
         openai_clients=openaiclients,
         memory=DataframeMemory(),
@@ -38,7 +40,7 @@ def init_workflow_context(workflow_run: WorkflowRun) -> WorkflowContext:
     )
     return WorkflowContext.from_workflow(
         workflow_run,
-        agents={"gpt3": gpt3, "gpt4": gpt4},
+        agents=[gpt3, gpt4],
         cache=cache,
     )
 

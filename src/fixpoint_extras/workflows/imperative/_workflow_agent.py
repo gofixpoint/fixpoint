@@ -38,6 +38,16 @@ class WorkflowAgent(BaseAgent):
         """Set the memory container for the agent"""
         raise ValueError("memory cannot be set. It is inferred from the workflow")
 
+    @property
+    def id(self) -> str:
+        """Get the agent id"""
+        return self._inner_agent.id
+
+    @id.setter
+    def id(self, _agent_id: str) -> None:
+        """Set the agent id"""
+        raise ValueError("agent_id cannot be set once already inside a workflow")
+
     @overload
     def create_completion(
         self,

@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from fixpoint.completions import ChatCompletionMessageParam, ChatCompletion
 from fixpoint.memory import Memory, MemoryItem
 from fixpoint.agents.mock import new_mock_completion
-from fixpoint.storage.supabase import SupabaseStorage
+from fixpoint_extras.workflows.imperative.config import create_memory_supabase_storage
 from ..supabase_test_utils import supabase_setup_url_and_key, is_supabase_enabled
 
 
@@ -19,10 +19,12 @@ class TestWithMemory:
             {"role": "system", "content": "hello!"}
         ]
         cmpl: ChatCompletion[BaseModel] = new_mock_completion()
-        memstore.store_memory(msgs, cmpl)
+        memstore.store_memory("agent-1", msgs, cmpl)
 
         stored_memory = memstore.memories()
-        expected_memory = [MemoryItem(messages=msgs, completion=cmpl)]
+        expected_memory = [
+            MemoryItem(agent_id="agent-1", messages=msgs, completion=cmpl)
+        ]
 
         assert len(stored_memory) == len(expected_memory) == 1
 
@@ -30,7 +32,10 @@ class TestWithMemory:
         first_expected_memory = expected_memory[0]
         assert first_stored_memory.messages == first_expected_memory.messages
         assert first_stored_memory.completion == first_expected_memory.completion
-        assert first_stored_memory.workflow_run == first_expected_memory.workflow_run
+        assert (
+            first_stored_memory.workflow_run_id == first_expected_memory.workflow_run_id
+        )
+        assert first_stored_memory.workflow_id == first_expected_memory.workflow_id
 
 
 @pytest.mark.skipif(
@@ -45,10 +50,12 @@ class TestWithMemoryWithStorage:
             (
                 f"""
         CREATE TABLE IF NOT EXISTS public.memory_store (
-            messages jsonb PRIMARY KEY,
+            id text PRIMARY KEY,
+            agent_id text NOT NULL,
+            messages jsonb NOT NULL,
             completion jsonb,
-            workflow jsonb,
-            workflow_run jsonb
+            workflow_id text,
+            workflow_run_id text
         );
 
         TRUNCATE TABLE public.memory_store;
@@ -62,25 +69,19 @@ class TestWithMemoryWithStorage:
         self, supabase_setup_url_and_key: Tuple[str, str]
     ) -> None:
         url, key = supabase_setup_url_and_key
-        storage = SupabaseStorage(
-            url,
-            key,
-            table="memory_store",
-            order_key="messages",
-            id_column="messages",
-            value_type=MemoryItem,
-        )
-
+        storage = create_memory_supabase_storage(url, key, "agent-1")
         memstore = Memory(storage=storage)
         assert memstore.memories() == []
         msgs: List[ChatCompletionMessageParam] = [
             {"role": "system", "content": "hello!"}
         ]
         cmpl: ChatCompletion[BaseModel] = new_mock_completion()
-        memstore.store_memory(msgs, cmpl)
+        memstore.store_memory("agent-1", msgs, cmpl)
 
         stored_memory = memstore.memories()
-        expected_memory = [MemoryItem(messages=msgs, completion=cmpl)]
+        expected_memory = [
+            MemoryItem(agent_id="agent-1", messages=msgs, completion=cmpl)
+        ]
 
         assert len(stored_memory) == len(expected_memory) == 1
 
@@ -95,6 +96,15 @@ class TestWithMemoryWithStorage:
             first_stored_memory.completion.serialize_json()
             == first_expected_memory.completion.serialize_json()
         )
-        assert json.dumps(first_stored_memory.workflow_run) == json.dumps(
-            first_expected_memory.workflow_run
+        assert first_stored_memory.workflow_id == first_expected_memory.workflow_id
+        assert (
+            first_stored_memory.workflow_run_id == first_expected_memory.workflow_run_id
         )
+
+        fetched_mem = storage.fetch(first_stored_memory.id)
+        assert fetched_mem is not None
+        assert fetched_mem.agent_id == first_stored_memory.agent_id
+        assert fetched_mem.messages == first_stored_memory.messages
+        assert fetched_mem.completion == first_stored_memory.completion
+        assert fetched_mem.workflow_id == first_stored_memory.workflow_id
+        assert fetched_mem.workflow_run_id == first_stored_memory.workflow_run_id

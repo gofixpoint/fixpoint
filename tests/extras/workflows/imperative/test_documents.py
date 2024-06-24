@@ -1,9 +1,8 @@
 from typing import List, Tuple
 import pytest
-from fixpoint.storage.supabase import SupabaseStorage
 from fixpoint_extras.workflows.imperative.workflow import Workflow
-from fixpoint_extras.workflows.imperative.form import Form
 from fixpoint_extras.workflows.imperative.document import Document
+from fixpoint_extras.workflows.imperative.config import create_docs_supabase_storage
 
 from tests.supabase_test_utils import supabase_setup_url_and_key, is_supabase_enabled
 
@@ -74,9 +73,11 @@ class TestDocuments:
                 f"""
         CREATE TABLE IF NOT EXISTS public.documents (
             id text PRIMARY KEY,
-            path text,
-            metadata jsonb,
-            contents text
+            workflow_id text,
+            workflow_run_id text,
+            path text NOT NULL,
+            metadata jsonb NOT NULL,
+            contents text NOT NULL
         );
 
         TRUNCATE TABLE public.documents
@@ -90,15 +91,7 @@ class TestDocuments:
         self, supabase_setup_url_and_key: Tuple[str, str]
     ) -> None:
         url, key = supabase_setup_url_and_key
-
-        document_storage = SupabaseStorage(
-            url,
-            key,
-            table="documents",
-            order_key="id",
-            id_column="id",
-            value_type=Document,
-        )
+        document_storage = create_docs_supabase_storage(url, key)
 
         workflow = Workflow(
             id="test_workflow",
