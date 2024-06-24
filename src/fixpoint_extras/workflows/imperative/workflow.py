@@ -52,14 +52,11 @@ class Workflow(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     id: str = Field(description="The unique identifier for the workflow.")
-    form_storage: SkipValidation[Optional[SupportsStorage[Form[BaseModel]]]] = Field(
-        exclude=True, default=None
-    )
 
     def run(self, storage_config: Optional[StorageConfig] = None) -> "WorkflowRun":
         """Create and run a Workflow Run"""
         storage_config = storage_config or get_default_storage_config()
-        return WorkflowRun(workflow=self, form_storage=self.form_storage)
+        return WorkflowRun(workflow=self, storage_config=storage_config)
 
 
 class WorkflowRun(BaseModel):
@@ -142,6 +139,14 @@ class WorkflowRun(BaseModel):
         we infer its existence.
         """
         raise NotImplementedError()
+
+    def clone(self) -> "WorkflowRun":
+        """Clones the workflow run"""
+        # we cannot deep copy because some of the fields cannot be pickled,
+        # which is what the pydantic copy method uses
+        new_self = self.model_copy(deep=False)
+        new_self.node_state = self.node_state.model_copy(deep=True)
+        return new_self
 
 
 class _Documents:
