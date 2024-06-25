@@ -61,7 +61,7 @@ async def test_call_task() -> None:
     wrun = workflow.run()
     ctx = structured.WorkflowContext.from_workflow(
         wrun,
-        agents={},
+        agents=[],
     )
     res = await structured.call_task(ctx, MyTask.run, args=["Dylan"])
     assert res == "Hello, Dylan"

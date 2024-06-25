@@ -43,6 +43,7 @@ class OpenAI:
 
     def __init__(
         self,
+        agent_id: str,
         model_name: str,
         openai_clients: OpenAIClients,
         *,
@@ -52,6 +53,7 @@ class OpenAI:
         cache: Optional[SupportsChatCompletionCache] = None,
     ) -> None:
         self.fixp = OpenAIAgent(
+            agent_id=agent_id,
             model_name=model_name,
             openai_clients=openai_clients,
             pre_completion_fns=pre_completion_fns,

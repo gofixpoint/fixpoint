@@ -30,7 +30,7 @@ from ..completions import (
 from ..memory import SupportsMemory, NoOpMemory
 from ..workflows import SupportsWorkflowRun
 from .protocol import BaseAgent, CompletionCallback, PreCompletionFn
-from ._shared import request_cached_completion, CacheMode
+from ._shared import request_cached_completion, CacheMode, random_agent_id
 
 
 T_contra = TypeVar("T_contra", bound=BaseModel, contravariant=True)
@@ -42,9 +42,11 @@ class MockAgent(BaseAgent):
     _completion_fn: Callable[[], ChatCompletion[BaseModel]]
     _pre_completion_fns: List[PreCompletionFn]
     _completion_callbacks: List[CompletionCallback]
-    memory: SupportsMemory
     _cache_mode: CacheMode = "normal"
     _model: str
+
+    memory: SupportsMemory
+    id: str
 
     def __init__(
         self,
@@ -54,6 +56,7 @@ class MockAgent(BaseAgent):
         memory: Optional[SupportsMemory] = None,
         cache: Optional[SupportsChatCompletionCache] = None,
         model: str = "gpt-3.5-turbo-0125",
+        agent_id: Optional[str] = None,
     ):
         self._completion_fn = completion_fn
         self._pre_completion_fns = pre_completion_fns or []
@@ -61,6 +64,10 @@ class MockAgent(BaseAgent):
         self.memory = memory or NoOpMemory()
         self._cache = cache
         self._model = model
+
+        if agent_id is None:
+            agent_id = random_agent_id()
+        self.id = agent_id
 
     @overload
     def create_completion(
@@ -129,7 +136,10 @@ class MockAgent(BaseAgent):
         casted_cmpl = cast(ChatCompletion[BaseModel], cmpl)
         if self.memory:
             self.memory.store_memory(
-                messages=messages, completion=casted_cmpl, workflow_run=workflow_run
+                agent_id=self.id,
+                messages=messages,
+                completion=casted_cmpl,
+                workflow_run=workflow_run,
             )
         self._trigger_completion_callbacks(messages, casted_cmpl)
         return ChatCompletion.from_original_completion(

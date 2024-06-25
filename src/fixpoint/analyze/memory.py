@@ -54,7 +54,7 @@ class DataframeMemory(Memory):
         for idx, memitem in enumerate(self.memories()):
             messages = memitem.messages
             completion = memitem.completion
-            workflow_run_id = memitem.workflow_run.id if memitem.workflow_run else None
+            workflow_run_id = memitem.workflow_run_id
             for message in messages:
                 data["turn_id"].append(idx)
                 data["role"].append(message["role"])

@@ -26,6 +26,7 @@ def setup_workflow(
     # Log token usage
     tokenlogger = TikTokenLogger(model_name)
     agent = fixpoint.agents.OpenAIAgent(
+        agent_id="main",
         model_name=model_name,
         openai_clients=OpenAIClients.from_api_key(
             openai_key, base_url=openai_base_url, default_headers=default_openai_headers
@@ -37,4 +38,4 @@ def setup_workflow(
 
     workflow_run = Workflow(id="form_filler_agent").run()
 
-    return WorkflowContext.from_workflow(workflow_run, {"main": agent}, cache)
+    return WorkflowContext.from_workflow(workflow_run, [agent], cache)

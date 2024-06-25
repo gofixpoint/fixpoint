@@ -18,6 +18,7 @@ class NoOpMemory(SupportsMemory):
 
     def store_memory(
         self,
+        agent_id: str,
         messages: List[ChatCompletionMessageParam],
         completion: ChatCompletion[BaseModel],
         workflow_run: Optional[SupportsWorkflowRun] = None,

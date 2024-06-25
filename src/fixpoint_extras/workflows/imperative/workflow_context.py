@@ -1,7 +1,7 @@
 """The context for a workflow"""
 
 import logging
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from fixpoint.agents import BaseAgent
 from fixpoint.cache import SupportsChatCompletionCache
@@ -14,8 +14,11 @@ class _WrappedWorkflowAgents:
     _agents: Dict[str, WorkflowAgent]
     _workflow_run: WorkflowRun
 
-    def __init__(self, agents: Dict[str, BaseAgent], workflow_run: WorkflowRun) -> None:
-        self._agents = self._prepare_agents(workflow_run, agents)
+    def __init__(self, agents: List[BaseAgent], workflow_run: WorkflowRun) -> None:
+        agents_dict = {agent.id: agent for agent in agents}
+        if len(agents_dict) != len(agents):
+            raise ValueError("Duplicate agent ids are not allowed")
+        self._agents = self._prepare_agents(workflow_run, agents_dict)
         self._workflow_run = workflow_run
 
     def __getitem__(self, key: str) -> BaseAgent:
@@ -40,7 +43,10 @@ class _WrappedWorkflowAgents:
     def _wrap_agent(self, workflow_run: WorkflowRun, agent: BaseAgent) -> WorkflowAgent:
         # We require agents in a workflow to have working memory
         if isinstance(agent.memory, NoOpMemory):
-            agent.memory = Memory()
+            if workflow_run.storage_config:
+                agent.memory = workflow_run.storage_config.memory_factory(agent.id)
+            else:
+                agent.memory = Memory()
         return WorkflowAgent(agent, workflow_run)
 
 
@@ -58,14 +64,19 @@ class WorkflowContext:
 
     def __init__(
         self,
-        agents: Dict[str, BaseAgent],
+        agents: List[BaseAgent],
         workflow_run: WorkflowRun,
         cache: Optional[SupportsChatCompletionCache] = None,
         logger: Optional[logging.Logger] = None,
     ):
         self.agents = _WrappedWorkflowAgents(agents, workflow_run)
         self.workflow_run = workflow_run
-        self.cache = cache
+
+        if workflow_run.storage_config and workflow_run.storage_config.agent_cache:
+            self.cache = workflow_run.storage_config.agent_cache
+        else:
+            self.cache = cache
+
         self.logger = logger or logging.getLogger(
             f"fixpoint/workflows/runs/{workflow_run.id}"
         )
@@ -79,7 +90,7 @@ class WorkflowContext:
     def from_workflow(
         cls,
         workflow_run: WorkflowRun,
-        agents: Dict[str, BaseAgent],
+        agents: List[BaseAgent],
         cache: Optional[SupportsChatCompletionCache] = None,
     ) -> "WorkflowContext":
         """Creates a WorkflowContext for a workflow"""

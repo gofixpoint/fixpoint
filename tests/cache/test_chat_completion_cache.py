@@ -4,7 +4,6 @@ from typing import Tuple
 
 from pydantic import BaseModel
 
-from fixpoint.storage.supabase import SupabaseStorage
 from fixpoint.agents.mock import new_mock_completion
 from fixpoint.completions.chat_completion import ChatCompletion
 from fixpoint.cache import (
@@ -13,6 +12,9 @@ from fixpoint.cache import (
     ChatCompletionDiskTLRUCache,
     ChatCompletionTLRUCache,
     ChatCompletionTLRUCacheItem,
+)
+from fixpoint_extras.workflows.imperative.config import (
+    create_chat_completion_cache_supabase_storage,
 )
 from ..supabase_test_utils import supabase_setup_url_and_key, is_supabase_enabled
 
@@ -34,9 +36,9 @@ class TestChatCompletionCache:
                 f"""
         CREATE TABLE IF NOT EXISTS public.completion_cache (
             key text PRIMARY KEY,
-            value jsonb,
-            ttl float,
-            expires_at float
+            value jsonb NOT NULL,
+            ttl float NOT NULL,
+            expires_at float NOT NULL
         );
 
         TRUNCATE TABLE public.completion_cache
@@ -50,18 +52,7 @@ class TestChatCompletionCache:
         self, supabase_setup_url_and_key: Tuple[str, str]
     ) -> None:
         url, key = supabase_setup_url_and_key
-        storage = SupabaseStorage(
-            url,
-            key,
-            table="completion_cache",
-            order_key="expires_at",
-            id_column="key",
-            # We cannot not specify the generic type parameter for
-            # TLRUCacheItem, because then when we try to do `isinstance(cls,
-            # type)`, the class will actually be a `typing.GenericAlias` and not
-            # a type (class definition).
-            value_type=ChatCompletionTLRUCacheItem,
-        )
+        storage = create_chat_completion_cache_supabase_storage(url, key)
         cache = ChatCompletionTLRUCache(maxsize=50, ttl_s=60 * 60, storage=storage)
         self.assert_cache_hits(cache)
 

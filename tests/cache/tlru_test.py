@@ -2,8 +2,10 @@ from typing import Tuple, Any
 import json
 import pytest
 from freezegun import freeze_time
-from fixpoint.cache.tlru import TLRUCache, TLRUCacheItem
-from fixpoint.storage.supabase import SupabaseStorage
+from fixpoint.cache.tlru import TLRUCache
+from fixpoint_extras.workflows.imperative.config import (
+    create_str_cache_supabase_storage,
+)
 from ..supabase_test_utils import supabase_setup_url_and_key, is_supabase_enabled
 
 
@@ -55,9 +57,9 @@ class TestTLRUCacheWithStorage:
                 f"""
         CREATE TABLE IF NOT EXISTS public.completion_cache (
             key text PRIMARY KEY,
-            value jsonb,
-            ttl float,
-            expires_at float
+            value jsonb NOT NULL,
+            ttl float NOT NULL,
+            expires_at float NOT NULL
         );
 
         TRUNCATE TABLE public.completion_cache
@@ -88,19 +90,7 @@ class TestTLRUCacheWithStorage:
             "this is a faked response",
         )
 
-        storage = SupabaseStorage(
-            url,
-            key,
-            table="completion_cache",
-            order_key="expires_at",
-            id_column="key",
-            # We cannot not specify the generic type parameter for
-            # TLRUCacheItem, because then when we try to do `isinstance(cls,
-            # type)`, the class will actually be a `typing.GenericAlias` and not
-            # a type (class definition).
-            value_type=TLRUCacheItem,
-        )
-
+        storage = create_str_cache_supabase_storage(url, key)
         cache = TLRUCache[list[dict[str, str]], str](
             maxsize=10,
             ttl_s=10,
