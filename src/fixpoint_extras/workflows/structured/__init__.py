@@ -11,22 +11,15 @@ but supercharged with the extra features that LLM systems need, like memory,
 RAG, and tools for parsing structured output from unstructured documents.
 """
 
-from ._workflow import workflow, run_workflow, workflow_entrypoint
-from ._context import WorkflowContext
-from ._task import task, task_entrypoint, call_task
-from ._step import step, call_step
-
-from .errors import CallException, DefinitionException
-from . import errors
-
-
 __all__ = [
     "CallException",
-    "DefinitionException",
     "call_step",
     "call_task",
+    "DefinitionException",
     "errors",
+    "RunConfig",
     "run_workflow",
+    "spawn_workflow",
     "step",
     "task",
     "task_entrypoint",
@@ -34,3 +27,12 @@ __all__ = [
     "WorkflowContext",
     "workflow_entrypoint",
 ]
+
+from ._workflow import workflow, run_workflow, spawn_workflow, workflow_entrypoint
+from ._context import WorkflowContext
+from ._task import task, task_entrypoint, call_task
+from ._step import step, call_step
+from ._run_config import RunConfig
+
+from .errors import CallException, DefinitionException
+from . import errors

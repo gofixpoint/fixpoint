@@ -56,5 +56,7 @@ async def test_run_workflow() -> None:
         async def main(self, ctx: structured.WorkflowContext) -> str:
             return "this is a test"
 
-    res = await structured.run_workflow(Workflow.main)
+    res = await structured.run_workflow(
+        Workflow.main, run_config=structured.RunConfig.with_defaults(), agents=[]
+    )
     assert res == "this is a test"
