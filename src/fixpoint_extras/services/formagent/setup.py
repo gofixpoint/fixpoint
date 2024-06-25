@@ -23,7 +23,6 @@ def setup_workflow(
     Set up the workflow context, which includes the workflow ojbect, the agent,
     the agent's memory store, and a logger for the workflow.
     """
-    agent_mem = DataframeMemory()
     # Log token usage
     tokenlogger = TikTokenLogger(model_name)
     agent = fixpoint.agents.OpenAIAgent(
@@ -31,13 +30,11 @@ def setup_workflow(
         openai_clients=OpenAIClients.from_api_key(
             openai_key, base_url=openai_base_url, default_headers=default_openai_headers
         ),
-        memory=agent_mem,
+        memory=DataframeMemory(),
         pre_completion_fns=[tokenlogger.tiktoken_logger],
         cache=cache,
     )
 
     workflow_run = Workflow(id="form_filler_agent").run()
 
-    return WorkflowContext.from_workflow(
-        workflow_run, {"main": agent}, agent_mem, cache
-    )
+    return WorkflowContext.from_workflow(workflow_run, {"main": agent}, cache)
