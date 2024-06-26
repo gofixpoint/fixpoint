@@ -13,11 +13,18 @@ past or current steps and tasks.
 """
 
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, cast
+from typing import Any, Callable, Dict, List, Optional
 
 from ._context import WorkflowContext
 from .errors import DefinitionException
-from ._helpers import validate_func_has_context_arg, Params, Ret
+from ._callcache import CallCacheKind
+from ._helpers import (
+    validate_func_has_context_arg,
+    decorate_with_cache,
+    AsyncFunc,
+    Params,
+    Ret,
+)
 
 
 class StepFixp:
@@ -31,7 +38,7 @@ class StepFixp:
 
 def step(
     id: str,  # pylint: disable=redefined-builtin
-) -> Callable[[Callable[Params, Ret]], Callable[Params, Ret]]:
+) -> Callable[[AsyncFunc[Params, Ret]], AsyncFunc[Params, Ret]]:
     """Decorate a function to mark it as a step definition
 
     A step definition is a function that represents a step in a workflow. The
@@ -46,20 +53,19 @@ def step(
     ```
     """
 
-    def decorator(func: Callable[Params, Ret]) -> Callable[Params, Ret]:
+    def decorator(func: AsyncFunc[Params, Ret]) -> AsyncFunc[Params, Ret]:
         # pylint: disable=protected-access
         func.__fixp = StepFixp(id)  # type: ignore[attr-defined]
 
         validate_func_has_context_arg(func)
 
         @wraps(func)
-        def wrapper(*args: Any, **kwargs: Any) -> Ret:
-            print("Before calling", func.__name__)
-            result = func(*args, **kwargs)
-            print("After calling", func.__name__)
+        async def wrapper(*args: Any, **kwargs: Any) -> Ret:
+            wrapped_func = decorate_with_cache(CallCacheKind.STEP, id)(func)
+            result = await wrapped_func(*args, **kwargs)
             return result
 
-        return cast(Callable[Params, Ret], wrapper)
+        return wrapper
 
     return decorator
 

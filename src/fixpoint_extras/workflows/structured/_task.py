@@ -21,8 +21,15 @@ from typing import (
 from .. import imperative
 from ..imperative import WorkflowRun
 from ._context import WorkflowContext
-from .errors import DefinitionException
-from ._helpers import validate_func_has_context_arg, Params, Ret
+from .errors import DefinitionException, InternalException
+from ._callcache import CallCacheKind
+from ._helpers import (
+    validate_func_has_context_arg,
+    AsyncFunc,
+    Params,
+    Ret,
+    decorate_with_cache,
+)
 
 
 T = TypeVar("T")
@@ -144,7 +151,7 @@ class TaskEntryFixp:
     task_cls: Optional[Type[Any]] = None
 
 
-def task_entrypoint() -> Callable[[Callable[Params, Ret]], Callable[Params, Ret]]:
+def task_entrypoint() -> Callable[[AsyncFunc[Params, Ret]], AsyncFunc[Params, Ret]]:
     """Mark the entrypoint function of a task class definition
 
     When you have a task class definition, you must have exactly one class
@@ -167,20 +174,31 @@ def task_entrypoint() -> Callable[[Callable[Params, Ret]], Callable[Params, Ret]
     ```
     """
 
-    def decorator(func: Callable[Params, Ret]) -> Callable[Params, Ret]:
+    def decorator(func: AsyncFunc[Params, Ret]) -> AsyncFunc[Params, Ret]:
         # pylint: disable=protected-access
         func.__fixp = TaskEntryFixp()  # type: ignore[attr-defined]
 
         validate_func_has_context_arg(func)
 
         @wraps(func)
-        def wrapper(*args: Any, **kwargs: Any) -> Ret:
-            print("Before calling", func.__name__)
-            result = func(*args, **kwargs)
-            print("After calling", func.__name__)
+        async def wrapper(*args: Any, **kwargs: Any) -> Ret:
+            taskentry_fixp = get_task_entrypoint_fixp_from_fn(func)
+            if taskentry_fixp is None:
+                raise InternalException("task entry __fixp is not defined")
+            if taskentry_fixp.task_cls is None:
+                raise InternalException("task entry __fixp.task_cls is not defined")
+            task_meta_fixp = get_task_definition_meta_fixp(taskentry_fixp.task_cls)
+            if task_meta_fixp is None:
+                raise InternalException("task definition __fixp_meta is not defined")
+            task_id = task_meta_fixp.task_id
+
+            wrapped_func: AsyncFunc[Params, Ret] = decorate_with_cache(
+                CallCacheKind.TASK, task_id
+            )(func)
+            result = await wrapped_func(*args, **kwargs)
             return result
 
-        return cast(Callable[Params, Ret], wrapper)
+        return wrapper
 
     return decorator
 
