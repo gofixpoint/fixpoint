@@ -47,7 +47,8 @@ def create_chat(workflow_run_id: str, user_message: str) -> str:
         # Classify the task on an initial message
         return classify_task(wfctx, user_message)
 
-    # Check that the workflow state has progressed
+    # After we have classified the user's intent, we can start answering questions
+    # about the form they are trying to create
     task = wfctx.workflow_run.node_state.task
 
     if task == FormType.INVOICE.value:
