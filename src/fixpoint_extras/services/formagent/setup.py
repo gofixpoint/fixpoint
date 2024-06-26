@@ -38,4 +38,4 @@ def setup_workflow(
 
     workflow_run = Workflow(id="form_filler_agent").run()
 
-    return WorkflowContext.from_workflow(workflow_run, [agent], cache)
+    return WorkflowContext([agent], workflow_run, cache)

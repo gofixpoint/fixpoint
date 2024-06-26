@@ -15,7 +15,7 @@ past or current steps and tasks.
 from functools import wraps
 from typing import Any, Callable, Dict, List, Optional, cast
 
-from fixpoint_extras.workflows.imperative import WorkflowContext
+from ._context import WorkflowContext
 from .errors import DefinitionException
 from ._helpers import validate_func_has_context_arg, Params, Ret
 

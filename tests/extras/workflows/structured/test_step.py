@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 import pytest
-import fixpoint
 from fixpoint_extras.workflows import imperative
 from fixpoint_extras.workflows import structured
+from fixpoint_extras.workflows.structured._run_config import RunConfig
 
 
 @dataclass
@@ -47,8 +47,9 @@ async def test_run_step() -> None:
 def new_workflow_context(workflow_id: str) -> structured.WorkflowContext:
     workflow = imperative.Workflow(id=workflow_id)
     wrun = workflow.run()
-    ctx = structured.WorkflowContext.from_workflow(
-        wrun,
+    ctx = structured.WorkflowContext(
+        run_config=RunConfig.with_in_memory(),
         agents=[],
+        workflow_run=wrun,
     )
     return ctx

@@ -9,6 +9,7 @@ In a workflow, agents are able to recall memories, documents, and forms from
 past or current tasks within the workflow.
 """
 
+from dataclasses import dataclass
 from functools import wraps
 from typing import (
     Any,
@@ -24,9 +25,9 @@ from typing import (
 )
 
 import fixpoint
-from fixpoint_extras.workflows.imperative import WorkflowContext
 from .. import imperative
-from .errors import DefinitionException
+from .errors import DefinitionException, InternalException
+from ._context import WorkflowContext
 from ._helpers import validate_func_has_context_arg, Params, Ret
 from ._run_config import RunConfig
 
@@ -105,37 +106,47 @@ class WorkflowMetaFixp:
         self.workflow = imperative.Workflow(id=workflow_id)
 
 
+@dataclass
+class WorkflowRunFixp:
+    """Internal fixpoint attribute for a workflow run."""
+
+    workflow: imperative.Workflow
+    ctx: WorkflowContext
+    workflow_run: imperative.WorkflowRun
+    run_config: RunConfig
+
+
 class WorkflowInstanceFixp:
     """Internal fixpoint attribute for a workflow instance."""
 
     workflow: imperative.Workflow
-    ctx: Optional[WorkflowContext]
-    workflow_run: Optional[imperative.WorkflowRun] = None
+    run_fixp: Optional[WorkflowRunFixp]
 
     def __init__(self, workflow_id: str) -> None:
         self.workflow = imperative.Workflow(id=workflow_id)
-        self.ctx = None
-        self.workflow_run = None
+        self.run_fixp = None
 
     def run(
         self, run_config: RunConfig, agents: List[fixpoint.agents.BaseAgent]
-    ) -> imperative.WorkflowContext:
+    ) -> WorkflowContext:
         """Internal function to "run" a workflow.
 
         Create a workflow object instance and context. It doesn't actually call
         the workflow entrypoint, but it initializes the Fixpoint workflow
         instance attribute with a workflow run and a workflow context.
         """
-
-        if self.ctx:
+        if self.run_fixp:
             raise ValueError("workflow instance was already run")
         run = self.workflow.run(storage_config=run_config.storage)
-        self.workflow_run = run
 
         cache = run_config.storage.agent_cache
         # The WorkflowContext initializer will set fresh memory for each agent
-        wfctx = WorkflowContext(agents=agents, workflow_run=run, cache=cache)
-        self.ctx = wfctx
+        wfctx = WorkflowContext(
+            run_config=run_config, agents=agents, workflow_run=run, cache=cache
+        )
+        self.run_fixp = WorkflowRunFixp(
+            workflow=self.workflow, ctx=wfctx, workflow_run=run, run_config=run_config
+        )
         return wfctx
 
 
@@ -343,18 +354,17 @@ def spawn_workflow(
         )
     fixp.run(run_config, agents)
 
-    if not fixp.ctx:
+    if not fixp.run_fixp:
         # this is an internal error, not a user error
-        raise ValueError("workflow run context is None")
-    if not fixp.workflow_run:
-        raise ValueError("workflow run is None")
+        raise InternalException("internal error: workflow run not properly initialized")
 
     args = args or []
     kwargs = kwargs or {}
+    ctx = fixp.run_fixp.ctx
     # The Params type gets confused because we are injecting an additional
     # WorkflowContext. Ignore that error.
-    res = workflow_entry(workflow_instance, fixp.ctx, *args, **kwargs)  # type: ignore[arg-type]
-    return _WorkflowRunHandle[Ret_co](fixp.workflow_run, res)
+    res = workflow_entry(workflow_instance, ctx, *args, **kwargs)  # type: ignore[arg-type]
+    return _WorkflowRunHandle[Ret_co](fixp.run_fixp.workflow_run, res)
 
 
 def run_workflow(
