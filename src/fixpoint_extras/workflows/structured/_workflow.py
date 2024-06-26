@@ -135,6 +135,7 @@ class WorkflowInstanceFixp:
         cache = run_config.storage.agent_cache
         # The WorkflowContext initializer will set fresh memory for each agent
         wfctx = WorkflowContext(agents=agents, workflow_run=run, cache=cache)
+        self.ctx = wfctx
         return wfctx
 
 
