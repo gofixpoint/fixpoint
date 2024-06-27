@@ -2,10 +2,10 @@
 
 import json
 from typing import List, Protocol, Optional, Any, Callable
-import uuid
 
 from pydantic import BaseModel
 
+from fixpoint._utils.ids import make_resource_uuid
 from ..completions import ChatCompletionMessageParam, ChatCompletion
 from ..workflows import SupportsWorkflowRun
 from ..storage.protocol import SupportsStorage
@@ -13,7 +13,7 @@ from ..storage.protocol import SupportsStorage
 
 def new_memory_item_id() -> str:
     """Generate a new memory item ID"""
-    return "amem-" + str(uuid.uuid4())
+    return make_resource_uuid("amem")
 
 
 class MemoryItem:

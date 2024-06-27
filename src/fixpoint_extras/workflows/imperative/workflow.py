@@ -1,6 +1,5 @@
 """Simple implementation of a workflow"""
 
-from uuid import uuid4
 from typing import Any, Dict, List, Optional, Type, TypeVar, Union, cast
 
 from pydantic import (
@@ -13,6 +12,7 @@ from pydantic import (
 )
 
 from fixpoint.storage.protocol import SupportsStorage
+from fixpoint._utils.ids import make_resource_uuid
 
 from .document import Document
 from .form import Form
@@ -59,6 +59,11 @@ class Workflow(BaseModel):
         return WorkflowRun(workflow=self, storage_config=storage_config)
 
 
+def new_workflow_run_id() -> str:
+    """Create a new workflow run id"""
+    return make_resource_uuid("wfrun")
+
+
 class WorkflowRun(BaseModel):
     """A workflow run.
 
@@ -71,7 +76,7 @@ class WorkflowRun(BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    _id: str = PrivateAttr(default_factory=lambda: str(uuid4()))
+    _id: str = PrivateAttr(default_factory=new_workflow_run_id)
     _task_ids: List[str] = PrivateAttr(default_factory=list)
 
     workflow: Workflow
