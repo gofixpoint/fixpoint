@@ -19,8 +19,20 @@ name is inspired by [structured programming][structured-programming].
 
 ## Some example use cases
 
-TODO
+Structured workflows are great for have business or analysis workflows that are
+not directly user-facing. Some examples:
 
+- You just fine-tuned a new model and want to compare its outputs to your
+  current model. We help you run all inferences simultaneously, and if any fail,
+  re-run just the failed requests.
+- You have a set of financial documents and want to extract information from
+  them to generate a report.
+- You want an LLM to post-process human or AI calls and text chats to come up
+  with follow-up items.
+
+
+If you are building something closer to a chatbot, check out the
+[Request/Reply Workflows][req-rep-wf] docs.
 
 ## In-depth use case: comparing multiple LLM models
 
@@ -29,3 +41,4 @@ TODO
 
 [durable]: /workflows-and-durability
 [structured-programming]: https://en.wikipedia.org/wiki/Structured_programming
+[req-rep-wf]: /workflows-and-durability/request-reply-workflows
