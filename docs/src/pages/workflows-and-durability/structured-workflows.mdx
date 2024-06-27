@@ -13,9 +13,8 @@ that:
   while waiting for external input
 
 If you are familiar with [Temporal](https://temporal.io/), structured workflows
-look similarly, but each workflow is given extra LLM-specific features.  The
+look similarly, but each workflow is given extra LLM-specific features. The
 name is inspired by [structured programming][structured-programming].
-
 
 ## Some example use cases
 
@@ -30,7 +29,6 @@ not directly user-facing. Some examples:
 - You want an LLM to post-process human or AI calls and text chats to come up
   with follow-up items.
 
-
 If you are building something closer to a chatbot, check out the
 [Request/Reply Workflows][req-rep-wf] docs.
 
@@ -41,7 +39,6 @@ models. You can see the full example code,
 [`/examples/structured_workflow.py`][code-example]. You can also run the example
 in [a Jupyter notebook][jupyter-example], which is useful if you are doing some
 local development and testing.
-
 
 ### Define the workflow
 
@@ -95,7 +92,6 @@ class CompareModels:
         ...
 ```
 
-
 ## Define tasks
 
 Defining a task is similar to defining a workflow. You decorate a class and then
@@ -113,7 +109,6 @@ Again, a task entrypoint must:
 - Have arguments that are serializable. We support JSON-serializable, dataclass,
   or Pydantic model arguments.
 - The first non-self argument to a task entrypoint is a `WorkflowContext`
-
 
 ```python
 # We recommend using a single dataclass, Pydantic model, or dictionary argument
@@ -141,7 +136,6 @@ class RunAllPrompts:
         ...
 ```
 
-
 ## Defining steps
 
 Steps are the smallest unit of computation that we track in a workflow. Of
@@ -151,7 +145,7 @@ code, but steps are given durability and step-specific agent memory.
 Like tasks, steps are:
 
 - Durable, so if a workflow or task fails partway through and encounters a step
-it already ran, it will use the previously computed result.
+  it already ran, it will use the previously computed result.
 - Have a `WorkflowContext` as the first argument.
 - Require that all subsequent arguments are serializable.
 
@@ -176,13 +170,12 @@ async def run_prompt(ctx: WorkflowContext, args: RunPromptArgs) -> PromptComplet
     return (args.prompt, completion.choices[0].message.content)
 ```
 
-
 ## Calling tasks and steps
 
 ### Calling tasks
 
 You can call a task from within a workflow or from another task by using
-`structured.call_task(...)`.  You need to pass the `WorkflowContext` in as the
+`structured.call_task(...)`. You need to pass the `WorkflowContext` in as the
 first argument to `call_task`. After that, pass the task entrypoint function
 (not the task class). Then you can specify an optional `args: List[Any]` and
 optional `kwargs: Dict[str, Any]`.
@@ -218,7 +211,6 @@ that calling a task is an async function. In this case, we are using
 ```
 
 You can call tasks from workflows, from other tasks, and from steps.
-
 
 ### Calling steps
 
@@ -267,7 +259,6 @@ or calling task. This is because workflow durability is controlled from
 workflows and tasks, so if a step calls another step the infra will not be able
 to track step execution.
 
-
 ## Running a workflow
 
 Finally, let's run the workflow! When you create a workflow, you can use either
@@ -294,7 +285,6 @@ Both `spawn_workflow` and `run_workflow` take the following arguments:
   from scratch.
 - optional `args: List[Any]` and `kwargs: Dict[str, Any]` to pass to the
   workflow entrypoint
-
 
 Here's the code:
 
@@ -334,7 +324,6 @@ print("finished workflow. Wrote results to workflow run doc:", results_doc_id)
 
 You can see the full code example in the
 [`/examples/structured_workflow.py`][code-example] file.
-
 
 [durable]: /workflows-and-durability
 [structured-programming]: https://en.wikipedia.org/wiki/Structured_programming
