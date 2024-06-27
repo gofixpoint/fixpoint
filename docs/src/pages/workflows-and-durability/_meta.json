@@ -2,5 +2,6 @@
   "caching": "Caching",
   "workflows": "Workflows Overview",
   "structured-workflows": "Structured Workflows",
-  "request-reply-workflows": "Request/Reply Workflows"
+  "request-reply-workflows": "Request/Reply Workflows",
+  "imperative-workflows": "Imperative Workflows"
 }
