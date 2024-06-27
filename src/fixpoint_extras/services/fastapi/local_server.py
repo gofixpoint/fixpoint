@@ -1,4 +1,26 @@
-"""Local server for the form agent."""
+"""
+Local server for the form agent.
+
+The code below is a chatbot form wizard that collects information
+from a user to generate an invoice or event registration form.
+In this case, we have a product that lets users generate:
+- invoices for billing customers
+- ticketing forms for selling event tickets
+
+The agent:
+- Asks a user what they are trying to do and then classifies their intent
+- Asks follow up questions it needs to construct either the invoice or the ticketing form
+
+Fixpoint handles a few things here for you:
+- We remember the information the human sent to the agent over
+the course of their chat
+- We progressively fill out "structured data forms" with the
+unstructured text content the user messages the agent
+having an LLM generate structured data makes it easy for the rest of
+your program to parse LLM output
+
+You can run this FastAPI app by running `./bin/fastapi-server` from repo's root directory.
+"""
 
 import os
 from typing import cast
