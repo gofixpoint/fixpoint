@@ -12,6 +12,7 @@ from ._callcache import CallCacheKind, CacheResult, serialize_args
 
 Params = ParamSpec("Params")
 Ret = TypeVar("Ret")
+Ret_co = TypeVar("Ret_co", covariant=True)
 AwaitableRet = TypeVar("AwaitableRet", bound=Awaitable[Any])
 AsyncFunc = Callable[Params, Coroutine[Any, Any, Ret]]
 
