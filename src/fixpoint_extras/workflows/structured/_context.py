@@ -11,7 +11,23 @@ from ._run_config import RunConfig
 
 
 class WorkflowContext(ImperativeWorkflowContext):
-    """A context for a structured workflow"""
+    """A context for a structured workflow
+
+    A WorkflowContext tracks the current WorkflowRun, and it contains a few
+    things:
+
+    - The `workflow_run` itself, with which you can inspect the current node
+      state (what task and step are we in?), store and search documents scoped to
+      the workflow, and fill out structured forms scoped to the workflow.
+    - The dictionary of `agents` in the workflow run. Each agent has memory for
+      the life of the `WorkflowRun`.
+    - An optional `cache`, which stores cached agent inference requests, so you
+      don't duplicate requests and spend extra money. You can access this to
+      invalidate cache items or skip caching for certain steps.
+    - A logger that is scoped to the lifetime of the `WorkflowRun`.
+    - The `run_config`, that defines settings for the worflow run. You rarely
+      need to access this.
+    """
 
     run_config: RunConfig
 

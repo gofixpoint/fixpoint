@@ -16,13 +16,36 @@ from fixpoint_extras.workflows import structured
 from fixpoint_extras.workflows.structured import WorkflowContext
 
 
-PromptCompletionPair = Tuple[List[ChatCompletionMessageParam], Union[str, None]]
-
-
+# A workflow is a Python class decorated with `@structured.workflow(id="...")`.
+# The workflow ID lets you track and inspect multiple running instances of this
+# workflow, called a `WorkflowRun`.
+#
+# Workflows run in the `asyncio` loop for better concurrency.
 @structured.workflow(id="example_workflow")
 class CompareModels:
     """Compare the performance of GPT-3.5 and GPT-4"""
 
+    # A workflow definition must have exactly one entrypoint, and it must be an
+    # async function.
+    #
+    # We recommend that you use one single extra argument, which should be
+    # JSON-serializable. This makes it easy to add and remove fields to that
+    # argument for backwards/forwards compatibilty.
+    #
+    # The first non-self argument is always the `WorkflowContext`, which tracks
+    # the current WorkflowRun, and it contains a few things:
+    #
+    # - The `workflow_run` itself, with which you can inspect the current node
+    #   state (what task and step are we in?), store and search documents scoped
+    #   to the workflow, and fill out structured forms scoped to the workflow.
+    # - The dictionary of `agents` in the workflow run. Each agent has memory
+    #   for the life of the `WorkflowRun`.
+    # - An optional `cache`, which stores cached agent inference requests, so
+    #   you don't duplicate requests and spend extra money. You can access this
+    #   to invalidate cache items or skip caching for certain steps.
+    # - A logger that is scoped to the lifetime of the `WorkflowRun`.
+    # - The `run_config`, that defines settings for the worflow run. You rarely
+    #   need to access this.
     @structured.workflow_entrypoint()
     async def run(
         self, ctx: WorkflowContext, prompts: List[List[ChatCompletionMessageParam]]
@@ -65,6 +88,9 @@ class CompareModels:
         return doc_id
 
 
+PromptCompletionPair = Tuple[List[ChatCompletionMessageParam], Union[str, None]]
+
+
 # We recommend using a single dataclass, Pydantic model, or dictionary argument
 # for the task. This makes it easy to add or remove arguments in the future
 # while preserving backwards compatability.
@@ -76,6 +102,14 @@ class RunAllPromptsArgs:
     prompts: List[List[ChatCompletionMessageParam]]
 
 
+# Defining a task is similar to defining a workflow. You decorate a class and
+# then mark the task entrypoint. You can think of a task as a segment of your
+# workflow, where your LLM (and normal code) is accomplishing some "task".
+#
+# The results of a task run are cached so that they can be made "durable". If
+# your workflow has multiple tasks and you get all the way through the first
+# task before failing on the second, the workflow will automatically restart and
+# resume from after the first task.
 @structured.task(id="run_all_prompts")
 class RunAllPrompts:
     """A task that runs all prompts for an agent"""
@@ -111,6 +145,17 @@ class RunPromptArgs:
     prompt: List[ChatCompletionMessageParam]
 
 
+# Steps are the smallest unit of computation that we track in a workflow. Of
+# course, you can make a step composed of normal functions and other normal
+# Python code, but steps are given durability and step-specific agent memory.
+#
+# Like tasks, steps are:
+
+
+# - Durable, so if a workflow or task fails partway through and encounters a
+#   step it already ran, it will use the previously computed result.
+# - Have a `WorkflowContext` as the first argument.
+# - Require that all subsequent arguments are serializable.
 @structured.step(id="run_prompt")
 async def run_prompt(ctx: WorkflowContext, args: RunPromptArgs) -> PromptCompletionPair:
     """Run an LLM inference request with the given agent and prompt

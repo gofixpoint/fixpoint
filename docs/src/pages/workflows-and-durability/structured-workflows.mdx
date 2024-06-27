@@ -36,9 +36,309 @@ If you are building something closer to a chatbot, check out the
 
 ## In-depth use case: comparing multiple LLM models
 
-TODO
+Here is an example of a structured workflow that compares the outputs of two LLM
+models. You can see the full example code,
+[`/examples/structured_workflow.py`][code-example]. You can also run the example
+in [a Jupyter notebook][jupyter-example], which is useful if you are doing some
+local development and testing.
+
+
+### Define the workflow
+
+A workflow is a Python class decorated with `@structured.workflow(id="...")`.
+The workflow ID lets you track and inspect multiple running instances of this
+workflow, called a `WorkflowRun`.
+
+Workflows run in the `asyncio` loop for better concurrency.
+
+```python
+@structured.workflow(id="example_workflow")
+class CompareModels:
+    """Compare the performance of GPT-3.5 and GPT-4"""
+    ...
+```
+
+## Define the workflow entrypoint
+
+A workflow definition must have exactly one entrypoint, and it must be an async
+function.
+
+We recommend that you use one single extra argument, which should be
+JSON-serializable. This makes it easy to add and remove fields to that argument
+for backwards/forwards compatibilty.
+
+The first non-self argument is always the `WorkflowContext`, which tracks the
+current WorkflowRun, and it contains a few things:
+
+- The `workflow_run` itself, with which you can inspect the current node state
+  (what task and step are we in?), store and search documents scoped to the
+  workflow, and fill out structured forms scoped to the workflow.
+- The dictionary of `agents` in the workflow run. Each agent has memory for the
+  life of the `WorkflowRun`.
+- An optional `cache`, which stores cached agent inference requests, so you
+  don't duplicate requests and spend extra money. You can access this to
+  invalidate cache items or skip caching for certain steps.
+- A logger that is scoped to the lifetime of the `WorkflowRun`.
+- The `run_config`, that defines settings for the worflow run. You rarely need
+  to access this.
+
+```python {5-10}
+@structured.workflow(id="example_workflow")
+class CompareModels:
+    """Compare the performance of GPT-3.5 and GPT-4"""
+
+    @structured.workflow_entrypoint()
+    async def run(
+        self, ctx: WorkflowContext, prompts: List[List[ChatCompletionMessageParam]]
+    ) -> str:
+        """Entrypoint for the workflow to compare agents"""
+        ...
+```
+
+
+## Define tasks
+
+Defining a task is similar to defining a workflow. You decorate a class and then
+mark the task entrypoint. You can think of a task as a segment of your workflow,
+where your LLM (and normal code) is accomplishing some "task".
+
+The results of a task run are cached so that they can be made "durable". If your
+workflow has multiple tasks and you get all the way through the first task
+before failing on the second, the workflow will automatically restart and resume
+from after the first task.
+
+Again, a task entrypoint must:
+
+- A task class definition must have exactly one entrypoint
+- Have arguments that are serializable. We support JSON-serializable, dataclass,
+  or Pydantic model arguments.
+- The first non-self argument to a task entrypoint is a `WorkflowContext`
+
+
+```python
+# We recommend using a single dataclass, Pydantic model, or dictionary argument
+# for the task. This makes it easy to add or remove arguments in the future
+# while preserving backwards compatability.
+@dataclass
+class RunAllPromptsArgs:
+    """Arguments for the "run_al_prompts" task"""
+
+    agent_name: str
+    prompts: List[List[ChatCompletionMessageParam]]
+
+
+@structured.task(id="run_all_prompts")
+class RunAllPrompts:
+    """A task that runs all prompts for an agent"""
+
+    @structured.task_entrypoint()
+    async def run_all_prompts(
+        self, ctx: WorkflowContext, args: RunAllPromptsArgs
+    ) -> List[PromptCompletionPair]:
+        """Execute all prompt inferences for an agent
+
+        Returns a list of (prompt, response) pairs.
+        ...
+```
+
+
+## Defining steps
+
+Steps are the smallest unit of computation that we track in a workflow. Of
+course, you can make a step composed of normal functions and other normal Python
+code, but steps are given durability and step-specific agent memory.
+
+Like tasks, steps are:
+
+- Durable, so if a workflow or task fails partway through and encounters a step
+it already ran, it will use the previously computed result.
+- Have a `WorkflowContext` as the first argument.
+- Require that all subsequent arguments are serializable.
+
+```python {1-10}
+@dataclass
+class RunPromptArgs:
+    """Args for run_prompt"""
+
+    agent_name: str
+    prompt: List[ChatCompletionMessageParam]
+
+
+@structured.step(id="run_prompt")
+async def run_prompt(ctx: WorkflowContext, args: RunPromptArgs) -> PromptCompletionPair:
+    """Run an LLM inference request with the given agent and prompt
+
+    Returns a pair of (prompt, response)
+    """
+    agent = ctx.agents[args.agent_name]
+    # TODO(dbmikus) make this an async chat completion
+    completion = agent.create_completion(messages=args.prompt)
+    return (args.prompt, completion.choices[0].message.content)
+```
+
+
+## Calling tasks and steps
+
+### Calling tasks
+
+You can call a task from within a workflow or from another task by using
+`structured.call_task(...)`.  You need to pass the `WorkflowContext` in as the
+first argument to `call_task`. After that, pass the task entrypoint function
+(not the task class). Then you can specify an optional `args: List[Any]` and
+optional `kwargs: Dict[str, Any]`.
+
+In our example, we create two concurrent workflows, one for each LLM model. Note
+that calling a task is an async function. In this case, we are using
+[`asyncio.TaskGroup`][asyncio-task-group] to await both of them concurrently.
+
+```python {10-14, 17-21}
+@structured.workflow(id="example_workflow")
+    @structured.workflow_entrypoint()
+    async def run(
+        self, ctx: WorkflowContext, prompts: List[List[ChatCompletionMessageParam]]
+    ) -> str:
+        """Entrypoint for the workflow to compare agents"""
+
+        async with asyncio.TaskGroup() as tg:
+            gpt3_res = tg.create_task(
+                structured.call_task(
+                    ctx,
+                    RunAllPrompts.run_all_prompts,
+                    args=[RunAllPromptsArgs(agent_name="gpt3", prompts=prompts)],
+                )
+            )
+            gpt4_res = tg.create_task(
+                structured.call_task(
+                    ctx,
+                    RunAllPrompts.run_all_prompts,
+                    args=[RunAllPromptsArgs(agent_name="gpt4", prompts=prompts)],
+                )
+            )
+          ...
+```
+
+You can call tasks from workflows, from other tasks, and from steps.
+
+
+### Calling steps
+
+Calling a step is similar to calling a workflow by using
+`structured.call_step(...)`.
+
+The arguments to calling a task are:
+
+- the `WorkflowContext`
+- the step function
+- optional `args` and `kwargs`
+
+Here is our example:
+
+```python {17-21}
+@structured.task(id="run_all_prompts")
+class RunAllPrompts:
+    """A task that runs all prompts for an agent"""
+
+    @structured.task_entrypoint()
+    async def run_all_prompts(
+        self, ctx: WorkflowContext, args: RunAllPromptsArgs
+    ) -> List[PromptCompletionPair]:
+        """Execute all prompt inferences for an agent
+
+        Returns a list of (prompt, response) pairs.
+        """
+        step_tasks: List[asyncio.Task[PromptCompletionPair]] = []
+        async with asyncio.TaskGroup() as tg:
+            for prompt in args.prompts:
+                step_task = tg.create_task(
+                    structured.call_step(
+                        ctx,
+                        run_prompt,
+                        args=[RunPromptArgs(agent_name=args.agent_name, prompt=prompt)],
+                    )
+                )
+                step_tasks.append(step_task)
+        step_results = [task.result() for task in step_tasks]
+        return step_results
+```
+
+From within a step, you cannot call other steps or tasks or workflows. A step
+must execute its actions, and then return control to either its calling workflow
+or calling task. This is because workflow durability is controlled from
+workflows and tasks, so if a step calls another step the infra will not be able
+to track step execution.
+
+
+## Running a workflow
+
+Finally, let's run the workflow! When you create a workflow, you can use either
+`structured.run_workflow(...)` which is an async function that runs a workflow
+and returns the value returned by the workflow entrypoint function; or
+`structured.spawn_workflow(...)` which runs the workflow and returns a
+`WorkflowRunHandle`, which lets the caller refer to the running workflow.
+
+Technically, `structured.run_workflow(...)` is equivalent to:
+
+```python
+await structured.spawn_workflow(...).result()
+```
+
+Both `spawn_workflow` and `run_workflow` take the following arguments:
+
+- `workflow_entry` - the async workflow entrypoint function you decorated above
+- `run_config: RunConfig` - the configuration for a workflow run, configuring
+  things such as the storage backend.
+- `agents: List[BaseAgent]` - a list of agents available to the workflow. When
+  you run a workflow, each agent automatically has its memory scoped just to that
+  workflow run. Note, this is a destructive operation on the memory object within
+  the agent, so if you were using the agent's memory elsewhere, create a new agent
+  from scratch.
+- optional `args: List[Any]` and `kwargs: Dict[str, Any]` to pass to the
+  workflow entrypoint
+
+
+Here's the code:
+
+```python
+# Create the run config and the agents
+run_config = structured.RunConfig.with_defaults()
+openaiclients = OpenAIClients.from_api_key(api_key=os.environ["OPENAI_API_KEY"])
+gpt3 = OpenAIAgent(
+    agent_id="gpt3",
+    model_name="gpt-3.5-turbo",
+    openai_clients=openaiclients,
+    cache=run_config.storage.agent_cache,
+)
+gpt4 = OpenAIAgent(
+    agent_id="gpt4",
+    model_name="gpt-4-turbo",
+    openai_clients=openaiclients,
+    cache=run_config.storage.agent_cache,
+)
+
+# run the workflow
+run_handle = structured.spawn_workflow(
+    CompareModels.run,
+    run_config=run_config,
+    agents=agents,
+    args=[prompts],
+)
+
+# check workflow run info and results
+print("Running workflow:", run_handle.workflow_id())
+print("Run ID:", run_handle.workflow_run_id())
+results_doc_id = await run_handle.result()
+print("finished workflow. Wrote results to workflow run doc:", results_doc_id)
+```
+
+## The full example
+
+You can see the full code example in the
+[`/examples/structured_workflow.py`][code-example] file.
 
 
 [durable]: /workflows-and-durability
 [structured-programming]: https://en.wikipedia.org/wiki/Structured_programming
 [req-rep-wf]: /workflows-and-durability/request-reply-workflows
+[code-example]: https://github.com/gofixpoint/fixpoint/blob/main/examples/structured_workflow.py
+[jupyter-example]: https://github.com/gofixpoint/examples-notebooks/blob/main/notebooks/structured_workflow.ipynb
+[asyncio-task-group]: https://docs.python.org/3/library/asyncio-task.html#task-groups
