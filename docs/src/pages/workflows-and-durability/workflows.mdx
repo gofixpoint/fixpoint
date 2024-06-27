@@ -2,20 +2,33 @@
 
 There are two ways of modeling workflows:
 
-1. **Structured workflows**: the Temporal style, where a workflow is executed by
-   the system, similarly to if we just called a function and let that function
-   process. It is possible to have interruption points within the workflow for
-   human or external input, but mostly you can think of this like we’re running
-   a sequence of code. Name inspired by
-   [Structured programming](https://en.wikipedia.org/wiki/Structured_programming).
+1. **Structured workflows**: let you decorate your normal Python functions and
+   classes so what looks like a normal program gets the abilities of:
+   durability, AI memory, human-in-the-loop, and workflow-specific RAG.
 2. **Request/Reply workflows**: a client/server request/response model. This is
    well suited for chatbots where the workflow only advances to the next step
    after a user interaction. The Form Agent is an example of this.
 
 ## Structured workflows
 
-_docs coming soon_
+Structured workflows let you decorate functions and classes to define workflows
+that are [durable][durable], give agents memory about the steps the tasks and
+steps in a workflow, load docs for RAG or search, and add human-in-the-loop.
+
+It is also possible to have interruption points within the workflow for human or
+external input.
+
+If you are familiar with [Temporal](https://temporal.io/), structured workflows
+look similarly, but each workflow is given extra LLM-specific features.  The
+name is inspired by [structured programming][structured-programming].
+
+See more docs and an example in the
+[structured workflows section](/workflows-and-durability/structured-workflows).
+
 
 ## Request/Reply workflows
 
 _docs coming soon_
+
+[durable]: /workflows-and-durability
+[structured-programming]: https://en.wikipedia.org/wiki/Structured_programming

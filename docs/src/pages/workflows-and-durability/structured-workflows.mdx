@@ -1,0 +1,31 @@
+# Structured workflows
+
+Structured workflows let you decorate functions and classes to define workflows
+that:
+
+- are [durable][durable] - if the workflow fails partway through, we can resume
+  without repeating past steps and duplicating LLM inference requests, saving you
+  money
+- give agents memory about the steps the tasks steps in a workflow,
+- record all LLM and agent interactions for observability
+- load docs for RAG or search relevant to the workflow
+- add human-in-the-loop, or pause-and-resume points so you can pause a workflow
+  while waiting for external input
+
+If you are familiar with [Temporal](https://temporal.io/), structured workflows
+look similarly, but each workflow is given extra LLM-specific features.  The
+name is inspired by [structured programming][structured-programming].
+
+
+## Some example use cases
+
+TODO
+
+
+## In-depth use case: comparing multiple LLM models
+
+TODO
+
+
+[durable]: /workflows-and-durability
+[structured-programming]: https://en.wikipedia.org/wiki/Structured_programming
