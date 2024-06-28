@@ -13,6 +13,7 @@ RAG, and tools for parsing structured output from unstructured documents.
 
 __all__ = [
     "CallException",
+    "DefinitionException",
     "call_step",
     "call_task",
     "DefinitionException",
