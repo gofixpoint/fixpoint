@@ -1,4 +1,7 @@
 {
   "caching": "Caching",
-  "request-reply-workflows": "Request/Reply Workflows"
+  "workflows": "Workflows Overview",
+  "structured-workflows": "Structured Workflows",
+  "request-reply-workflows": "Request/Reply Workflows",
+  "imperative-workflows": "Imperative Workflows"
 }
