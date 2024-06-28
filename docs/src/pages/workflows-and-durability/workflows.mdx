@@ -18,4 +18,631 @@ _docs coming soon_
 
 ## Request/Reply workflows
 
-_docs coming soon_
+These types of workflows are particularly well suited for building powerful chatbots.
+One of the benefits of augmenting a request/reply chat flow with a workflow
+is that it allows us to build powerful chatbot state machines that are durable, fault-tolerant, and can handle multiple concurrent conversations.
+
+#### FastAPI Example
+
+This example demonstrates how to build a powerful chatbot experience that generates Invoice forms for its users.
+If you want to skip the step-by-step explanation of the code, you can check out the [FastAPI example](https://github.com/gofixpoint/fixpoint/blob/main/src/fixpoint_extras/services/fastapi/local_server.py) in our repo.
+It's a little over 100 lines of code!
+
+#### Requirements
+
+Before jumping into the code, let's discuss what we want our bot to do:
+
+1. The bot should be able to have a conversation with a user
+2. Classify the user's intent
+3. Start filling out a form based on that intent.
+4. Be extendible such that we can add new flows in the future
+
+#### Initial Setup
+
+Our chatbot will be interacting with OpenAI's GPT-3.5 model, so we'll need to pass in our OpenAI API key.
+
+```python
+import os
+
+_openai_key = os.getenv("OPENAI_API_KEY")
+if not _openai_key:
+    raise ValueError("OPENAI_API_KEY environment variable is not set or is empty")
+```
+
+#### Workflow
+
+Now we can start architecting our chatbot! At the heart of the chat bot is a `Workflow`.
+A workflow is responsible for orchestrating the entire flow of conversation and it is the highest level of abstraction that we can have.
+For now we'll just define a simple workflow:
+
+```python {1,3-5,11}
+import os
+
+from fixpoint_extras.workflows.imperative import (
+    Workflow,
+)
+
+_openai_key = os.getenv("OPENAI_API_KEY")
+if not _openai_key:
+    raise ValueError("OPENAI_API_KEY environment variable is not set or is empty")
+
+_wf = Workflow(id="test_workflow")
+```
+
+#### Workflow Run
+
+One of the core components of a Workflow is a `WorkflowRun`. You can think of a `WorkflowRun` as a single instance of a workflow.
+A key feature of a `WorkflowRun` is that state and memory are scoped to the run. This means that you can have multiple WorkflowRuns for the same Workflow and they will not share state.
+In order for our chatbot to handle multiple conversations, we'll need to create a separate `WorkflowRun` for each conversation. One way to do this is to register a FastAPI route
+that will create a new `WorkflowRun`.
+
+```python {3,7,16-21}
+import os
+
+from fastapi import FastAPI
+
+from fixpoint_extras.workflows.imperative import (
+    Workflow,
+    WorkflowRun,
+)
+
+_openai_key = os.getenv("OPENAI_API_KEY")
+if not _openai_key:
+    raise ValueError("OPENAI_API_KEY environment variable is not set or is empty")
+
+_wf = Workflow(id="test_workflow")
+
+app = FastAPI()
+
+@app.post("/workflow_runs")
+def create_workflow_run() -> WorkflowRun:
+    """Create a new workflow run."""
+    return _wf.run()
+```
+
+As you can see creating a run is just as easy as calling `run()` on a workflow object.
+This method can be called multiple times and each call will return a new `WorkflowRun`.
+Each `WorkflowRun` has a unique ID and can be used to store information about the conversation.
+The following FastAPI decorator, `@app.post("/workflow_runs")`, indicates that this method is called when an `HTTP POST` request is made to the `/workflow_runs` endpoint.
+
+Now, that we have a `WorkflowRun`, let's make our chatbot interactive.
+The first thing we'll need to do is to create an endpoint for the user to interact with our chatbot.
+This will be an `HTTP POST` request that will send a message to the chatbot and get a response.
+
+```python {23-26}
+import os
+
+from fastapi import FastAPI
+
+from fixpoint_extras.workflows.imperative import (
+    Workflow,
+    WorkflowRun,
+)
+
+_openai_key = os.getenv("OPENAI_API_KEY")
+if not _openai_key:
+    raise ValueError("OPENAI_API_KEY environment variable is not set or is empty")
+
+_wf = Workflow(id="test_workflow")
+
+app = FastAPI()
+
+@app.post("/workflow_runs")
+def create_workflow_run() -> WorkflowRun:
+    """Create a new workflow run."""
+    return _wf.run()
+
+@app.post("/workflow_runs/{workflow_run_id}/chats")
+def create_chat(workflow_run_id: str, user_message: str) -> str:
+    """Create a chat for a workflow run."""
+    pass
+```
+
+This endpoint takes a `workflow_run_id` which we have created by calling `create_workflow_run()` and a `user_message` which is the message the user sent to the chatbot.
+The chatbot will then use this information to generate a response.
+
+#### Workflow Context
+
+The next thing we need to do is to load a `WorkflowRun` and then create a `WorkflowContext`.
+The `WorkflowContext` is a wrapper around a `WorkflowRun` that provides a way to interact with the `WorkflowRun` along with other
+constructs provided by Fixpoint such as a logger, cache and agents.
+You could in theory write flows without using the `WorkflowContext`, but it provides a lot of convenience.
+In our example we'll create a function that does this for us:
+
+```python {3,4,8,15-18,35-44}
+import os
+
+from fastapi import FastAPI, HTTPException
+from fixpoint_extras.services.formagent.setup import get_workflow_agent
+from fixpoint_extras.workflows.imperative import (
+    Workflow,
+    WorkflowRun,
+    WorkflowContext
+)
+
+_openai_key = os.getenv("OPENAI_API_KEY")
+if not _openai_key:
+    raise ValueError("OPENAI_API_KEY environment variable is not set or is empty")
+
+_wfagent = get_workflow_agent(
+    openai_key=_openai_key,
+    model_name="gpt-3.5-turbo",
+)
+
+_wf = Workflow(id="test_workflow")
+
+app = FastAPI()
+
+
+@app.post("/workflow_runs")
+def create_workflow_run() -> WorkflowRun:
+    """Create a new workflow run."""
+    return _wf.run()
+
+@app.post("/workflow_runs/{workflow_run_id}/chats")
+def create_chat(workflow_run_id: str, user_message: str) -> str:
+    """Create a chat for a workflow run."""
+    pass
+
+def get_workflow_context(workflow_run_id: str) -> WorkflowContext:
+    """Get the workflow context for a workflow run."""
+    # Load workflow run using provided identifier
+    wfrun = _wf.load_run(workflow_run_id)
+    if wfrun is None:
+        raise HTTPException(status_code=404, detail="Workflow run not found")
+
+    # Instantiate workflow context
+    return WorkflowContext.from_workflow(wfrun, [_wfagent])
+```
+
+You may have noticed that we also created an Agent.
+This is a key part of our chatbot, as the configuration of the agent dictates how we communicate with our inference provider.
+In this example we're using a convenience method `get_workflow_agent` which returns a `fixpoint.agents.OpenAIAgent`.
+This agent is configured to use the passed in OpenAI key and gpt-3.5-turbo model version.
+
+#### Workflow Run > Reading Node State
+
+Node state is the core of our chatbot. It is the state of a `WorkflowRun` at a given point in time.
+It is a key part of our chatbot, as the state of a `WorkflowRun` dictates how we handle the user's message.
+State is broken down into two parts: "task" and "step".
+The "task" is the high level action that the chatbot is trying to complete.
+The "step" is the specific action within the task that the chatbot is trying to complete.
+
+For instance let's say we want to accomplish the goal of throwing an awesome party. Here are some tasks and underlying steps that we could have:
+
+- Task 1: Get party supplies
+  - Step 1: Go to party store
+  - Step 2: Pick up supplies
+  - Step 3: Go home
+- Task 2: Plan party
+  - Step 1: Create a plan
+  - Step 2: Plan the party
+  - Step 3: Create a schedule
+  - Step 4: Send invites
+- Task 3: Throw party
+  - Step 1: Greet guests
+  - Step 2: Throw the party
+  - Step 3: Celebrate
+  - Step 4: Do dishes
+
+Tasks and steps are defined in the [`NodeState`](https://github.com/gofixpoint/fixpoint/blob/main/src/fixpoint_extras/workflows/imperative/workflow.py) class.
+It is up to the developer's discretion to determine what constitutes a task or a step. In our example we'll work only with tasks, but you can also work with steps.
+
+Let's expand our `create_chat` function a bit:
+
+```python {10-12,36-48}
+import os
+
+from fastapi import FastAPI, HTTPException
+from fixpoint_extras.services.formagent.setup import get_workflow_agent
+from fixpoint_extras.workflows.imperative import (
+    Workflow,
+    WorkflowRun,
+    WorkflowContext
+)
+from fixpoint_extras.services.formagent.tasks import (
+    FormType
+)
+
+_openai_key = os.getenv("OPENAI_API_KEY")
+if not _openai_key:
+    raise ValueError("OPENAI_API_KEY environment variable is not set or is empty")
+
+_wfagent = get_workflow_agent(
+    openai_key=_openai_key,
+    model_name="gpt-3.5-turbo",
+)
+
+_wf = Workflow(id="test_workflow")
+
+app = FastAPI()
+
+
+@app.post("/workflow_runs")
+def create_workflow_run() -> WorkflowRun:
+    """Create a new workflow run."""
+    return _wf.run()
+
+@app.post("/workflow_runs/{workflow_run_id}/chats")
+def create_chat(workflow_run_id: str, user_message: str) -> str:
+    """Create a chat for a workflow run."""
+    wfctx = get_workflow_context(workflow_run_id)
+    task = wfctx.workflow_run.node_state.task
+    if task == "__main__":
+        # Classify the task on an initial message
+        pass
+    elif task == FormType.INVOICE.value:
+        # Handle invoice
+        pass
+    elif task == FormType.EVENT_REGISTRATION.value:
+        # Handle event registration
+        pass
+    else:
+        raise HTTPException(status_code=400, detail="Unsupported task")
+
+def get_workflow_context(workflow_run_id: str) -> WorkflowContext:
+    """Get the workflow context for a workflow run."""
+    # Load workflow run using provided identifier
+    wfrun = _wf.load_run(workflow_run_id)
+    if wfrun is None:
+        raise HTTPException(status_code=404, detail="Workflow run not found")
+
+    # Instantiate workflow context
+    return WorkflowContext.from_workflow(wfrun, [_wfagent])
+```
+
+The first thing you may notice is that we instantiate a `WorkflowContext`, which we'll need to access the workflow run and the underlying state.
+We then get the task from the workflow run via `wfctx.workflow_run.node_state.task` and our logic branches out:
+
+If the task is `__main__`, we'll need to classify the task.
+If the task is `FormType.INVOICE.value`, we'll need to handle the invoice.
+If the task is `FormType.EVENT_REGISTRATION.value`, we'll need to handle the event registration.
+(FormType is just an enum that we have defined in our example to represent the two types of forms we want to handle)
+
+One important thing to point out is that the `__main__` task denotes the initial, or default task that is created.
+By default, when a run gets created it creates a `NodeState` with the `task` and `step` set to `__main__`.
+It is up to the developer to update the `NodeState` to a different task and step (i.e. `FormType.INVOICE.value` or `FormType.EVENT_REGISTRATION.value`) which we will see in the next section.
+
+What we have accomplished so far by expanding our `create_chat` function is that we defined a logical flow for our chatbot to follow.
+In the next section we'll see how to handle the user's message and update the `NodeState` to a different task and step.
+
+#### Workflow Run > Updating Node State
+
+The next thing our chatbot needs to do is classify the user's message in order to figure out what the user's intent is and how to proceed.
+We'll need to create a function that will do this for us.
+
+```python {11, 50-59}
+import os
+
+from fastapi import FastAPI, HTTPException
+from fixpoint_extras.services.formagent.setup import get_workflow_agent
+from fixpoint_extras.workflows.imperative import (
+    Workflow,
+    WorkflowRun,
+    WorkflowContext
+)
+from fixpoint_extras.services.formagent.tasks import (
+    classify_form_type,
+    FormType
+)
+
+_openai_key = os.getenv("OPENAI_API_KEY")
+if not _openai_key:
+    raise ValueError("OPENAI_API_KEY environment variable is not set or is empty")
+
+_wfagent = get_workflow_agent(
+    openai_key=_openai_key,
+    model_name="gpt-3.5-turbo",
+)
+
+_wf = Workflow(id="test_workflow")
+
+app = FastAPI()
+
+
+@app.post("/workflow_runs")
+def create_workflow_run() -> WorkflowRun:
+    """Create a new workflow run."""
+    return _wf.run()
+
+@app.post("/workflow_runs/{workflow_run_id}/chats")
+def create_chat(workflow_run_id: str, user_message: str) -> str:
+    """Create a chat for a workflow run."""
+    wfctx = get_workflow_context(workflow_run_id)
+    task = wfctx.workflow_run.node_state.task
+    if task == "__main__":
+        return classify_task(wfctx, user_message)
+    elif task == FormType.INVOICE.value:
+        # Handle invoice
+        pass
+    elif task == FormType.EVENT_REGISTRATION.value:
+        # Handle event registration
+        pass
+    else:
+        raise HTTPException(status_code=400, detail="Unsupported task")
+
+def classify_task(wfctx: WorkflowContext, user_message: str) -> str:
+    """Classify the task for a workflow run."""
+    form_type, _ = classify_form_type(wfctx, user_message)
+    if form_type == FormType.INVOICE:
+        wfctx.workflow_run.goto_task(task_id=FormType.INVOICE.value)
+        return "Could you please tell me more about the invoice?"
+    elif form_type == FormType.EVENT_REGISTRATION:
+        wfctx.workflow_run.goto_task(task_id=FormType.EVENT_REGISTRATION.value)
+        return "Could you please tell me more about event registration?"
+    return "Could you please clarify what you need help with?"
+
+def get_workflow_context(workflow_run_id: str) -> WorkflowContext:
+    """Get the workflow context for a workflow run."""
+    # Load workflow run using provided identifier
+    wfrun = _wf.load_run(workflow_run_id)
+    if wfrun is None:
+        # When a workflow run is not found, inform the client
+        raise HTTPException(status_code=404, detail="Workflow run not found")
+
+    # Instantiate workflow context
+    return WorkflowContext.from_workflow(wfrun, [_wfagent])
+```
+
+In the `classify_task` function that we've just defined we call a helper method `classify_form_type`
+which calls out to the agent and classifies the user's message via structured attributes.
+Depending on the result we then update the `NodeState` to a different task through the `wfctx.workflow_run.goto_task` method.
+Additionally, we return a message to the user to let them know what to do next.
+
+Say we updated the `NodeState` to `FormType.INVOICE.value`, the next time the user sends a message our chatbot will know to handle the invoice.
+
+There are obvious caveats to our approach, such as what happens if the user's message is not clear, or if the user's message is not
+related to the invoice or event registration, or if a user wants to switch tasks.
+We won't cover those topics in this example, but we plan on putting out best practices for building chatbots with Fixpoint in the future.
+
+#### Workflow Run > Forms
+
+In this section we'll discuss forms.
+We'll start by talking about how to store and retrieve forms that contain information about invoices at any state of a `WorkflowRun`.
+We won't focus on how to gather form information from the user, this is covered in the next section.
+
+Forms are attributes of a `WorkflowRun` and are used to store structured information about the forms that the chatbot has gathered from the user.
+
+```python {2,9,14,44,46-48,75-100}
+import os
+from typing import cast
+from fastapi import FastAPI, HTTPException
+from fixpoint_extras.services.formagent.setup import get_workflow_agent
+from fixpoint_extras.workflows.imperative import (
+    Workflow,
+    WorkflowRun,
+    WorkflowContext,
+    Form,
+)
+from fixpoint_extras.services.formagent.tasks import (
+    classify_form_type,
+    FormType,
+    InvoiceQuestions,
+)
+
+_openai_key = os.getenv("OPENAI_API_KEY")
+if not _openai_key:
+    raise ValueError("OPENAI_API_KEY environment variable is not set or is empty")
+
+_wfagent = get_workflow_agent(
+    openai_key=_openai_key,
+    model_name="gpt-3.5-turbo",
+)
+
+_wf = Workflow(id="test_workflow")
+
+app = FastAPI()
+
+
+@app.post("/workflow_runs")
+def create_workflow_run() -> WorkflowRun:
+    """Create a new workflow run."""
+    return _wf.run()
+
+@app.post("/workflow_runs/{workflow_run_id}/chats")
+def create_chat(workflow_run_id: str, user_message: str) -> str:
+    """Create a chat for a workflow run."""
+    wfctx = get_workflow_context(workflow_run_id)
+    task = wfctx.workflow_run.node_state.task
+    if task == "__main__":
+        return classify_task(wfctx, user_message)
+    elif task == FormType.INVOICE.value:
+        return invoice_task(wfctx, user_message)
+    elif task == FormType.EVENT_REGISTRATION.value:
+        raise HTTPException(
+            status_code=400, detail="Event registration task currently not supported"
+        )
+    else:
+        raise HTTPException(status_code=400, detail="Unsupported task")
+
+def classify_task(wfctx: WorkflowContext, user_message: str) -> str:
+    """Classify the task for a workflow run."""
+    form_type, _ = classify_form_type(wfctx, user_message)
+    if form_type == FormType.INVOICE:
+        wfctx.workflow_run.goto_task(task_id=FormType.INVOICE.value)
+        return "Could you please tell me more about the invoice?"
+    elif form_type == FormType.EVENT_REGISTRATION:
+        wfctx.workflow_run.goto_task(task_id=FormType.EVENT_REGISTRATION.value)
+        return "Could you please tell me more about event registration?"
+
+    return "Could you please clarify what you need help with?"
+
+def get_workflow_context(workflow_run_id: str) -> WorkflowContext:
+    """Get the workflow context for a workflow run."""
+    # Load workflow run using provided identifier
+    wfrun = _wf.load_run(workflow_run_id)
+    if wfrun is None:
+        # When a workflow run is not found, inform the client
+        raise HTTPException(status_code=404, detail="Workflow run not found")
+
+    # Instantiate workflow context
+    return WorkflowContext.from_workflow(wfrun, [_wfagent])
+
+def invoice_task(wfctx: WorkflowContext, user_message: str) -> str:
+    """Handle the invoice task for a workflow run."""
+    wfrun = wfctx.workflow_run
+    form_id = "invoice_questions"
+    stored_form = wfrun.forms.get(form_id=form_id)
+
+    if stored_form is None:
+        form = Form[InvoiceQuestions](
+            id=form_id,
+            workflow_run_id=wfrun.id,
+            form_schema=InvoiceQuestions,
+        )
+    else:
+        form = cast(Form[InvoiceQuestions], stored_form)
+
+    # Some magic happens here to gather new information about the form and merge it with the existing contents
+    contents = '...'
+
+    if stored_form is None:
+        wfrun.forms.store(form_id=form_id, schema=InvoiceQuestions)
+    wfrun.forms.update(form_id=form_id, contents=contents)
+
+    # Some magic happens here to determine what message to send to the user
+    return '...'
+```
+
+Here we've added a new method called `invoice_task` which is responsible for gathering information related to invoices as well as
+communicating with the user on what to do next with regards to invoices.
+The `create_chat` method was also updated to call `invoice_task` when the task is `FormType.INVOICE.value`.
+Additionally, we won't handle event registrations in this example, so instead we'll raise an error if the task is `FormType.EVENT_REGISTRATION.value`.
+
+In this snippet we define a new form_id, `invoice_questions`, and use it to store and update the form.
+We first check whether a form with the given `form_id` exists. If it does, we use it. If it doesn't, we create a new one. In this particular
+example the form is created with the `InvoiceQuestions` schema, which is a Pydantic model that represents the information we want from the user.
+
+After we've loaded form contents we'll need to update the form with new information.
+We do this by first calling `wfrun.forms.store` to register the form schema and then calling `wfrun.forms.update` to update the form contents.
+
+This allows our chatbot to retrieve and update the form with new information between requests!
+
+#### InfoGatherer
+
+The `InfoGatherer` class is a tool that is used to gather information from the user.
+It is a wrapper around a `Form` object and provides a simple interface to format questions and gather information from the user.
+One big benefit of using `InfoGatherer` is that it encapsulates the logic for figuring out what pieces of information
+are missing from the form and what questions to ask the user. Behind the scene it uses tool calling to get structured information from the agent.
+You can find the full implementation of InfoGatherer [here](https://github.com/gofixpoint/fixpoint/blob/main/src/fixpoint_extras/services/formagent/controllers/infogather.py).
+
+Let's modify our existing example to use `InfoGatherer` to gather information from the user.
+
+```python {14,17,93-98,102-108}
+import os
+from typing import cast
+from fastapi import FastAPI, HTTPException
+from fixpoint_extras.services.formagent.setup import get_workflow_agent
+from fixpoint_extras.workflows.imperative import (
+    Workflow,
+    WorkflowRun,
+    WorkflowContext,
+    Form,
+)
+from fixpoint_extras.services.formagent.tasks import (
+    classify_form_type,
+    FormType,
+    gather_invoice_info,
+    InvoiceQuestions,
+)
+from fixpoint_extras.services.formagent.controllers.infogather import InfoGatherer
+
+
+_openai_key = os.getenv("OPENAI_API_KEY")
+if not _openai_key:
+    raise ValueError("OPENAI_API_KEY environment variable is not set or is empty")
+
+_wfagent = get_workflow_agent(
+    openai_key=_openai_key,
+    model_name="gpt-3.5-turbo",
+)
+
+_wf = Workflow(id="test_workflow")
+
+app = FastAPI()
+
+
+@app.post("/workflow_runs")
+def create_workflow_run() -> WorkflowRun:
+    """Create a new workflow run."""
+    return _wf.run()
+
+@app.post("/workflow_runs/{workflow_run_id}/chats")
+def create_chat(workflow_run_id: str, user_message: str) -> str:
+    """Create a chat for a workflow run."""
+    wfctx = get_workflow_context(workflow_run_id)
+    task = wfctx.workflow_run.node_state.task
+    if task == "__main__":
+        return classify_task(wfctx, user_message)
+    elif task == FormType.INVOICE.value:
+        return invoice_task(wfctx, user_message)
+    elif task == FormType.EVENT_REGISTRATION.value:
+        raise HTTPException(
+            status_code=400, detail="Event registration task currently not supported"
+        )
+    else:
+        raise HTTPException(status_code=400, detail="Unsupported task")
+
+def classify_task(wfctx: WorkflowContext, user_message: str) -> str:
+    """Classify the task for a workflow run."""
+    form_type, _ = classify_form_type(wfctx, user_message)
+    if form_type == FormType.INVOICE:
+        wfctx.workflow_run.goto_task(task_id=FormType.INVOICE.value)
+        return "Could you please tell me more about the invoice?"
+    elif form_type == FormType.EVENT_REGISTRATION:
+        wfctx.workflow_run.goto_task(task_id=FormType.EVENT_REGISTRATION.value)
+        return "Could you please tell me more about event registration?"
+
+    return "Could you please clarify what you need help with?"
+
+def get_workflow_context(workflow_run_id: str) -> WorkflowContext:
+    """Get the workflow context for a workflow run."""
+    # Load workflow run using provided identifier
+    wfrun = _wf.load_run(workflow_run_id)
+    if wfrun is None:
+        # When a workflow run is not found, inform the client
+        raise HTTPException(status_code=404, detail="Workflow run not found")
+
+    # Instantiate workflow context
+    return WorkflowContext.from_workflow(wfrun, [_wfagent])
+
+def invoice_task(wfctx: WorkflowContext, user_message: str) -> str:
+    """Handle the invoice task for a workflow run."""
+    wfrun = wfctx.workflow_run
+    form_id = "invoice_questions"
+    stored_form = wfrun.forms.get(form_id=form_id)
+
+    if stored_form is None:
+        form = Form[InvoiceQuestions](
+            id=form_id,
+            workflow_run_id=wfrun.id,
+            form_schema=InvoiceQuestions,
+        )
+    else:
+        form = cast(Form[InvoiceQuestions], stored_form)
+
+    info_gatherer = InfoGatherer[InvoiceQuestions](
+        form=form,
+        agent=wfctx.agents["main"],
+    )
+
+    gather_invoice_info(wfctx, info_gatherer, user_message)
+
+    if stored_form is None:
+        wfrun.forms.store(form_id=form_id, schema=InvoiceQuestions)
+    wfrun.forms.update(form_id=form_id, contents=info_gatherer.form.contents)
+
+    if info_gatherer.is_complete():
+        return f"Here is your form:\n\n{info_gatherer.form.contents.model_dump_json()}"
+    else:
+        more_questions = info_gatherer.format_questions()
+        return more_questions
+```
+
+In this example we simply instantiate InfoGatherer with the form and agent,
+then call a convenience functino `gather_invoice_info` to get the information from an LLM.
+If the form is complete we return the form contents, otherwise we return more questions to the user.
+
+#### Conclusion
+
+This concludes our tour of building chatbots with Fixpoint! You can find more examples in our [Github repo](https://github.com/gofixpoint/fixpoint).

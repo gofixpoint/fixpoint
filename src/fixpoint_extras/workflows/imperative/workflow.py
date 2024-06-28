@@ -324,6 +324,7 @@ class _Forms:
         it is stored at the root of the workflow run, outside of all tasks and
         steps. By default, we store the form at the current task and step.
         """
+        # TODO(jakub): Pass in contents as well
         if path is None:
             path = self.workflow_run.node_state.id
         form = Form[T](

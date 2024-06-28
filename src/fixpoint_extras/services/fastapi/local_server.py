@@ -44,14 +44,8 @@ def create_chat(workflow_run_id: str, user_message: str) -> str:
     wfctx = get_workflow_context(workflow_run_id)
     task = wfctx.workflow_run.node_state.task
     if task == "__main__":
-        # Classify the task on an initial message
         return classify_task(wfctx, user_message)
-
-    # After we have classified the user's intent, we can start answering questions
-    # about the form they are trying to create
-    task = wfctx.workflow_run.node_state.task
-
-    if task == FormType.INVOICE.value:
+    elif task == FormType.INVOICE.value:
         return invoice_task(wfctx, user_message)
     elif task == FormType.EVENT_REGISTRATION.value:
         raise HTTPException(
@@ -76,13 +70,10 @@ def classify_task(wfctx: WorkflowContext, user_message: str) -> str:
 
 def get_workflow_context(workflow_run_id: str) -> WorkflowContext:
     """Get the workflow context for a workflow run."""
-    # Load workflow run using provided identifier
     wfrun = _wf.load_run(workflow_run_id)
     if wfrun is None:
-        # When a workflow run is not found, inform the client
         raise HTTPException(status_code=404, detail="Workflow run not found")
 
-    # Instantiate workflow context and use agent memory
     return WorkflowContext.from_workflow(wfrun, [_wfagent])
 
 
@@ -92,7 +83,6 @@ def invoice_task(wfctx: WorkflowContext, user_message: str) -> str:
     form_id = "invoice_questions"
     stored_form = wfrun.forms.get(form_id=form_id)
 
-    # Create a Form for invoice questions
     if stored_form is None:
         form = Form[InvoiceQuestions](
             id=form_id,
@@ -102,7 +92,6 @@ def invoice_task(wfctx: WorkflowContext, user_message: str) -> str:
     else:
         form = cast(Form[InvoiceQuestions], stored_form)
 
-    # Instantiate info gatherer
     # TODO(jakub): This is going to call info_gatherer.make_field_questions on every call.
     # A better approach would be some way to have a single instance of the
     # generated questions that you can load into the InfoGatherer.
@@ -113,12 +102,10 @@ def invoice_task(wfctx: WorkflowContext, user_message: str) -> str:
 
     gather_invoice_info(wfctx, info_gatherer, user_message)
 
-    # Store document
     if stored_form is None:
         wfrun.forms.store(form_id=form_id, schema=InvoiceQuestions)
     wfrun.forms.update(form_id=form_id, contents=info_gatherer.form.contents)
 
-    # Get more information from info gatherer
     if info_gatherer.is_complete():
         return f"Here is your form:\n\n{info_gatherer.form.contents.model_dump_json()}"
     else:
