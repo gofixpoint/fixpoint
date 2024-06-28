@@ -113,8 +113,8 @@ class WorkflowContext:
 
     def __init__(
         self,
-        agents: List[BaseAgent],
         workflow_run: WorkflowRun,
+        agents: List[BaseAgent],
         cache: Optional[SupportsChatCompletionCache] = None,
         logger: Optional[logging.Logger] = None,
         *,

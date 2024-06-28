@@ -18,10 +18,10 @@ class WorkflowContext(ImperativeWorkflowContext):
     def __init__(
         self,
         run_config: RunConfig,
-        agents: List[BaseAgent],
         workflow_run: WorkflowRun,
+        agents: List[BaseAgent],
         cache: Optional[SupportsChatCompletionCache] = None,
         logger: Optional[logging.Logger] = None,
     ) -> None:
-        super().__init__(agents, workflow_run, cache, logger)
+        super().__init__(workflow_run, agents, cache, logger)
         self.run_config = run_config
