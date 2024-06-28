@@ -16,11 +16,12 @@ from ._context import WorkflowContext
 from ._task import task, task_entrypoint, call_task
 from ._step import step, call_step
 
-from .errors import DefinitionException
+from .errors import CallException, DefinitionException
 from . import errors
 
 
 __all__ = [
+    "CallException",
     "DefinitionException",
     "call_step",
     "call_task",
