@@ -14,7 +14,9 @@ from typing import (
     Any,
     Callable,
     Dict,
+    List,
     Optional,
+    Protocol,
     Sequence,
     Type,
     TypeVar,
@@ -22,10 +24,11 @@ from typing import (
 )
 
 import fixpoint
-from fixpoint_extras.workflows.imperative import WorkflowRun, WorkflowContext
+from fixpoint_extras.workflows.imperative import WorkflowContext
 from .. import imperative
 from .errors import DefinitionException
 from ._helpers import validate_func_has_context_arg, Params, Ret
+from ._run_config import RunConfig
 
 
 T = TypeVar("T")
@@ -97,11 +100,9 @@ class WorkflowMetaFixp:
     """Internal fixpoint attribute for a workflow class definition."""
 
     workflow: imperative.Workflow
-    ctx_factory: CtxFactory
 
-    def __init__(self, workflow_id: str, ctx_factory: CtxFactory) -> None:
+    def __init__(self, workflow_id: str) -> None:
         self.workflow = imperative.Workflow(id=workflow_id)
-        self.ctx_factory = ctx_factory
 
 
 class WorkflowInstanceFixp:
@@ -116,7 +117,9 @@ class WorkflowInstanceFixp:
         self.ctx = None
         self.workflow_run = None
 
-    def run(self, ctx_factory: CtxFactory) -> imperative.WorkflowContext:
+    def run(
+        self, run_config: RunConfig, agents: List[fixpoint.agents.BaseAgent]
+    ) -> imperative.WorkflowContext:
         """Internal function to "run" a workflow.
 
         Create a workflow object instance and context. It doesn't actually call
@@ -125,31 +128,19 @@ class WorkflowInstanceFixp:
         """
 
         if self.ctx:
-            return self.ctx
-        run = self.workflow.run()
+            raise ValueError("workflow instance was already run")
+        run = self.workflow.run(storage_config=run_config.storage)
         self.workflow_run = run
-        ctx = ctx_factory(run)
-        self.ctx = ctx
-        return ctx
 
-
-def _default_ctx_factory(run: WorkflowRun) -> WorkflowContext:
-    return WorkflowContext.from_workflow(
-        workflow_run=run,
-        agents=[],
-        # TODO(dbmikus) change default to an in-memory cache
-        cache=fixpoint.cache.ChatCompletionDiskTLRUCache.from_tmpdir(
-            # 1 hour
-            ttl_s=60 * 60,
-            # 100 MB
-            size_limit_bytes=1024 * 1024 * 100,
-        ),
-    )
+        cache = run_config.storage.agent_cache
+        # The WorkflowContext initializer will set fresh memory for each agent
+        wfctx = WorkflowContext(agents=agents, workflow_run=run, cache=cache)
+        self.ctx = wfctx
+        return wfctx
 
 
 def workflow(
     id: str,  # pylint: disable=redefined-builtin
-    ctx_factory: CtxFactory = _default_ctx_factory,
 ) -> Callable[[Type[C]], Type[C]]:
     """Decorate a class to mark it as a workflow definition
 
@@ -168,9 +159,7 @@ def workflow(
 
     def decorator(cls: Type[C]) -> Type[C]:
         # pylint: disable=protected-access
-        cls.__fixp_meta = WorkflowMetaFixp(  # type: ignore[attr-defined]
-            workflow_id=id, ctx_factory=ctx_factory
-        )
+        cls.__fixp_meta = WorkflowMetaFixp(workflow_id=id)  # type: ignore[attr-defined]
         attrs = dict(cls.__dict__)
         return cast(Type[C], _WorkflowMeta(cls.__name__, cls.__bases__, attrs))
 
@@ -251,16 +240,64 @@ def get_workflow_instance_fixp(instance: C) -> Optional[WorkflowInstanceFixp]:
     return attr
 
 
-def run_workflow(
-    workflow_entry: Callable[Params, Ret],
+Ret_co = TypeVar("Ret_co", covariant=True)
+
+
+class WorkflowRunHandle(Protocol[Ret_co]):
+    """A handle on a running workflow"""
+
+    def result(self) -> Ret_co:
+        """The result of running a workflow"""
+
+    def workflow_id(self) -> str:
+        """The ID of the workflow"""
+
+    def workflow_run_id(self) -> str:
+        """The ID of the workflow run"""
+
+
+class _WorkflowRunHandle(WorkflowRunHandle[Ret_co]):
+    """Handle to a workflow run."""
+
+    _workflow_run: imperative.WorkflowRun
+    _result: Ret_co
+
+    def __init__(self, workflow_run: imperative.WorkflowRun, result: Ret_co) -> None:
+        self._workflow_run = workflow_run
+        self._result = result
+
+    def result(self) -> Ret_co:
+        return self._result
+
+    def workflow_id(self) -> str:
+        return self._workflow_run.workflow_id
+
+    def workflow_run_id(self) -> str:
+        return self._workflow_run.id
+
+
+def spawn_workflow(
+    workflow_entry: Callable[Params, Ret_co],
+    *,
+    run_config: RunConfig,
+    agents: List[fixpoint.agents.BaseAgent],
     args: Optional[Sequence[Any]] = None,
     kwargs: Optional[Dict[str, Any]] = None,
-    ctx_factory: Optional[CtxFactory] = None,
-) -> Ret:
+) -> WorkflowRunHandle[Ret_co]:
     """Runs a structured workflow.
 
     You must call `call_task` from within a structured workflow definition. ie
-    from a class decorated with `@structured.workflow(...)`. A more complete example:
+    from a class decorated with `@structured.workflow(...)`.
+
+    The `agents` list is a list of agents that will be available to the
+    workflow. The agent will be wired up to interact with the workflow run,
+    having memory of all past workflow run inferences. Note that every agent you
+    pass in here will its memory overridden for the particular workflow run, so
+    don't use agents that you want to use outside of or across workflow runs.
+    The agents will be available to the workflow via the `WorkflowContext`
+    argument.
+
+    A more complete example:
 
     ```
     @structured.workflow(id="my-workflow")
@@ -270,12 +307,18 @@ def run_workflow(
             ...
 
 
-    structured.run_workflow(MyWorkflow.main, args=[{"somevalue": "foobar"}])
+    structured.run_workflow(
+        MyWorkflow.main,
+        run_config=RunConfig.with_in_memory(),
+        agents=[main_agent, summarizer_agent],
+        args=[{"somevalue": "foobar"}]
+    )
     ```
 
     If you pass in a `ctx_factory`, it will be used instead of the `ctx_factory`
     defined on the workflow class.
     """
+
     entryfixp = get_workflow_entrypoint_fixp(workflow_entry)
     if not entryfixp:
         raise DefinitionException(
@@ -298,15 +341,36 @@ def run_workflow(
         raise DefinitionException(
             f'Workflow "{workflow_defn.__name__}" is not a valid workflow instance'
         )
-    fixp.run(ctx_factory or fixpmeta.ctx_factory)
+    fixp.run(run_config, agents)
 
     if not fixp.ctx:
         # this is an internal error, not a user error
         raise ValueError("workflow run context is None")
+    if not fixp.workflow_run:
+        raise ValueError("workflow run is None")
 
     args = args or []
     kwargs = kwargs or {}
     # The Params type gets confused because we are injecting an additional
     # WorkflowContext. Ignore that error.
     res = workflow_entry(workflow_instance, fixp.ctx, *args, **kwargs)  # type: ignore[arg-type]
-    return res
+    return _WorkflowRunHandle[Ret_co](fixp.workflow_run, res)
+
+
+def run_workflow(
+    workflow_entry: Callable[Params, Ret_co],
+    *,
+    run_config: RunConfig,
+    agents: List[fixpoint.agents.BaseAgent],
+    args: Optional[Sequence[Any]] = None,
+    kwargs: Optional[Dict[str, Any]] = None,
+) -> Ret_co:
+    """Runs a structured workflow, returning its result.
+
+    Runs a structured workflow and directly returns its result. This is a
+    shortcut for `spawn_workflow(...).result()`.
+    """
+    wrun_handle = spawn_workflow(
+        workflow_entry, run_config=run_config, agents=agents, args=args, kwargs=kwargs
+    )
+    return wrun_handle.result()

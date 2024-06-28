@@ -4,55 +4,23 @@ import asyncio
 from dataclasses import dataclass
 import json
 import os
-from typing import List, Union, Dict
+from typing import List, Union, Dict, Tuple
 
+from fixpoint.agents import BaseAgent
 from fixpoint.agents.openai import OpenAIClients, OpenAIAgent
 from fixpoint.completions.chat_completion import ChatCompletionMessageParam
-from fixpoint.cache import ChatCompletionTLRUCache
-from fixpoint.analyze.memory import DataframeMemory
-from fixpoint_extras.workflows.imperative import WorkflowRun, WorkflowContext
+from fixpoint_extras.workflows.imperative import WorkflowContext
 from fixpoint_extras.workflows import structured
 
 
-def init_workflow_context(workflow_run: WorkflowRun) -> WorkflowContext:
-    """Factory function to initialize a workflow context for a workflow definition"""
-
-    cache = ChatCompletionTLRUCache(
-        maxsize=1000,
-        ttl_s=60 * 60 * 24 * 30,
-    )
-    openaiclients = OpenAIClients.from_api_key(api_key=os.environ["OPENAI_API_KEY"])
-    memory = DataframeMemory()
-    # TODO(dbmikus) expose memory on an agent
-    gpt3 = OpenAIAgent(
-        agent_id="gpt3",
-        model_name="gpt-3.5-turbo",
-        openai_clients=openaiclients,
-        memory=memory,
-        cache=cache,
-    )
-    gpt4 = OpenAIAgent(
-        agent_id="gpt4",
-        model_name="gpt-4-turbo",
-        openai_clients=openaiclients,
-        memory=DataframeMemory(),
-        cache=cache,
-    )
-    return WorkflowContext.from_workflow(
-        workflow_run,
-        agents=[gpt3, gpt4],
-        cache=cache,
-    )
-
-
-@structured.workflow(id="example_workflow", ctx_factory=init_workflow_context)
+@structured.workflow(id="example_workflow")
 class CompareModels:
     """Compare the performance of GPT-3.5 and GPT-4"""
 
     @structured.workflow_entrypoint()
     async def run(
         self, ctx: WorkflowContext, prompts: List[List[ChatCompletionMessageParam]]
-    ) -> None:
+    ) -> str:
         """Entrypoint for the workflow to compare agents"""
 
         async with asyncio.TaskGroup() as tg:
@@ -76,9 +44,9 @@ class CompareModels:
             "gpt4": gpt4_res.result(),
         }
         # TODO(dbmikus) this is not async, so it will block the async event loop
-        ctx.workflow_run.docs.store(
-            id="inference-results.json", contents=json.dumps(results)
-        )
+        doc_id = "inference-results.json"
+        ctx.workflow_run.docs.store(id=doc_id, contents=json.dumps(results))
+        return doc_id
 
 
 @dataclass
@@ -129,21 +97,51 @@ async def run_prompt(ctx: WorkflowContext, args: RunPromptArgs) -> Union[str, No
     return completion.choices[0].message.content
 
 
-if __name__ == "__main__":
-    asyncio.run(
-        structured.run_workflow(
-            CompareModels.run,
+def setup_agents() -> Tuple[structured.RunConfig, List[BaseAgent]]:
+    """Setup agents for the workflow"""
+    run_config = structured.RunConfig.with_defaults()
+    openaiclients = OpenAIClients.from_api_key(api_key=os.environ["OPENAI_API_KEY"])
+    gpt3 = OpenAIAgent(
+        agent_id="gpt3",
+        model_name="gpt-3.5-turbo",
+        openai_clients=openaiclients,
+        cache=run_config.storage.agent_cache,
+    )
+    gpt4 = OpenAIAgent(
+        agent_id="gpt4",
+        model_name="gpt-4-turbo",
+        openai_clients=openaiclients,
+        cache=run_config.storage.agent_cache,
+    )
+    return run_config, [gpt3, gpt4]
+
+
+async def main() -> None:
+    """configure and run the workflow"""
+    run_config, agents = setup_agents()
+
+    run_handle = structured.spawn_workflow(
+        CompareModels.run,
+        run_config=run_config,
+        agents=agents,
+        args=[
             [
                 [
-                    [
-                        {"role": "system", "content": "You are a helpful assistant."},
-                        {"role": "user", "content": "What is the meaning of life?"},
-                    ],
-                    [
-                        {"role": "system", "content": "You are an evil AI."},
-                        {"role": "user", "content": "What is the meaning of life?"},
-                    ],
-                ]
-            ],
-        )
+                    {"role": "system", "content": "You are a helpful assistant."},
+                    {"role": "user", "content": "What is the meaning of life?"},
+                ],
+                [
+                    {"role": "system", "content": "You are an evil AI."},
+                    {"role": "user", "content": "What is the meaning of life?"},
+                ],
+            ]
+        ],
     )
+    print("Running workflow:", run_handle.workflow_id())
+    print("Run ID:", run_handle.workflow_run_id())
+    results_doc_id = await run_handle.result()
+    print("finished workflow. Wrote results to workflow run doc:", results_doc_id)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
