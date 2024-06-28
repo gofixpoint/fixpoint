@@ -17,7 +17,6 @@ from typing import (
     Dict,
     List,
     Optional,
-    Protocol,
     Sequence,
     Type,
     TypeVar,
@@ -28,8 +27,9 @@ import fixpoint
 from .. import imperative
 from .errors import DefinitionException, InternalException
 from ._context import WorkflowContext
-from ._helpers import validate_func_has_context_arg, Params, Ret
+from ._helpers import validate_func_has_context_arg, Params, Ret, Ret_co
 from ._run_config import RunConfig
+from ._workflow_run_handle import WorkflowRunHandle, WorkflowRunHandleImpl
 
 
 T = TypeVar("T")
@@ -251,42 +251,6 @@ def get_workflow_instance_fixp(instance: C) -> Optional[WorkflowInstanceFixp]:
     return attr
 
 
-Ret_co = TypeVar("Ret_co", covariant=True)
-
-
-class WorkflowRunHandle(Protocol[Ret_co]):
-    """A handle on a running workflow"""
-
-    def result(self) -> Ret_co:
-        """The result of running a workflow"""
-
-    def workflow_id(self) -> str:
-        """The ID of the workflow"""
-
-    def workflow_run_id(self) -> str:
-        """The ID of the workflow run"""
-
-
-class _WorkflowRunHandle(WorkflowRunHandle[Ret_co]):
-    """Handle to a workflow run."""
-
-    _workflow_run: imperative.WorkflowRun
-    _result: Ret_co
-
-    def __init__(self, workflow_run: imperative.WorkflowRun, result: Ret_co) -> None:
-        self._workflow_run = workflow_run
-        self._result = result
-
-    def result(self) -> Ret_co:
-        return self._result
-
-    def workflow_id(self) -> str:
-        return self._workflow_run.workflow_id
-
-    def workflow_run_id(self) -> str:
-        return self._workflow_run.id
-
-
 def spawn_workflow(
     workflow_entry: Callable[Params, Ret_co],
     *,
@@ -364,7 +328,7 @@ def spawn_workflow(
     # The Params type gets confused because we are injecting an additional
     # WorkflowContext. Ignore that error.
     res = workflow_entry(workflow_instance, ctx, *args, **kwargs)  # type: ignore[arg-type]
-    return _WorkflowRunHandle[Ret_co](fixp.run_fixp.workflow_run, res)
+    return WorkflowRunHandleImpl[Ret_co](fixp.run_fixp.workflow_run, res)
 
 
 def run_workflow(
