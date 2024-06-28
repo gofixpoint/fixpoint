@@ -3,15 +3,17 @@
 import asyncio
 from functools import wraps
 import inspect
-from typing import Any, Callable, Coroutine, ParamSpec, Tuple, TypeVar, cast
+from typing import Any, Awaitable, Callable, Coroutine, ParamSpec, Tuple, TypeVar, cast
 
 from ._context import WorkflowContext
-from .errors import CallException, DefinitionException
-from ._callcache import CallCache, CacheResult, serialize_args
+from .errors import CallException, DefinitionException, InternalException
+from ._callcache import CallCacheKind, CacheResult, serialize_args
 
 
 Params = ParamSpec("Params")
 Ret = TypeVar("Ret")
+AwaitableRet = TypeVar("AwaitableRet", bound=Awaitable[Any])
+AsyncFunc = Callable[Params, Coroutine[Any, Any, Ret]]
 
 
 def validate_func_has_context_arg(func: Callable[..., Any]) -> None:
@@ -33,12 +35,9 @@ def validate_func_has_context_arg(func: Callable[..., Any]) -> None:
             )
 
 
-_CacheableFunc = Callable[Params, Coroutine[Any, Any, Ret]]
-
-
 def decorate_with_cache(
-    callcache: CallCache, kind_id: str
-) -> Callable[[_CacheableFunc[Params, Ret]], _CacheableFunc[Params, Ret]]:
+    kind: CallCacheKind, kind_id: str
+) -> Callable[[AsyncFunc[Params, Ret]], AsyncFunc[Params, Ret]]:
     """Decorate a task or a step for call durability.
 
     Decorate a step or a task for call durability, so that we store the results
@@ -46,13 +45,20 @@ def decorate_with_cache(
     step, we can check if we already computed its results.
     """
 
-    def decorator(func: _CacheableFunc[Params, Ret]) -> _CacheableFunc[Params, Ret]:
+    def decorator(func: AsyncFunc[Params, Ret]) -> AsyncFunc[Params, Ret]:
         validate_func_has_context_arg(func)
 
         @wraps(func)
         async def wrapper(*args: Any, **kwargs: Any) -> Ret:
             ctx, ctx_pos = _pull_ctx_arg(*args)
             wrun_id = ctx.workflow_run.id
+            if kind == CallCacheKind.TASK:
+                callcache = ctx.run_config.call_cache.tasks
+            elif kind == CallCacheKind.STEP:
+                callcache = ctx.run_config.call_cache.steps
+            else:
+                raise InternalException(f"Unknown call cache kind: {kind}")
+
             remaining_args = args[ctx_pos + 1 :]
             serialized = serialize_args(*remaining_args, **kwargs)
             cache_check: CacheResult[Ret] = callcache.check_cache(

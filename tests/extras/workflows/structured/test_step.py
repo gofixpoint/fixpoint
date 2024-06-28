@@ -44,6 +44,31 @@ async def test_run_step() -> None:
     assert res == 3
 
 
+@pytest.mark.asyncio
+async def test_step_cache() -> None:
+    values = {"counter": 0}
+
+    @structured.step(id="my_step")
+    async def my_step(ctx: structured.WorkflowContext, args: StepArgs) -> int:
+        values["counter"] += 1
+        return args.x + args.y
+
+    ctx = new_workflow_context("my-workflow")
+    res = await structured.call_step(ctx, my_step, args=[StepArgs(x=1, y=2)])
+    assert res == 3
+    assert values["counter"] == 1
+
+    # calling it with same args uses the cached result
+    res = await structured.call_step(ctx, my_step, args=[StepArgs(x=1, y=2)])
+    assert res == 3
+    assert values["counter"] == 1
+
+    # calling it with same args uses the cached result
+    res = await structured.call_step(ctx, my_step, args=[StepArgs(x=10, y=2)])
+    assert res == 12
+    assert values["counter"] == 2
+
+
 def new_workflow_context(workflow_id: str) -> structured.WorkflowContext:
     workflow = imperative.Workflow(id=workflow_id)
     wrun = workflow.run()

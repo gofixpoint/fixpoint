@@ -9,6 +9,7 @@ from typing import List, Union, Dict, Tuple
 from fixpoint.agents import BaseAgent
 from fixpoint.agents.openai import OpenAIClients, OpenAIAgent
 from fixpoint.completions.chat_completion import ChatCompletionMessageParam
+
 from fixpoint_extras.workflows import structured
 from fixpoint_extras.workflows.structured import WorkflowContext
 
