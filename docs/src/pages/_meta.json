@@ -18,8 +18,8 @@
     "title": "Fixpoint Modes"
   },
   "modes-overview": "Modes Overview",
-  "lego-brick-mode": "Lego Brick Mode",
   "library-mode": "Library Mode",
+  "framework-mode": "Framework Mode",
   "infra-mode": "Infra Mode",
   "---": {
     "type": "separator"
