@@ -113,8 +113,8 @@ class WorkflowContext:
 
     def __init__(
         self,
-        agents: List[BaseAgent],
         workflow_run: WorkflowRun,
+        agents: List[BaseAgent],
         cache: Optional[SupportsChatCompletionCache] = None,
         logger: Optional[logging.Logger] = None,
         *,
@@ -141,21 +141,6 @@ class WorkflowContext:
         self.workflow_run = workflow_run
         # pylint: disable=protected-access
         self.agents._update_agents(workflow_run)
-
-    @classmethod
-    def from_workflow(
-        cls,
-        workflow_run: WorkflowRun,
-        agents: List[BaseAgent],
-        cache: Optional[SupportsChatCompletionCache] = None,
-    ) -> "WorkflowContext":
-        """Creates a WorkflowContext for a workflow"""
-        return cls(
-            agents=agents,
-            workflow_run=workflow_run,
-            cache=cache,
-            logger=logging.getLogger(f"fixpoint/workflows/runs/{workflow_run.id}"),
-        )
 
     def clone(self) -> "WorkflowContext":
         """Clones the workflow context"""

@@ -2,6 +2,7 @@ import pytest
 import fixpoint
 from fixpoint_extras.workflows import imperative
 from fixpoint_extras.workflows import structured
+from fixpoint_extras.workflows.structured._run_config import RunConfig
 
 
 def test_task_declaration() -> None:
@@ -59,9 +60,10 @@ async def test_call_task() -> None:
 
     workflow = imperative.Workflow(id="my-workflow")
     wrun = workflow.run()
-    ctx = structured.WorkflowContext.from_workflow(
-        wrun,
+    ctx = structured.WorkflowContext(
+        run_config=RunConfig.with_in_memory(),
         agents=[],
+        workflow_run=wrun,
     )
     res = await structured.call_task(ctx, MyTask.run, args=["Dylan"])
     assert res == "Hello, Dylan"

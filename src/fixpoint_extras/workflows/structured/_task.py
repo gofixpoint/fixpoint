@@ -18,8 +18,9 @@ from typing import (
     cast,
 )
 
-from fixpoint_extras.workflows.imperative import WorkflowRun, WorkflowContext
 from .. import imperative
+from ..imperative import WorkflowRun
+from ._context import WorkflowContext
 from .errors import DefinitionException
 from ._helpers import validate_func_has_context_arg, Params, Ret
 

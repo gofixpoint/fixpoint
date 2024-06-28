@@ -74,7 +74,7 @@ def get_workflow_context(workflow_run_id: str) -> WorkflowContext:
     if wfrun is None:
         raise HTTPException(status_code=404, detail="Workflow run not found")
 
-    return WorkflowContext.from_workflow(wfrun, [_wfagent])
+    return WorkflowContext(wfrun, [_wfagent])
 
 
 def invoice_task(wfctx: WorkflowContext, user_message: str) -> str:

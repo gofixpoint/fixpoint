@@ -18,3 +18,7 @@ class CallException(Exception):
     The CallException is raised when calling a structured workflow, task, or
     step incorrectly.
     """
+
+
+class InternalException(Exception):
+    """An internal error (non-user) in the structured workflows library"""
