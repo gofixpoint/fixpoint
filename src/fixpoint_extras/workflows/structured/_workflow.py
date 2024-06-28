@@ -214,9 +214,7 @@ def workflow_entrypoint() -> Callable[[Callable[Params, Ret]], Callable[Params, 
 
         @wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Ret:
-            print("Before calling", func.__name__)
             result = func(*args, **kwargs)
-            print("After calling", func.__name__)
             return result
 
         return cast(Callable[Params, Ret], wrapper)
