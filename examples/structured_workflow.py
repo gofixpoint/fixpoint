@@ -2,9 +2,11 @@
 
 import asyncio
 from dataclasses import dataclass
-import json
+from io import StringIO
 import os
-from typing import List, Union, Dict, Tuple
+from typing import List, Union, Tuple
+
+import pandas as pd
 
 from fixpoint.agents import BaseAgent
 from fixpoint.agents.openai import OpenAIClients, OpenAIAgent
@@ -12,6 +14,9 @@ from fixpoint.completions.chat_completion import ChatCompletionMessageParam
 
 from fixpoint_extras.workflows import structured
 from fixpoint_extras.workflows.structured import WorkflowContext
+
+
+PromptCompletionPair = Tuple[List[ChatCompletionMessageParam], Union[str, None]]
 
 
 @structured.workflow(id="example_workflow")
@@ -40,13 +45,23 @@ class CompareModels:
                 )
             )
 
-        results: Dict[str, List[Union[str, None]]] = {
-            "gpt3": gpt3_res.result(),
-            "gpt4": gpt4_res.result(),
-        }
+        gpt3_resps: List[Union[str, None]] = []
+        gpt4_resps: List[Union[str, None]] = []
+        for gpt3_resp, gpt4_resp in zip(gpt3_res.result(), gpt4_res.result()):
+            gpt3_resps.append(gpt3_resp[1])
+            gpt4_resps.append(gpt4_resp[1])
+
+        df = pd.DataFrame(
+            {
+                "prompt": prompts,
+                "gpt3": gpt3_resps,
+                "gpt4": gpt4_resps,
+            }
+        )
+
         # TODO(dbmikus) this is not async, so it will block the async event loop
         doc_id = "inference-results.json"
-        ctx.workflow_run.docs.store(id=doc_id, contents=json.dumps(results))
+        ctx.workflow_run.docs.store(id=doc_id, contents=df.to_json(path_or_buf=None))
         return doc_id
 
 
@@ -68,9 +83,12 @@ class RunAllPrompts:
     @structured.task_entrypoint()
     async def run_all_prompts(
         self, ctx: WorkflowContext, args: RunAllPromptsArgs
-    ) -> List[Union[str, None]]:
-        """Execute all prompt inferences for an agent"""
-        step_tasks: List[asyncio.Task[Union[str, None]]] = []
+    ) -> List[PromptCompletionPair]:
+        """Execute all prompt inferences for an agent
+
+        Returns a list of (prompt, response) pairs.
+        """
+        step_tasks: List[asyncio.Task[PromptCompletionPair]] = []
         async with asyncio.TaskGroup() as tg:
             for prompt in args.prompts:
                 step_task = tg.create_task(
@@ -94,11 +112,15 @@ class RunPromptArgs:
 
 
 @structured.step(id="run_prompt")
-async def run_prompt(ctx: WorkflowContext, args: RunPromptArgs) -> Union[str, None]:
-    """Run an LLM inference request with the given agent and prompt"""
+async def run_prompt(ctx: WorkflowContext, args: RunPromptArgs) -> PromptCompletionPair:
+    """Run an LLM inference request with the given agent and prompt
+
+    Returns a pair of (prompt, response)
+    """
     agent = ctx.agents[args.agent_name]
+    # TODO(dbmikus) make this an async chat completion
     completion = agent.create_completion(messages=args.prompt)
-    return completion.choices[0].message.content
+    return (args.prompt, completion.choices[0].message.content)
 
 
 def setup_agents() -> Tuple[structured.RunConfig, List[BaseAgent]]:
@@ -145,6 +167,19 @@ async def main() -> None:
     print("Run ID:", run_handle.workflow_run_id())
     results_doc_id = await run_handle.result()
     print("finished workflow. Wrote results to workflow run doc:", results_doc_id)
+
+    # You can load the doc into a dataframe and look at the results
+    wrun = run_handle.finalized_workflow_run()
+    if wrun is None:
+        raise RuntimeError(
+            "We awaited the workflow run and it finished,"
+            " so we should have access to the WorkflowRun object."
+        )
+    doc = wrun.docs.get(results_doc_id)
+    if doc is None:
+        raise RuntimeError(f"Expected doc {results_doc_id} to exist, but it does not")
+    df = pd.read_json(StringIO(doc.contents))
+    df.head()
 
 
 if __name__ == "__main__":
