@@ -3,13 +3,17 @@
 import os
 from typing import cast
 from fastapi import FastAPI, HTTPException
-from fixpoint_extras.services.formagent.setup import get_workflow_agent
+
+import fixpoint
+from fixpoint.analyze.memory import DataframeMemory
+from fixpoint.agents.openai import OpenAIClients
 from fixpoint_extras.workflows.imperative import (
     Workflow,
     WorkflowRun,
     WorkflowContext,
     Form,
 )
+
 from fixpoint_extras.services.formagent.tasks import (
     classify_form_type,
     FormType,
@@ -25,9 +29,11 @@ _openai_key = os.getenv("OPENAI_API_KEY")
 if not _openai_key:
     raise ValueError("OPENAI_API_KEY environment variable is not set or is empty")
 
-_wfagent = get_workflow_agent(
-    openai_key=_openai_key,
-    model_name="gpt-3.5-turbo",  # TODO(jakub): Pass this as an env variable
+_wfagent = fixpoint.agents.OpenAIAgent(
+    agent_id="main",
+    model_name="gpt-3.5-turbo",
+    openai_clients=OpenAIClients.from_api_key(_openai_key),
+    memory=DataframeMemory(),
 )
 _wf = Workflow(id="test_workflow")
 
@@ -57,7 +63,7 @@ def create_chat(workflow_run_id: str, user_message: str) -> str:
 
 def classify_task(wfctx: WorkflowContext, user_message: str) -> str:
     """Classify the task for a workflow run."""
-    form_type, _ = classify_form_type(wfctx, user_message)
+    form_type = classify_form_type(wfctx, user_message)
     if form_type == FormType.INVOICE:
         wfctx.workflow_run.goto_task(task_id=FormType.INVOICE.value)
         return "Could you please tell me more about the invoice?"
