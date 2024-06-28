@@ -50,6 +50,9 @@ class CompareModels:
         return doc_id
 
 
+# We recommend using a single dataclass, Pydantic model, or dictionary argument
+# for the task. This makes it easy to add or remove arguments in the future
+# while preserving backwards compatability.
 @dataclass
 class RunAllPromptsArgs:
     """Arguments for the "run_al_prompts" task"""

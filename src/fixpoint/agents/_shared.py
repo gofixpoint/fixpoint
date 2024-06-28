@@ -1,10 +1,10 @@
 """Internal shared code for the "agents" module."""
 
 from typing import Callable, Optional, Literal, TypeVar
-import uuid
 
 from pydantic import BaseModel
 
+from fixpoint._utils.ids import make_resource_uuid
 from fixpoint.cache import SupportsChatCompletionCache, CreateChatCompletionRequest
 from ..completions import ChatCompletion
 
@@ -50,4 +50,4 @@ def request_cached_completion(
 
 def random_agent_id() -> str:
     """Generate a random agent ID if not explicitly given"""
-    return "agent-" + str(uuid.uuid4())
+    return make_resource_uuid("agent")
