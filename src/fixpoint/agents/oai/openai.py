@@ -40,21 +40,23 @@ class OpenAI:
 
     fixp: OpenAIAgent
     _fixpchat: "OpenAI._Chat"
+    _model_name: Optional[str]
 
     def __init__(
         self,
         agent_id: str,
-        model_name: str,
         openai_clients: OpenAIClients,
         *,
+        model_name: str,
         pre_completion_fns: Optional[List[PreCompletionFn]] = None,
         completion_callbacks: Optional[List[CompletionCallback]] = None,
         memory: Optional[SupportsMemory] = None,
         cache: Optional[SupportsChatCompletionCache] = None,
     ) -> None:
+        self._model_name = model_name
         self.fixp = OpenAIAgent(
             agent_id=agent_id,
-            model_name=model_name,
+            model_name=model_name or "<NOT_SET>",
             openai_clients=openai_clients,
             pre_completion_fns=pre_completion_fns,
             completion_callbacks=completion_callbacks,
@@ -115,8 +117,8 @@ class OpenAI:
             self,
             messages: List[ChatCompletionMessageParam],
             *,
+            model: str,
             response_model: None = None,
-            model: Optional[str] = None,
             tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
             tools: Optional[Iterable[ChatCompletionToolParam]] = None,
             temperature: Optional[float] = None,
@@ -129,8 +131,8 @@ class OpenAI:
             self,
             messages: List[ChatCompletionMessageParam],
             *,
+            model: str,
             response_model: Type[T_contra],
-            model: Optional[str] = None,
             tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
             tools: Optional[Iterable[ChatCompletionToolParam]] = None,
             temperature: Optional[float] = None,
@@ -142,8 +144,8 @@ class OpenAI:
             self,
             messages: List[ChatCompletionMessageParam],
             *,
+            model: str,
             response_model: Optional[Type[T_contra]] = None,
-            model: Optional[str] = None,
             temperature: Optional[float] = None,
             tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
             tools: Optional[Iterable[ChatCompletionToolParam]] = None,

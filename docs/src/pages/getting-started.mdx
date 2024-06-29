@@ -9,9 +9,22 @@ pip install fixpoint
 
 ## A simple example
 
-_example coming soon_
+Let's say you already have an OpenAI app, but you want to give your AI memory
+and output structured data via [Instructor](https://github.com/jxnl/instructor).
+You can just swap out your OpenAI client and have a compatible interface.
 
-## More examples
+```python
+```
 
-See some more of our examples in the
-[`examples/` directory of our repo](https://github.com/gofixpoint/fixpoint/tree/main/examples).
+### More examples
+
+See some more of our examples:
+
+- A [Request/Reply Workflow example](/workflows-and-durability/request-reply-workflows#in-depth-use-case-a-chatbot-form-wizard)
+  that chats with a user to gather a set of answers and fill out an internal
+  form
+- A [Structured Workflow example](/workflows-and-durability/structured-workflows#in-depth-use-case-comparing-multiple-llm-models)
+  that concurrently compares different LLM models on a prompt, and checkpoints
+  all inference requests so you if your experiment fails you don't respend
+  on LLM inference when you restart it
+- in the [`examples/` directory of our repo](https://github.com/gofixpoint/fixpoint/tree/main/examples) or see the
