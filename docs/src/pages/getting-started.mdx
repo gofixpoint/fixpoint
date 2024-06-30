@@ -7,16 +7,147 @@ support Python. You can install Fixpoint with pip:
 pip install fixpoint
 ```
 
-## A simple example
+## A simple drop-in replacement for OpenAI
 
 Let's say you already have an OpenAI app, but you want to give your AI memory
 and output structured data via [Instructor](https://github.com/jxnl/instructor).
 You can just swap out your OpenAI client and have a compatible interface.
 
+First, let's create a drop-in replacement for your OpenAI agent. It is API-compatible.
+
 ```python
+# instead of:
+# from openai import OpenAI
+# client = OpenAI(api_key='...')
+
+from fixpoint.agents.oai import OpenAI
+from fixpoint.agents.openai import OpenAIClients
+
+client = OpenAI(
+    agent_id="my-agent",
+    openai_clients=OpenAIClients.from_api_key(os.environ["OPENAI_API_KEY"]),
+)
 ```
 
-### More examples
+Your agent must have an ID, which is used for when you build multi-agent
+workflows. For now, set it to whatever you want.
+
+
+Now let's add memory and caching to your agent:
+
+- memory: remember all past messages and responses this agent had
+- cache: a cache that can be shared between agents to save money and speed up
+  inference
+
+```python {1,5-9,14-15}
+import fixpoint
+from fixpoint.agents.oai import OpenAI
+from fixpoint.agents.openai import OpenAIClients
+
+cache = fixpoint.cache.ChatCompletionDiskTLRUCache(
+    ttl_s=60 * 60,
+    size_limit_bytes=1024 * 1024 * 50,
+    cache_dir="/tmp/agent-cache",
+)
+
+client = OpenAI(
+    agent_id="my-agent",
+    openai_clients=OpenAIClients.from_api_key(os.environ["OPENAI_API_KEY"]),
+    memory=fixpoint.memory.Memory(),
+    cache=cache,
+)
+```
+
+Let's say we want to ask the LLM a question and get back a Python object that
+the rest of our computer program can work with, without writing custom string
+parsing code. We'll use Pydantic for that:
+
+```python
+class City(BaseModel):
+    name: str = Field(description="The name of the city")
+    country: str = Field(description="The country the city is in")
+    population: int = Field(description="The population of the city")
+
+class CityList(BaseModel):
+    cities: list[City]
+
+completion = client.chat.completions.create(
+    model="gpt-4o",
+    messages=[
+        {"role": "user", "content": "What are the most populous cities in Europe?"},
+    ],
+    # specify your structured output format here
+    response_model=CityList,
+)
+
+for city in completion.fixp.structured_output.cities:
+    print(f"{city.name}, {city.country} - population of {city.population}")
+```
+
+
+## Making it a multi-step workflow
+
+Imagine you're building a travel planning LLM. It needs to do a series of
+research and planning steps, and at the end return a travel itinerary. You need
+to keep track of all of the past steps the LLM took so that you can refer back
+to that info later in your workflow. You also want to make sure if any part of
+the travel planning process fails, you can resume from there without restarting
+the workflow and spending extra on LLM inference costs.
+
+Fixpoint lets you do this using [Structured Workflows](/workflows-and-durability/structured-workflows).
+A structured workflow lets you run multiple tasks comprised of multiple agents.
+The workflow keeps track of all LLM inferences, and you can load relevant docs
+and other state into the workflow for your agents to access. Each task and step
+in the workflow is checkpointed, so if the workflow fails you can easily pick
+back up from where it left off.
+
+Let's briefly extend our travel agent example:
+
+```python
+from fixpoint_extras.workflows import structured
+from fixpoint_extras.workflows.structured import WorkflowContext
+
+@structured.workflow(id="travel-agent")
+class TravelAgent:
+    @structured.workflow_entrypoint()
+    async def run(self, ctx: WorkflowContext, continent: str) -> None:
+        cities = structured.call_step(ctx, research_cities, continent)
+        # take the 2 cities and plan an itinerary for each
+        for city in cities.cities[:2]:
+            structured.call_step(ctx, plan_itinerary, city.name, city.country)
+
+
+@structured.step(id="research-cities")
+async def research_cities(ctx: WorkflowContext, continent: str) -> CityList:
+    completion = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "user", "content": f"What are the most populous cities in {continent}?"},
+        ],
+        response_model=CityList,
+    )
+    return completion.fixp.structured_output
+
+
+@structured.step(id="plan-itinerary")
+async def plan_itinerary(ctx: WorkflowContext, city: str, country: str) -> None:
+    completion = ctx.agents['my-agent'].create_completion(
+      model_name="gpt-4o",
+      messages=[
+        {"role": "user", "content": f"Plan a tourist itinerary for 3 days in {city}, {country}."},
+      ],
+    )
+    ctx.workflow_run.docs.store(
+      f"itinerary-{city}-{country}.txt",
+      completion.choices[0].message.content,
+    )
+```
+
+To learn more about structured workflows, read the [Structured Workflows](/workflows-and-durability/structured-workflows)
+section of the docs.
+
+
+## More examples
 
 See some more of our examples:
 
@@ -27,4 +158,6 @@ See some more of our examples:
   that concurrently compares different LLM models on a prompt, and checkpoints
   all inference requests so you if your experiment fails you don't respend
   on LLM inference when you restart it
-- in the [`examples/` directory of our repo](https://github.com/gofixpoint/fixpoint/tree/main/examples) or see the
+- in the [`examples/` directory of our
+repo](https://github.com/gofixpoint/fixpoint/tree/main/examples) or see some
+example [Jupyter notebooks](https://github.com/gofixpoint/examples-notebooks/tree/main/notebooks)
