@@ -32,7 +32,6 @@ client = OpenAI(
 Your agent must have an ID, which is used for when you build multi-agent
 workflows. For now, set it to whatever you want.
 
-
 Now let's add memory and caching to your agent:
 
 - memory: remember all past messages and responses this agent had
@@ -83,7 +82,6 @@ completion = client.chat.completions.create(
 for city in completion.fixp.structured_output.cities:
     print(f"{city.name}, {city.country} - population of {city.population}")
 ```
-
 
 ## Making it a multi-step workflow
 
@@ -145,7 +143,6 @@ async def plan_itinerary(ctx, city, country):
 To learn more about structured workflows, read the [Structured Workflows](/workflows-and-durability/structured-workflows)
 section of the docs.
 
-
 ## More examples
 
 See some more of our examples:
@@ -157,6 +154,5 @@ See some more of our examples:
   that concurrently compares different LLM models on a prompt, and checkpoints
   all inference requests so you if your experiment fails you don't respend
   on LLM inference when you restart it
-- in the [`examples/` directory of our
-repo](https://github.com/gofixpoint/fixpoint/tree/main/examples) or see some
-example [Jupyter notebooks](https://github.com/gofixpoint/examples-notebooks/tree/main/notebooks)
+- in the [`examples/` directory of our repo](https://github.com/gofixpoint/fixpoint/tree/main/examples) or see some
+  example [Jupyter notebooks](https://github.com/gofixpoint/examples-notebooks/tree/main/notebooks)
