@@ -105,12 +105,11 @@ Let's briefly extend our travel agent example:
 
 ```python
 from fixpoint_extras.workflows import structured
-from fixpoint_extras.workflows.structured import WorkflowContext
 
 @structured.workflow(id="travel-agent")
 class TravelAgent:
     @structured.workflow_entrypoint()
-    async def run(self, ctx: WorkflowContext, continent: str) -> None:
+    async def run(self, ctx, continent):
         cities = structured.call_step(ctx, research_cities, continent)
         # take the 2 cities and plan an itinerary for each
         for city in cities.cities[:2]:
@@ -118,7 +117,7 @@ class TravelAgent:
 
 
 @structured.step(id="research-cities")
-async def research_cities(ctx: WorkflowContext, continent: str) -> CityList:
+async def research_cities(ctx, continent):
     completion = client.chat.completions.create(
         model="gpt-4o",
         messages=[
@@ -130,7 +129,7 @@ async def research_cities(ctx: WorkflowContext, continent: str) -> CityList:
 
 
 @structured.step(id="plan-itinerary")
-async def plan_itinerary(ctx: WorkflowContext, city: str, country: str) -> None:
+async def plan_itinerary(ctx, city, country):
     completion = ctx.agents['my-agent'].create_completion(
       model_name="gpt-4o",
       messages=[
