@@ -47,16 +47,14 @@ class OpenAI:
         agent_id: str,
         openai_clients: OpenAIClients,
         *,
-        model_name: str,
         pre_completion_fns: Optional[List[PreCompletionFn]] = None,
         completion_callbacks: Optional[List[CompletionCallback]] = None,
         memory: Optional[SupportsMemory] = None,
         cache: Optional[SupportsChatCompletionCache] = None,
     ) -> None:
-        self._model_name = model_name
         self.fixp = OpenAIAgent(
             agent_id=agent_id,
-            model_name=model_name or "<NOT_SET>",
+            model_name="<NOT_SET>",
             openai_clients=openai_clients,
             pre_completion_fns=pre_completion_fns,
             completion_callbacks=completion_callbacks,
