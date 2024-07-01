@@ -1,7 +1,7 @@
 """The steps in a form agent workflow"""
 
 from enum import Enum
-from typing import List, Tuple
+from typing import List
 
 import jinja2
 
@@ -65,7 +65,7 @@ _INTAKE_PROMPT = jinja2.Template(
 def classify_form_type(
     wfctx: WorkflowContext,
     user_message: str,
-) -> Tuple[FormType, classification.ClassifiedChatCompletion]:
+) -> FormType:
     """A workflow step that classifies the users message intent into a form type"""
     completion = classification.create_classified_chat_completion(
         agent=wfctx.agents["main"],
@@ -76,11 +76,11 @@ def classify_form_type(
 
     match completion.classification:
         case FormType.INVOICE.value:
-            return (FormType.INVOICE, completion)
+            return FormType.INVOICE
         case FormType.EVENT_REGISTRATION.value:
-            return (FormType.EVENT_REGISTRATION, completion)
+            return FormType.EVENT_REGISTRATION
         case FormType.UNKNOWN.value:
-            return (FormType.UNKNOWN, completion)
+            return FormType.UNKNOWN
         case _:
             wfctx.logger.error("Unkown form type: %s", completion.classification)
-            return (FormType.UNKNOWN, completion)
+            return FormType.UNKNOWN

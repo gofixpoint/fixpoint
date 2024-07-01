@@ -4,8 +4,6 @@ Request/Reply Workflows follow a client/server pattern, where each request in
 the workflow generates a response. This is well suited for chatbots where the
 workflow only advances to the next step after a user interaction.
 
-Within a workflow run,
-
 ## Some example use cases
 
 - You have a generic chatbot and want it to have memory about its chat sessions
@@ -21,7 +19,19 @@ is that it allows us to build powerful chatbot state machines that are durable, 
 
 ### FastAPI Example
 
-This example demonstrates how to build a powerful chatbot experience that generates Invoice forms for its users.
+This example demonstrates how to build a powerful chatbot experience that can
+gather information from a user before moving onto the next part of your program,
+or before moving the chatbot conversation onto the next topic. Behind the scene,
+the chatbot gathers information from a user to fill out an internal form of
+structured data. You can use this to replace form wizards, to do user
+onboarding, to gather the necessary info before opening a support ticket, or
+something else!
+
+In this specific example, pretend we have an app with document templates for
+creating billing invoices or event tickets. The chatbot's job is to figure out
+what type of document the user wants to create, and to prefill it with relevant
+info.
+
 If you want to skip the step-by-step explanation of the code, you can check out the [FastAPI example](https://github.com/gofixpoint/fixpoint/blob/main/src/fixpoint_extras/services/fastapi/local_server.py) in our repo.
 It's a little over 100 lines of code!
 
@@ -63,7 +73,7 @@ _openai_key = os.getenv("OPENAI_API_KEY")
 if not _openai_key:
     raise ValueError("OPENAI_API_KEY environment variable is not set or is empty")
 
-_wf = Workflow(id="test_workflow")
+_wf = Workflow(id="document-template-agent")
 ```
 
 ### Workflow Run
@@ -141,29 +151,34 @@ The chatbot will then use this information to generate a response.
 ### Workflow Context
 
 The next thing we need to do is to load a `WorkflowRun` and then create a `WorkflowContext`.
-The `WorkflowContext` is a wrapper around a `WorkflowRun` that provides a way to interact with the `WorkflowRun` along with other
+The `WorkflowContext` is a wrapper around a `WorkflowRun` that scopes agents's memory stores to the `WorkflowRun`, and provides a way to interact with the `WorkflowRun` along with other
 constructs provided by Fixpoint such as a logger, cache and agents.
-You could in theory write flows without using the `WorkflowContext`, but it provides a lot of convenience.
 In our example we'll create a function that does this for us:
 
-```python {3,4,8,15-18,35-44}
+```python {3,5-6,10,19-24,41-49}
 import os
 
 from fastapi import FastAPI, HTTPException
-from fixpoint_extras.services.formagent.setup import get_workflow_agent
+
+import fixpoint
+from fixpoint.agents.openai import OpenAIClients
 from fixpoint_extras.workflows.imperative import (
     Workflow,
     WorkflowRun,
     WorkflowContext
 )
+from fixpoint.analyze.memory import DataframeMemory
+
 
 _openai_key = os.getenv("OPENAI_API_KEY")
 if not _openai_key:
     raise ValueError("OPENAI_API_KEY environment variable is not set or is empty")
 
-_wfagent = get_workflow_agent(
-    openai_key=_openai_key,
-    model_name="gpt-3.5-turbo",
+_wfagent = fixpoint.agents.OpenAIAgent(
+    agent_id="main",
+    model_name='gpt-3.5-turbo',
+    openai_clients=OpenAIClients.from_api_key(_openai_key),
+    memory=DataframeMemory(),
 )
 
 _wf = Workflow(id="test_workflow")
@@ -189,12 +204,11 @@ def get_workflow_context(workflow_run_id: str) -> WorkflowContext:
         raise HTTPException(status_code=404, detail="Workflow run not found")
 
     # Instantiate workflow context
-    return WorkflowContext.from_workflow(wfrun, [_wfagent])
+    return WorkflowContext(wfrun, [_wfagent])
 ```
 
 You may have noticed that we also created an Agent.
 This is a key part of our chatbot, as the configuration of the agent dictates how we communicate with our inference provider.
-In this example we're using a convenience method `get_workflow_agent` which returns a `fixpoint.agents.OpenAIAgent`.
 This agent is configured to use the passed in OpenAI key and gpt-3.5-turbo model version.
 
 ### Workflow Run > Reading Node State
@@ -227,16 +241,19 @@ It is up to the developer's discretion to determine what constitutes a task or a
 
 Let's expand our `create_chat` function a bit:
 
-```python {10-12,36-48}
+```python {13-15,41-53}
 import os
 
 from fastapi import FastAPI, HTTPException
-from fixpoint_extras.services.formagent.setup import get_workflow_agent
+
+import fixpoint
+from fixpoint.agents.openai import OpenAIClients
 from fixpoint_extras.workflows.imperative import (
     Workflow,
     WorkflowRun,
     WorkflowContext
 )
+from fixpoint.analyze.memory import DataframeMemory
 from fixpoint_extras.services.formagent.tasks import (
     FormType
 )
@@ -245,9 +262,11 @@ _openai_key = os.getenv("OPENAI_API_KEY")
 if not _openai_key:
     raise ValueError("OPENAI_API_KEY environment variable is not set or is empty")
 
-_wfagent = get_workflow_agent(
-    openai_key=_openai_key,
-    model_name="gpt-3.5-turbo",
+_wfagent = fixpoint.agents.OpenAIAgent(
+    agent_id="main",
+    model_name='gpt-3.5-turbo',
+    openai_clients=OpenAIClients.from_api_key(_openai_key),
+    memory=DataframeMemory(),
 )
 
 _wf = Workflow(id="test_workflow")
@@ -296,11 +315,11 @@ If the task is `FormType.INVOICE.value`, we'll need to handle the invoice.
 If the task is `FormType.EVENT_REGISTRATION.value`, we'll need to handle the event registration.
 (FormType is just an enum that we have defined in our example to represent the two types of forms we want to handle)
 
-One important thing to point out is that the `__main__` task denotes the initial, or default task that is created.
-By default, when a run gets created it creates a `NodeState` with the `task` and `step` set to `__main__`.
+One important thing to point out is that the `__main__` task denotes the initial, or default, task that is created.
+By default, when a run gets created it creates a `NodeState` with the `task` and `step` both set to `__main__`.
 It is up to the developer to update the `NodeState` to a different task and step (i.e. `FormType.INVOICE.value` or `FormType.EVENT_REGISTRATION.value`) which we will see in the next section.
 
-What we have accomplished so far by expanding our `create_chat` function is that we defined a logical flow for our chatbot to follow.
+Now the `create_chat` function has a logical flow for our chatbot to follow.
 In the next section we'll see how to handle the user's message and update the `NodeState` to a different task and step.
 
 ### Workflow Run > Updating Node State
@@ -308,16 +327,19 @@ In the next section we'll see how to handle the user's message and update the `N
 The next thing our chatbot needs to do is classify the user's message in order to figure out what the user's intent is and how to proceed.
 We'll need to create a function that will do this for us.
 
-```python {11, 50-59}
+```python {14, 55-64}
 import os
 
 from fastapi import FastAPI, HTTPException
-from fixpoint_extras.services.formagent.setup import get_workflow_agent
+
+import fixpoint
+from fixpoint.agents.openai import OpenAIClients
 from fixpoint_extras.workflows.imperative import (
     Workflow,
     WorkflowRun,
     WorkflowContext
 )
+from fixpoint.analyze.memory import DataframeMemory
 from fixpoint_extras.services.formagent.tasks import (
     classify_form_type,
     FormType
@@ -327,9 +349,11 @@ _openai_key = os.getenv("OPENAI_API_KEY")
 if not _openai_key:
     raise ValueError("OPENAI_API_KEY environment variable is not set or is empty")
 
-_wfagent = get_workflow_agent(
-    openai_key=_openai_key,
-    model_name="gpt-3.5-turbo",
+_wfagent = fixpoint.agents.OpenAIAgent(
+    agent_id="main",
+    model_name='gpt-3.5-turbo',
+    openai_clients=OpenAIClients.from_api_key(_openai_key),
+    memory=DataframeMemory(),
 )
 
 _wf = Workflow(id="test_workflow")
@@ -360,7 +384,7 @@ def create_chat(workflow_run_id: str, user_message: str) -> str:
 
 def classify_task(wfctx: WorkflowContext, user_message: str) -> str:
     """Classify the task for a workflow run."""
-    form_type, _ = classify_form_type(wfctx, user_message)
+    form_type = classify_form_type(wfctx, user_message)
     if form_type == FormType.INVOICE:
         wfctx.workflow_run.goto_task(task_id=FormType.INVOICE.value)
         return "Could you please tell me more about the invoice?"
@@ -381,8 +405,10 @@ def get_workflow_context(workflow_run_id: str) -> WorkflowContext:
     return WorkflowContext.from_workflow(wfrun, [_wfagent])
 ```
 
-In the `classify_task` function that we've just defined we call a helper method `classify_form_type`
-which calls out to the agent and classifies the user's message via structured attributes.
+In the `classify_task` function that we've just defined we call a helper function `classify_form_type`
+which calls out to the agent and classifies the user's intent. Under the hood,
+the LLM generates structured data output, which we parse into JSON or into a
+Pydantic model.
 Depending on the result we then update the `NodeState` to a different task through the `wfctx.workflow_run.goto_task` method.
 Additionally, we return a message to the user to let them know what to do next.
 
@@ -394,36 +420,44 @@ We won't cover those topics in this example, but we plan on putting out best pra
 
 ### Workflow Run > Forms
 
-In this section we'll discuss forms.
+Forms are attributes of a WorkflowRun. A form has a schema, which is a Pydnatic
+model dictating the fields, their descriptions, and their types. Your LLM
+chatbot can then fill in the form contents as it talks with the user during the
+workflow run.
+
 We'll start by talking about how to store and retrieve forms that contain information about invoices at any state of a `WorkflowRun`.
 We won't focus on how to gather form information from the user, this is covered in the next section.
 
-Forms are attributes of a `WorkflowRun` and are used to store structured information about the forms that the chatbot has gathered from the user.
-
-```python {2,9,14,44,46-48,75-100}
+```python {2,12,18,50,52-54,81-112}
 import os
 from typing import cast
+
 from fastapi import FastAPI, HTTPException
-from fixpoint_extras.services.formagent.setup import get_workflow_agent
+
+import fixpoint
+from fixpoint.agents.openai import OpenAIClients
 from fixpoint_extras.workflows.imperative import (
     Workflow,
     WorkflowRun,
     WorkflowContext,
-    Form,
+    Form
 )
+from fixpoint.analyze.memory import DataframeMemory
 from fixpoint_extras.services.formagent.tasks import (
     classify_form_type,
     FormType,
-    InvoiceQuestions,
+    InvoiceQuestions
 )
 
 _openai_key = os.getenv("OPENAI_API_KEY")
 if not _openai_key:
     raise ValueError("OPENAI_API_KEY environment variable is not set or is empty")
 
-_wfagent = get_workflow_agent(
-    openai_key=_openai_key,
-    model_name="gpt-3.5-turbo",
+_wfagent = fixpoint.agents.OpenAIAgent(
+    agent_id="main",
+    model_name='gpt-3.5-turbo',
+    openai_clients=OpenAIClients.from_api_key(_openai_key),
+    memory=DataframeMemory(),
 )
 
 _wf = Workflow(id="test_workflow")
@@ -488,6 +522,14 @@ def invoice_task(wfctx: WorkflowContext, user_message: str) -> str:
             form_schema=InvoiceQuestions,
         )
     else:
+        # Every form retrieved by `forms.get(...)` is of type `Form[BaseModel]`.
+        # This is because when we store a form in a database, we can't store the
+        # Pydantic model alongside it.
+        #
+        # If you know the type of the form you are retrieving, you can cast it
+        # here. Technically, the retrieved form's Pydantic model is dynamically
+        # generated, so it won't be an InvoiceForm, but it will have the same
+        # form schema.
         form = cast(Form[InvoiceQuestions], stored_form)
 
     # Some magic happens here to gather new information about the form and merge it with the existing contents
@@ -506,7 +548,7 @@ communicating with the user on what to do next with regards to invoices.
 The `create_chat` method was also updated to call `invoice_task` when the task is `FormType.INVOICE.value`.
 Additionally, we won't handle event registrations in this example, so instead we'll raise an error if the task is `FormType.EVENT_REGISTRATION.value`.
 
-In this snippet we define a new form_id, `invoice_questions`, and use it to store and update the form.
+In this snippet we define a new `form_id`, `"invoice_questions"`, and use it to store and update the form.
 We first check whether a form with the given `form_id` exists. If it does, we use it. If it doesn't, we create a new one. In this particular
 example the form is created with the `InvoiceQuestions` schema, which is a Pydantic model that represents the information we want from the user.
 
@@ -517,41 +559,46 @@ This allows our chatbot to retrieve and update the form with new information bet
 
 ### InfoGatherer
 
-The `InfoGatherer` class is a tool that is used to gather information from the user.
-It is a wrapper around a `Form` object and provides a simple interface to format questions and gather information from the user.
-One big benefit of using `InfoGatherer` is that it encapsulates the logic for figuring out what pieces of information
-are missing from the form and what questions to ask the user. Behind the scene it uses tool calling to get structured information from the agent.
+The `InfoGatherer` class is a [controller](/glossary#controller) that wraps a
+`Form` and provides a simple interface to progressively fill out the form based
+on user messages, and to ask the user for data that is still mssing. Behind the
+scenes, it uses tool calling to extract structured information.
 You can find the full implementation of InfoGatherer [here](https://github.com/gofixpoint/fixpoint/blob/main/src/fixpoint_extras/services/formagent/controllers/infogather.py).
 
 Let's modify our existing example to use `InfoGatherer` to gather information from the user.
 
-```python {14,17,93-98,102-108}
+```python {18,21,98-103,107-113}
 import os
 from typing import cast
+
 from fastapi import FastAPI, HTTPException
-from fixpoint_extras.services.formagent.setup import get_workflow_agent
+
+import fixpoint
+from fixpoint.agents.openai import OpenAIClients
 from fixpoint_extras.workflows.imperative import (
     Workflow,
     WorkflowRun,
     WorkflowContext,
-    Form,
+    Form
 )
+from fixpoint.analyze.memory import DataframeMemory
 from fixpoint_extras.services.formagent.tasks import (
     classify_form_type,
     FormType,
     gather_invoice_info,
-    InvoiceQuestions,
+    InvoiceQuestions
 )
 from fixpoint_extras.services.formagent.controllers.infogather import InfoGatherer
-
 
 _openai_key = os.getenv("OPENAI_API_KEY")
 if not _openai_key:
     raise ValueError("OPENAI_API_KEY environment variable is not set or is empty")
 
-_wfagent = get_workflow_agent(
-    openai_key=_openai_key,
-    model_name="gpt-3.5-turbo",
+_wfagent = fixpoint.agents.OpenAIAgent(
+    agent_id="main",
+    model_name='gpt-3.5-turbo',
+    openai_clients=OpenAIClients.from_api_key(_openai_key),
+    memory=DataframeMemory(),
 )
 
 _wf = Workflow(id="test_workflow")
@@ -637,7 +684,7 @@ def invoice_task(wfctx: WorkflowContext, user_message: str) -> str:
 ```
 
 In this example we simply instantiate InfoGatherer with the form and agent,
-then call a convenience functino `gather_invoice_info` to get the information from an LLM.
+then call a convenience function `gather_invoice_info` to get the information from an LLM.
 If the form is complete we return the form contents, otherwise we return more questions to the user.
 
 ### Conclusion
