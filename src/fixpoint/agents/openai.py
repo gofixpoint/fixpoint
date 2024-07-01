@@ -122,8 +122,8 @@ class OpenAIAgent(BaseAgent):
         cache: Optional[SupportsChatCompletionCache] = None,
     ) -> None:
         # if instance of models is not one of the supported models, raise ValueError
-        supported_models = get_args(openai.types.ChatModel)
-        if model_name not in supported_models:
+        supported_models = list(get_args(openai.types.ChatModel))
+        if model_name not in supported_models + ["<NOT_SET>"]:
             raise ValueError(
                 f"Invalid model name: {model_name}. Supported models are: {supported_models}"
             )
