@@ -1,0 +1,32 @@
+# Ignore environment files and directories
+.env
+venv/
+.env
+**/.env
+.env.local
+**/.env.local
+.env.*.local
+**/.env.*.local
+.env.local.json
+**/.env.local.json
+.env.*.local.json
+**/.env.*.local.json
+
+# Ignore Earthly secrets and args
+.arg
+.secret
+
+# Ignore Python build artifacts
+__pycache__
+**/__pycache__
+.mypy_cache/
+**/.mypy_cache/
+
+# Javascript/Typescript
+node_modules
+**/node_modules
+tsconfig.tsbuildinfo
+**/tsconfig.tsbuildinfo
+
+# Docs and Next.js
+docs/.next
