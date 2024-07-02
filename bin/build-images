@@ -1,0 +1,53 @@
+#!/bin/bash
+
+#/ Usage:
+#/
+#/ build-images [TARGET]
+
+set -euo pipefail
+
+SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]:-$0}"; )" &> /dev/null && pwd 2> /dev/null; )";
+ROOT_DIR=$(realpath "${SCRIPT_DIR}/..")
+
+cd $ROOT_DIR
+
+UNCHECKED_FILES=$(git status --porcelain)
+
+if [ -n "$UNCHECKED_FILES" ];
+then
+    echo "You have unchecked source files."
+    exit 1
+fi
+
+# Check if we are logged in
+# echo in an empty password to avoid password prompt
+if ! $(echo '' | gcloud projects list &> /dev/null); then
+    echo 'gcloud login required...'
+    gcloud auth login
+fi
+
+BUILD_TARGET=${1:-"+all-builds"}
+
+echo "Building targets: $BUILD_TARGET"
+
+skip_push=${SKIP_PUSH:-}
+
+if [ -z "$skip_push" ];
+then
+    echo "Building images and pushing to repository"
+    earthly --push $BUILD_TARGET --TAG=$(git rev-parse HEAD)
+else
+    echo "Building images, but skipping pushing"
+    earthly $BUILD_TARGET --TAG=$(git rev-parse HEAD)
+fi
+
+tag_latest() {
+    local image_suffix=$1
+    local image_repo=us-central1-docker.pkg.dev/production-413901
+    local image_full=${image_repo}/${image_suffix}
+
+    # Skip over tag failures
+    docker tag $image_full:$(git rev-parse HEAD) $image_full:latest || true
+}
+
+tag_latest docs

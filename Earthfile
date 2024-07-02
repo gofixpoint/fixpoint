@@ -50,3 +50,7 @@ docs:
     # AWS
     # ARG IMAGE_REPO_BASE=851725343267.dkr.ecr.us-east-2.amazonaws.com/fixpoint
     SAVE IMAGE --push $IMAGE_REPO_BASE/docs:$TAG
+
+
+all-builds:
+    BUILD --platform=linux/amd64 +docs
