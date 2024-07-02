@@ -1,7 +1,6 @@
 from typing import Any
 from unittest.mock import patch
 
-import pytest
 from openai.types.chat.chat_completion import (
     ChatCompletion as OpenAIChatCompletion,
 )
@@ -14,38 +13,15 @@ from tests.test_utils import SampleStructure
 
 
 class TestAgents:
-    def test_openai_agent_bad_model_instantiation(self) -> None:
-        # Check that if an invalid model is passed in then a ValueError is raised
-        with pytest.raises(ValueError):
-            OpenAI("agent-id-1", "bad-model", OpenAIClients.from_api_key("api-key"))
-        # Check that if None is passed in then a ValueError is raised
-        with pytest.raises(ValueError):
-            OpenAI("agent-id-2", None, OpenAIClients.from_api_key("api-key"))  # type: ignore
-
-    def test_openai_agent_valid_model_instantiation(self) -> None:
-        # Instantiate an agent
-        agent = OpenAI(
-            agent_id="agent-id-1",
-            model_name="gpt-3.5-turbo",
-            openai_clients=OpenAIClients.from_api_key("api-key"),
-        )
-
-        # Check that the agent contains the model
-        assert agent.fixp.model_name == "gpt-3.5-turbo"
-
-        # Now check that the open ai methods are exposed. Check that chat exists on the agent.
-        assert hasattr(agent, "chat")
-
     def test_openai_agent_completions_proxy(self) -> None:
         # Instantiate an agent
         agent = OpenAI(
             agent_id="agent-id-1",
-            model_name="gpt-3.5-turbo",
             openai_clients=OpenAIClients.from_api_key("api-key"),
         )
 
         def instructed_chat_completion(
-            messages: Any, response_model: Any
+            messages: Any, model: str, response_model: Any
         ) -> tuple[SampleStructure, OpenAIChatCompletion]:
             completion = new_mock_orig_completion("I'm doing good.")
             structure = SampleStructure(name="John")
@@ -67,6 +43,7 @@ class TestAgents:
                 messages=[
                     {"role": "user", "content": "Hello, how are you?"},
                 ],
+                model="gpt-3.5-turbo",
                 response_model=SampleStructure,
             )
 
@@ -74,3 +51,14 @@ class TestAgents:
             assert response.fixp.structured_output is not None
             assert isinstance(response.fixp.structured_output, SampleStructure)
             assert response.fixp.structured_output.name == "John"
+
+
+def test_openai_agent_valid_model_instantiation() -> None:
+    # Instantiate an agent
+    agent = OpenAI(
+        agent_id="agent-id-1",
+        openai_clients=OpenAIClients.from_api_key("api-key"),
+    )
+
+    # Now check that the open ai methods are exposed. Check that chat exists on the agent.
+    assert hasattr(agent, "chat")
