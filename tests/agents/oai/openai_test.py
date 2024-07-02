@@ -21,7 +21,7 @@ class TestAgents:
         )
 
         def instructed_chat_completion(
-            messages: Any, response_model: Any
+            messages: Any, model: str, response_model: Any
         ) -> tuple[SampleStructure, OpenAIChatCompletion]:
             completion = new_mock_orig_completion("I'm doing good.")
             structure = SampleStructure(name="John")
@@ -51,3 +51,14 @@ class TestAgents:
             assert response.fixp.structured_output is not None
             assert isinstance(response.fixp.structured_output, SampleStructure)
             assert response.fixp.structured_output.name == "John"
+
+
+def test_openai_agent_valid_model_instantiation() -> None:
+    # Instantiate an agent
+    agent = OpenAI(
+        agent_id="agent-id-1",
+        openai_clients=OpenAIClients.from_api_key("api-key"),
+    )
+
+    # Now check that the open ai methods are exposed. Check that chat exists on the agent.
+    assert hasattr(agent, "chat")
