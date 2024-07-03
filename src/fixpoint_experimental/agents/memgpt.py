@@ -23,9 +23,9 @@ from typing import Any, List, Optional, Type, TypeVar, Union, overload
 from pydantic import BaseModel
 
 from fixpoint.workflows import WorkflowRun
-from ..logging import logger
-from .protocol import BaseAgent
-from ..completions import ChatCompletionMessageParam, ChatCompletion
+from fixpoint.logging import logger
+from fixpoint.agents import BaseAgent
+from fixpoint.completions import ChatCompletionMessageParam, ChatCompletion
 
 
 @dataclass
