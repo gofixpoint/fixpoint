@@ -6,6 +6,7 @@ from fastapi import FastAPI, HTTPException
 
 import fixpoint
 from fixpoint.agents.openai import OpenAIClients
+from fixpoint_extras.analyze.memory import DataframeMemory
 from fixpoint_extras.workflows.imperative import (
     Workflow,
     WorkflowRun,
@@ -13,14 +14,8 @@ from fixpoint_extras.workflows.imperative import (
     Form,
 )
 
-from fixpoint_extras.analyze.memory import DataframeMemory
-from fixpoint_extras.services.formagent.tasks import (
-    classify_form_type,
-    FormType,
-    gather_invoice_info,
-    InvoiceQuestions,
-)
-from fixpoint_extras.services.formagent.controllers.infogather import InfoGatherer
+from .tasks import classify_form_type, FormType, gather_invoice_info, InvoiceQuestions
+from .controllers.infogather import InfoGatherer
 
 
 app = FastAPI()

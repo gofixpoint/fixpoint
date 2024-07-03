@@ -35,10 +35,7 @@ jobs:
       - run: pip install poetry
         working-directory: ${{ github.workspace }}
 
-      - run: poetry install
-        working-directory: ${{ github.workspace }}
-
-      - run: poetry install -E analyze
+      - run: poetry install --all-extras
         working-directory: ${{ github.workspace }}
 
       - name: Typecheck Python
