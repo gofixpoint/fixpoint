@@ -32,8 +32,9 @@ creating billing invoices or event tickets. The chatbot's job is to figure out
 what type of document the user wants to create, and to prefill it with relevant
 info.
 
-If you want to skip the step-by-step explanation of the code, you can check out the [FastAPI example](https://github.com/gofixpoint/fixpoint/blob/main/src/fixpoint_extras/services/fastapi/local_server.py) in our repo.
-It's a little over 100 lines of code!
+If you want to skip the step-by-step explanation of the code, you can check out the
+[FastAPI example](https://github.com/gofixpoint/fixpoint/blob/main/examples/fastapi_chat_workflows/server.py)
+in our repo. It's a little over 100 lines of code!
 
 ### Requirements
 
@@ -254,7 +255,7 @@ from fixpoint_extras.workflows.imperative import (
     WorkflowContext
 )
 from fixpoint.analyze.memory import DataframeMemory
-from fixpoint_extras.services.formagent.tasks import (
+from examples.fastapi_chat_workflows.tasks import (
     FormType
 )
 
@@ -340,7 +341,7 @@ from fixpoint_extras.workflows.imperative import (
     WorkflowContext
 )
 from fixpoint.analyze.memory import DataframeMemory
-from fixpoint_extras.services.formagent.tasks import (
+from examples.fastapi_chat_workflows.tasks import (
     classify_form_type,
     FormType
 )
@@ -443,7 +444,7 @@ from fixpoint_extras.workflows.imperative import (
     Form
 )
 from fixpoint.analyze.memory import DataframeMemory
-from fixpoint_extras.services.formagent.tasks import (
+from examples.fastapi_chat_workflows.tasks import (
     classify_form_type,
     FormType,
     InvoiceQuestions
@@ -563,7 +564,7 @@ The `InfoGatherer` class is a [controller](/glossary#controller) that wraps a
 `Form` and provides a simple interface to progressively fill out the form based
 on user messages, and to ask the user for data that is still mssing. Behind the
 scenes, it uses tool calling to extract structured information.
-You can find the full implementation of InfoGatherer [here](https://github.com/gofixpoint/fixpoint/blob/main/src/fixpoint_extras/services/formagent/controllers/infogather.py).
+You can find the full implementation of InfoGatherer [here](https://github.com/gofixpoint/fixpoint/blob/main/src/examples/fastapi_chat_workflows/controllers/infogather.py).
 
 Let's modify our existing example to use `InfoGatherer` to gather information from the user.
 
@@ -582,13 +583,13 @@ from fixpoint_extras.workflows.imperative import (
     Form
 )
 from fixpoint.analyze.memory import DataframeMemory
-from fixpoint_extras.services.formagent.tasks import (
+from examples.fastapi_chat_workflows.tasks import (
     classify_form_type,
     FormType,
     gather_invoice_info,
     InvoiceQuestions
 )
-from fixpoint_extras.services.formagent.controllers.infogather import InfoGatherer
+from examples.fastapi_chat_workflows.controllers.infogather import InfoGatherer
 
 _openai_key = os.getenv("OPENAI_API_KEY")
 if not _openai_key:
