@@ -11,7 +11,7 @@ from pydantic import (
     SkipValidation,
 )
 
-from fixpoint.storage.protocol import SupportsStorage
+from fixpoint._storage.protocol import SupportsStorage
 from fixpoint._utils.ids import make_resource_uuid
 
 from .document import Document

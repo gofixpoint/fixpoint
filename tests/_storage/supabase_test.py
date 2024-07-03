@@ -1,7 +1,7 @@
 from typing import Tuple, Any
 import pytest
 from pydantic import BaseModel
-from fixpoint.storage import SupabaseStorage
+from fixpoint._storage import SupabaseStorage
 from ..supabase_test_utils import supabase_setup_url_and_key, is_supabase_enabled
 
 

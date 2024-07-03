@@ -9,7 +9,7 @@ from threading import RLock
 from typing import Any, Callable, Generic, Union, Optional
 from cachetools import TLRUCache as CachetoolsTLRUCache
 
-from fixpoint.storage.protocol import SupportsStorage, SupportsSerialization
+from fixpoint._storage.protocol import SupportsStorage, SupportsSerialization
 from .protocol import (
     SupportsCache,
     K_contra,

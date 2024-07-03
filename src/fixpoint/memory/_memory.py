@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from fixpoint._protocols.workflow_run import WorkflowRunData
 from fixpoint._utils.ids import make_resource_uuid
 from ..completions import ChatCompletionMessageParam, ChatCompletion
-from ..storage.protocol import SupportsStorage
+from .._storage.protocol import SupportsStorage
 
 
 def new_memory_item_id() -> str:

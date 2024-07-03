@@ -8,7 +8,7 @@ from typing import Callable, List, Optional
 
 from pydantic import BaseModel
 
-from fixpoint import cache, memory, storage
+from fixpoint import cache, memory, _storage
 from .document import Document
 from .form import Form
 
@@ -20,8 +20,8 @@ DEF_CHAT_CACHE_TTL_S = 60 * 60 * 24 * 7
 class StorageConfig:
     """Storage configuration for imperative workflows and its agents, etc."""
 
-    forms_storage: Optional[storage.SupportsStorage[Form[BaseModel]]]
-    docs_storage: Optional[storage.SupportsStorage[Document]]
+    forms_storage: Optional[_storage.SupportsStorage[Form[BaseModel]]]
+    docs_storage: Optional[_storage.SupportsStorage[Document]]
     agent_cache: Optional[cache.SupportsChatCompletionCache]
     memory_factory: Callable[[str], memory.SupportsMemory]
 
@@ -116,9 +116,9 @@ def get_default_storage_config() -> StorageConfig:
 
 def create_form_supabase_storage(
     supabase_url: str, supabase_api_key: str
-) -> storage.SupabaseStorage[Form[BaseModel]]:
+) -> _storage.SupabaseStorage[Form[BaseModel]]:
     """Create a supabase storage driver for forms"""
-    return storage.SupabaseStorage[Form[BaseModel]](
+    return _storage.SupabaseStorage[Form[BaseModel]](
         url=supabase_url,
         key=supabase_api_key,
         table="forms_with_metadata",
@@ -130,9 +130,9 @@ def create_form_supabase_storage(
 
 def create_docs_supabase_storage(
     supabase_url: str, supabase_api_key: str
-) -> storage.SupabaseStorage[Document]:
+) -> _storage.SupabaseStorage[Document]:
     """Create a supabase storage driver for documents"""
-    return storage.SupabaseStorage[Document](
+    return _storage.SupabaseStorage[Document](
         url=supabase_url,
         key=supabase_api_key,
         table="documents",
@@ -144,9 +144,9 @@ def create_docs_supabase_storage(
 
 def create_chat_completion_cache_supabase_storage(
     supabase_url: str, supabase_api_key: str
-) -> storage.SupabaseStorage[cache.ChatCompletionTLRUCacheItem[BaseModel]]:
+) -> _storage.SupabaseStorage[cache.ChatCompletionTLRUCacheItem[BaseModel]]:
     """Create a supabase storage driver for chat completion caching"""
-    return storage.SupabaseStorage(
+    return _storage.SupabaseStorage(
         url=supabase_url,
         key=supabase_api_key,
         table="completion_cache",
@@ -162,9 +162,9 @@ def create_chat_completion_cache_supabase_storage(
 
 def create_str_cache_supabase_storage(
     supabase_url: str, supabase_api_key: str
-) -> storage.SupabaseStorage[cache.TLRUCacheItem[str]]:
+) -> _storage.SupabaseStorage[cache.TLRUCacheItem[str]]:
     """Create a supabase storage driver for chat completion caching"""
-    return storage.SupabaseStorage(
+    return _storage.SupabaseStorage(
         url=supabase_url,
         key=supabase_api_key,
         table="completion_cache",
@@ -178,14 +178,14 @@ def create_memory_supabase_storage(
     supabase_url: str,
     supabase_api_key: str,
     agent_id: str,  # pylint: disable=unused-argument
-) -> storage.SupabaseStorage[memory.MemoryItem]:
+) -> _storage.SupabaseStorage[memory.MemoryItem]:
     """Create a supabase storage driver for agent memories"""
     # TODO(dbmikus) we need to make use of the agent_id
     # We put a id on the agent itself, so do we need an agent_id on the memory?
     # We can either attach agent IDs to the agents or to the memory, or perhaps
     # to both.
 
-    return storage.SupabaseStorage[memory.MemoryItem](
+    return _storage.SupabaseStorage[memory.MemoryItem](
         url=supabase_url,
         key=supabase_api_key,
         table="memory_store",
