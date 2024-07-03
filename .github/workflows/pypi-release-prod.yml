@@ -1,0 +1,37 @@
+name: Release PyPi prod package
+
+on:
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.x
+          cache: 'pip'
+          cache-dependency-path: ${{ github.workspace }}/poetry.lock
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies
+        run: poetry install
+        working-directory: ${{ github.workspace }}
+
+      - name: Build package
+        run: poetry build
+        working-directory: ${{ github.workspace }}
+
+      - name: configure Poetry PyPi token
+        run: poetry config pypi-token.pypi ${{ secrets.PYPI_API_TOKEN_PROD }}
+
+      - name: Publish to PyPI prod repository
+        run: poetry publish -vvv --no-interaction
+        working-directory: ${{ github.workspace }}
