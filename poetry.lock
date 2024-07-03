@@ -3798,4 +3798,4 @@ examples = ["fastapi", "pandas"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "9ee4d17d1d808df9b3e49b343316c7ff75ba83b5506b835c76372dee5daf449c"
+content-hash = "7f79dfcc6848c7097dc8aaad0f80c1ecf54897ab014236acd71320089d0605f7"
