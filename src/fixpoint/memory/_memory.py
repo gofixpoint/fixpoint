@@ -5,9 +5,9 @@ from typing import List, Protocol, Optional, Any, Callable
 
 from pydantic import BaseModel
 
+from fixpoint._protocols.workflow_run import WorkflowRunData
 from fixpoint._utils.ids import make_resource_uuid
 from ..completions import ChatCompletionMessageParam, ChatCompletion
-from ..workflows import SupportsWorkflowRun
 from ..storage.protocol import SupportsStorage
 
 
@@ -33,7 +33,7 @@ class MemoryItem:
         agent_id: str,
         messages: List[ChatCompletionMessageParam],
         completion: ChatCompletion[BaseModel],
-        workflow_run: Optional[SupportsWorkflowRun] = None,
+        workflow_run: Optional[WorkflowRunData] = None,
         workflow_id: Optional[str] = None,
         workflow_run_id: Optional[str] = None,
         serialize_fn: Callable[[Any], str] = json.dumps,
@@ -102,7 +102,7 @@ class SupportsMemory(Protocol):
         agent_id: str,
         messages: List[ChatCompletionMessageParam],
         completion: ChatCompletion[BaseModel],
-        workflow_run: Optional[SupportsWorkflowRun] = None,
+        workflow_run: Optional[WorkflowRunData] = None,
     ) -> None:
         """Store the memory"""
 
@@ -125,7 +125,7 @@ class Memory(SupportsMemory):
         agent_id: str,
         messages: List[ChatCompletionMessageParam],
         completion: ChatCompletion[BaseModel],
-        workflow_run: Optional[SupportsWorkflowRun] = None,
+        workflow_run: Optional[WorkflowRunData] = None,
     ) -> None:
         """Store the memory
 

@@ -181,7 +181,7 @@ def task_entrypoint() -> Callable[[AsyncFunc[Params, Ret]], AsyncFunc[Params, Re
         validate_func_has_context_arg(func)
 
         @wraps(func)
-        async def wrapper(*args: Any, **kwargs: Any) -> Ret:
+        async def wrapper(*args: Params.args, **kwargs: Params.kwargs) -> Ret:
             taskentry_fixp = get_task_entrypoint_fixp_from_fn(func)
             if taskentry_fixp is None:
                 raise InternalException("task entry __fixp is not defined")

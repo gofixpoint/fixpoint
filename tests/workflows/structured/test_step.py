@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 import pytest
-from fixpoint_extras.workflows import imperative
-from fixpoint_extras.workflows import structured
-from fixpoint_extras.workflows.structured._run_config import RunConfig
+from fixpoint.workflows import imperative
+from fixpoint.workflows import structured
+from fixpoint.workflows.structured._run_config import RunConfig
 
 
 @dataclass

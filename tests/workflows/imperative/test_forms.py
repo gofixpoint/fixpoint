@@ -3,9 +3,9 @@ import json
 import pytest
 from pydantic import BaseModel, Field
 
-from fixpoint_extras.workflows.imperative.workflow import Workflow
-from fixpoint_extras.workflows.imperative.form import Form, _is_valid_field_annotation
-from fixpoint_extras.workflows.imperative.config import create_form_supabase_storage
+from fixpoint.workflows.imperative.workflow import Workflow
+from fixpoint.workflows.imperative.form import Form, _is_valid_field_annotation
+from fixpoint.workflows.imperative.config import create_form_supabase_storage
 
 from tests.supabase_test_utils import supabase_setup_url_and_key, is_supabase_enabled
 

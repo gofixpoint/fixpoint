@@ -3,7 +3,7 @@ import json
 import pytest
 from freezegun import freeze_time
 from fixpoint.cache.tlru import TLRUCache
-from fixpoint_extras.workflows.imperative.config import (
+from fixpoint.workflows.imperative.config import (
     create_str_cache_supabase_storage,
 )
 from ..supabase_test_utils import supabase_setup_url_and_key, is_supabase_enabled

@@ -6,12 +6,12 @@ from typing import Any, Dict, List, Optional, TypedDict
 import jinja2
 from pydantic import BaseModel
 
+from fixpoint.workflows import WorkflowRun
 from ..completions import (
     ChatCompletionMessageParam,
     ChatCompletion,
     ChatCompletionToolParam,
 )
-from ..workflows.protocol import SupportsWorkflowRun
 from ..agents import BaseAgent, CacheMode
 from ..utils.messages import umsg
 
@@ -102,7 +102,7 @@ def classify_message(
     *,
     context_messages: Optional[List[ChatCompletionMessageParam]] = None,
     model: Optional[str] = None,
-    workflow_run: Optional[SupportsWorkflowRun] = None,
+    workflow_run: Optional[WorkflowRun] = None,
     cache_mode: Optional[CacheMode] = None
 ) -> ChatCompletion[BaseModel]:
     """Classify a user message
@@ -138,7 +138,7 @@ def create_classified_chat_completion(
     *,
     context_messages: Optional[List[ChatCompletionMessageParam]] = None,
     model: Optional[str] = None,
-    workflow_run: Optional[SupportsWorkflowRun] = None,
+    workflow_run: Optional[WorkflowRun] = None,
     cache_mode: Optional[CacheMode] = None
 ) -> ClassifiedChatCompletion:
     """Create a classified chat completion"""

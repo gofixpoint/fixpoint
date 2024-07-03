@@ -5,8 +5,8 @@ from typing import Optional, Tuple, List
 from pydantic import BaseModel, Field
 
 from fixpoint.completions import ChatCompletion, ChatCompletionMessageParam
+from fixpoint.workflows.imperative import WorkflowContext
 
-from fixpoint_extras.workflows.imperative import WorkflowContext
 from ..controllers.infogather import InfoGatherer
 from ._shared import SYSTEM_PREFIX
 

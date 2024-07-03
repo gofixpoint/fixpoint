@@ -22,10 +22,10 @@ from typing import Any, List, Optional, Type, TypeVar, Union, overload
 
 from pydantic import BaseModel
 
+from fixpoint.workflows import WorkflowRun
 from ..logging import logger
 from .protocol import BaseAgent
 from ..completions import ChatCompletionMessageParam, ChatCompletion
-from ..workflows import SupportsWorkflowRun
 
 
 @dataclass
@@ -60,7 +60,7 @@ class MemGPTSummaryAgent:
         messages: List[ChatCompletionMessageParam],
         response_model: None = None,
         model: Optional[str] = None,
-        workflow_run: Optional[SupportsWorkflowRun] = None,
+        workflow_run: Optional[WorkflowRun] = None,
         **kwargs: Any,
     ) -> ChatCompletion[BaseModel]: ...
 
@@ -71,7 +71,7 @@ class MemGPTSummaryAgent:
         messages: List[ChatCompletionMessageParam],
         response_model: Type[T],
         model: Optional[str] = None,
-        workflow_run: Optional[SupportsWorkflowRun] = None,
+        workflow_run: Optional[WorkflowRun] = None,
         **kwargs: Any,
     ) -> ChatCompletion[T]: ...
 
@@ -81,7 +81,7 @@ class MemGPTSummaryAgent:
         messages: List[ChatCompletionMessageParam],
         response_model: Optional[Type[T]] = None,
         model: Optional[str] = None,
-        workflow_run: Optional[SupportsWorkflowRun] = None,
+        workflow_run: Optional[WorkflowRun] = None,
         **kwargs: Any,
     ) -> Union[ChatCompletion[T], ChatCompletion[BaseModel]]:
         """Create a chat completion, using historical (maybe summarized) messages in context"""

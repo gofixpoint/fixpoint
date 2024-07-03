@@ -10,21 +10,19 @@ from fixpoint.completions import (
     ChatCompletionToolChoiceOptionParam,
     ChatCompletionToolParam,
 )
-from fixpoint.workflows import SupportsWorkflowRun
 from fixpoint.agents import CacheMode
 from fixpoint.memory import SupportsMemory
 from fixpoint.agents.protocol import BaseAgent, T_contra
+from fixpoint._protocols.workflow_run import WorkflowRunData
 
 
 class WorkflowAgent(BaseAgent):
     """Wraps a normal agent and keeps it up to date with workflow state"""
 
     _inner_agent: BaseAgent
-    _workflow_run: SupportsWorkflowRun
+    _workflow_run: WorkflowRunData
 
-    def __init__(
-        self, inner_agent: BaseAgent, workflow_run: SupportsWorkflowRun
-    ) -> None:
+    def __init__(self, inner_agent: BaseAgent, workflow_run: WorkflowRunData) -> None:
         self._inner_agent = inner_agent
         self._workflow_run = workflow_run
 
@@ -55,7 +53,7 @@ class WorkflowAgent(BaseAgent):
         messages: List[ChatCompletionMessageParam],
         response_model: None = None,
         model: Optional[str] = None,
-        workflow_run: Optional[SupportsWorkflowRun] = None,
+        workflow_run: Optional[WorkflowRunData] = None,
         tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
         tools: Optional[Iterable[ChatCompletionToolParam]] = None,
         temperature: Optional[float] = None,
@@ -70,7 +68,7 @@ class WorkflowAgent(BaseAgent):
         messages: List[ChatCompletionMessageParam],
         response_model: Type[T_contra],
         model: Optional[str] = None,
-        workflow_run: Optional[SupportsWorkflowRun] = None,
+        workflow_run: Optional[WorkflowRunData] = None,
         tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
         tools: Optional[Iterable[ChatCompletionToolParam]] = None,
         temperature: Optional[float] = None,
@@ -84,7 +82,7 @@ class WorkflowAgent(BaseAgent):
         messages: List[ChatCompletionMessageParam],
         response_model: Optional[Type[T_contra]] = None,
         model: Optional[str] = None,
-        workflow_run: Optional[SupportsWorkflowRun] = None,
+        workflow_run: Optional[WorkflowRunData] = None,
         tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
         tools: Optional[Iterable[ChatCompletionToolParam]] = None,
         temperature: Optional[float] = None,

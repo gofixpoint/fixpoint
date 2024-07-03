@@ -1,8 +1,8 @@
 from typing import List, Tuple
 import pytest
-from fixpoint_extras.workflows.imperative.workflow import Workflow
-from fixpoint_extras.workflows.imperative.document import Document
-from fixpoint_extras.workflows.imperative.config import create_docs_supabase_storage
+from fixpoint.workflows.imperative.workflow import Workflow
+from fixpoint.workflows.imperative.document import Document
+from fixpoint.workflows.imperative.config import create_docs_supabase_storage
 
 from tests.supabase_test_utils import supabase_setup_url_and_key, is_supabase_enabled
 

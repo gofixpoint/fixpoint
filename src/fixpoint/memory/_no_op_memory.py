@@ -5,7 +5,7 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 from fixpoint.completions import ChatCompletionMessageParam, ChatCompletion
-from fixpoint.workflows import SupportsWorkflowRun
+from fixpoint._protocols.workflow_run import WorkflowRunData
 from ._memory import SupportsMemory, MemoryItem
 
 
@@ -21,7 +21,7 @@ class NoOpMemory(SupportsMemory):
         agent_id: str,
         messages: List[ChatCompletionMessageParam],
         completion: ChatCompletion[BaseModel],
-        workflow_run: Optional[SupportsWorkflowRun] = None,
+        workflow_run: Optional[WorkflowRunData] = None,
     ) -> None:
         """Store the memory"""
 

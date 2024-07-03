@@ -7,8 +7,8 @@ import jinja2
 
 from fixpoint.prompting import classification
 from fixpoint.utils.messages import smsg
+from fixpoint.workflows.imperative import WorkflowContext
 
-from fixpoint_extras.workflows.imperative import WorkflowContext
 from ._shared import SYSTEM_PREFIX
 
 

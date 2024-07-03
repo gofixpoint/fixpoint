@@ -19,6 +19,7 @@ from openai.types.chat.chat_completion import (
 )
 from pydantic import BaseModel
 
+from fixpoint._protocols.workflow_run import WorkflowRunData
 from fixpoint.cache import SupportsChatCompletionCache, CreateChatCompletionRequest
 from ..completions import (
     ChatCompletion,
@@ -28,7 +29,6 @@ from ..completions import (
     ChatCompletionToolChoiceOptionParam,
 )
 from ..memory import SupportsMemory, NoOpMemory
-from ..workflows import SupportsWorkflowRun
 from .protocol import BaseAgent, CompletionCallback, PreCompletionFn
 from ._shared import request_cached_completion, CacheMode, random_agent_id
 
@@ -76,7 +76,7 @@ class MockAgent(BaseAgent):
         messages: List[ChatCompletionMessageParam],
         response_model: None = None,
         model: Optional[str] = None,
-        workflow_run: Optional[SupportsWorkflowRun] = None,
+        workflow_run: Optional[WorkflowRunData] = None,
         tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
         tools: Optional[Iterable[ChatCompletionToolParam]] = None,
         cache_mode: Optional[CacheMode] = None,
@@ -90,7 +90,7 @@ class MockAgent(BaseAgent):
         messages: List[ChatCompletionMessageParam],
         response_model: Type[T_contra],
         model: Optional[str] = None,
-        workflow_run: Optional[SupportsWorkflowRun] = None,
+        workflow_run: Optional[WorkflowRunData] = None,
         tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
         tools: Optional[Iterable[ChatCompletionToolParam]] = None,
         cache_mode: Optional[CacheMode] = None,
@@ -102,7 +102,7 @@ class MockAgent(BaseAgent):
         *,
         messages: List[ChatCompletionMessageParam],
         model: Optional[str] = None,
-        workflow_run: Optional[SupportsWorkflowRun] = None,
+        workflow_run: Optional[WorkflowRunData] = None,
         response_model: Optional[Type[T_contra]] = None,
         tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
         tools: Optional[Iterable[ChatCompletionToolParam]] = None,

@@ -8,8 +8,7 @@ from pydantic.fields import FieldInfo
 from fixpoint.utils.messages import umsg
 from fixpoint.completions import ChatCompletionMessageParam, ChatCompletion
 from fixpoint.agents import BaseAgent
-
-from fixpoint_extras.workflows.imperative import Form
+from fixpoint.workflows.imperative import Form
 
 
 _QUESTION_FIELD_PREFIX = "question_"
