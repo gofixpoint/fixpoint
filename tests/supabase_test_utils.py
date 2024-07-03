@@ -5,7 +5,7 @@ from typing import Generator, Tuple
 import psycopg
 import pytest
 
-from .storage.postgres_helper import drop_table
+from ._storage.postgres_helper import drop_table
 
 from fixpoint.utils.env import get_env_value
 
