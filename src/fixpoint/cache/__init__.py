@@ -8,8 +8,8 @@ from .protocol import (
     CreateChatCompletionRequest,
 )
 from ._shared import parse_create_chat_completion_request
-from .tlru import TLRUCacheItem
-from .chattlru import ChatCompletionTLRUCache, ChatCompletionTLRUCacheItem
+from ._genericcache.tlru import TLRUCacheItem
+from .tlru import ChatCompletionTLRUCache, ChatCompletionTLRUCacheItem
 from .disktlru import ChatCompletionDiskTLRUCache
 
 __all__ = [

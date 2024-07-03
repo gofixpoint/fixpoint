@@ -2,7 +2,7 @@ from typing import Tuple, Any
 import json
 import pytest
 from freezegun import freeze_time
-from fixpoint.cache.tlru import TLRUCache
+from fixpoint.cache._genericcache.tlru import TLRUCache
 from fixpoint.workflows.imperative.config import (
     create_str_cache_supabase_storage,
 )
