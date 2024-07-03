@@ -12,9 +12,9 @@ except ImportError as e:
     ) from e
 
 
-from ..logging import logger
-from ..completions import ChatCompletionMessageParam
-from ..memory import Memory
+from fixpoint.logging import logger
+from fixpoint.completions import ChatCompletionMessageParam
+from fixpoint.memory import Memory
 
 
 class _DataDict(TypedDict):

@@ -5,7 +5,6 @@ from typing import cast
 from fastapi import FastAPI, HTTPException
 
 import fixpoint
-from fixpoint.analyze.memory import DataframeMemory
 from fixpoint.agents.openai import OpenAIClients
 from fixpoint_extras.workflows.imperative import (
     Workflow,
@@ -14,6 +13,7 @@ from fixpoint_extras.workflows.imperative import (
     Form,
 )
 
+from fixpoint_extras.analyze.memory import DataframeMemory
 from fixpoint_extras.services.formagent.tasks import (
     classify_form_type,
     FormType,
