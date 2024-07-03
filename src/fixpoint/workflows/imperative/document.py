@@ -4,7 +4,7 @@ from typing import Dict, Any, Optional, List
 
 from pydantic import BaseModel, Field, computed_field
 
-from .version import Version
+from ._version import Version
 
 
 class Document(BaseModel):

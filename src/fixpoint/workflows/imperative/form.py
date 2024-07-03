@@ -23,7 +23,7 @@ from pydantic import (
     field_validator,
 )
 
-from .version import Version
+from ._version import Version
 
 
 T = TypeVar("T", bound=BaseModel)
