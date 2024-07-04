@@ -15,7 +15,7 @@ from .protocol import (
     SupportsChatCompletionCache,
     CreateChatCompletionRequest,
 )
-from ..storage.protocol import SupportsStorage, SupportsSerialization
+from .._storage.protocol import SupportsStorage, SupportsSerialization
 from ._shared import (
     BM,
     serialize_chat_completion_request,
