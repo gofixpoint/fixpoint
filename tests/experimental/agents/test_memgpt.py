@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from fixpoint.memory import Memory
 from fixpoint.completions import ChatCompletion, ChatCompletionMessageParam
 from fixpoint.agents.mock import MockAgent, new_mock_completion
-from fixpoint.agents._memgpt import (
+from fixpoint_experimental.agents.memgpt import (
     MemGPTSummaryAgent,
     MemGPTSummarizeOpts,
     _ContextLengthCheck,
