@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from fixpoint.completions import ChatCompletionMessageParam, ChatCompletion
 from fixpoint.memory import Memory, MemoryItem
 from fixpoint.agents.mock import new_mock_completion
-from fixpoint_extras.workflows.imperative.config import create_memory_supabase_storage
+from fixpoint.workflows.imperative.config import create_memory_supabase_storage
 from ..supabase_test_utils import supabase_setup_url_and_key, is_supabase_enabled
 
 

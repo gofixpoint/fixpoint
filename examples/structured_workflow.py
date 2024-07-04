@@ -11,9 +11,8 @@ import pandas as pd
 from fixpoint.agents import BaseAgent
 from fixpoint.agents.openai import OpenAIClients, OpenAIAgent
 from fixpoint.completions.chat_completion import ChatCompletionMessageParam
-
-from fixpoint_extras.workflows import structured
-from fixpoint_extras.workflows.structured import WorkflowContext
+from fixpoint.workflows import structured
+from fixpoint.workflows.structured import WorkflowContext
 
 
 # A workflow is a Python class decorated with `@structured.workflow(id="...")`.

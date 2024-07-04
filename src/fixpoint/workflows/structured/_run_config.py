@@ -2,8 +2,8 @@
 
 from dataclasses import dataclass
 
-from fixpoint_extras.workflows.imperative import StorageConfig
-from fixpoint_extras.workflows.imperative.config import (
+from ..imperative import StorageConfig
+from ..imperative.config import (
     DEF_CHAT_CACHE_MAX_SIZE,
     DEF_CHAT_CACHE_TTL_S,
 )

@@ -24,7 +24,7 @@ from fixpoint.completions import (
     ChatCompletionToolParam,
 )
 from fixpoint.memory import SupportsMemory
-from fixpoint.workflows import SupportsWorkflowRun
+from fixpoint._protocols.workflow_run import WorkflowRunData
 from fixpoint.cache import SupportsChatCompletionCache
 from fixpoint.agents.openai import OpenAIAgent, OpenAIClients
 from ..protocol import CompletionCallback, PreCompletionFn
@@ -120,7 +120,7 @@ class OpenAI:
             tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
             tools: Optional[Iterable[ChatCompletionToolParam]] = None,
             temperature: Optional[float] = None,
-            workflow_run: Optional[SupportsWorkflowRun] = None,
+            workflow_run: Optional[WorkflowRunData] = None,
             **kwargs: Any,
         ) -> ChatCompletion[BaseModel]: ...
 
@@ -134,7 +134,7 @@ class OpenAI:
             tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
             tools: Optional[Iterable[ChatCompletionToolParam]] = None,
             temperature: Optional[float] = None,
-            workflow_run: Optional[SupportsWorkflowRun] = None,
+            workflow_run: Optional[WorkflowRunData] = None,
             **kwargs: Any,
         ) -> ChatCompletion[T_contra]: ...
 
@@ -147,7 +147,7 @@ class OpenAI:
             temperature: Optional[float] = None,
             tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
             tools: Optional[Iterable[ChatCompletionToolParam]] = None,
-            workflow_run: Optional[SupportsWorkflowRun] = None,
+            workflow_run: Optional[WorkflowRunData] = None,
             **kwargs: Any,
         ) -> ChatCompletion[T_contra]:
             """Create a chat completion"""

@@ -3,12 +3,12 @@ from typing import List
 from fixpoint.cache import ChatCompletionTLRUCache
 from fixpoint.agents import BaseAgent
 from fixpoint.agents.mock import MockAgent, new_mock_completion
-from fixpoint_extras.workflows import imperative
-from fixpoint_extras.workflows.imperative.workflow_context import (
+from fixpoint.workflows import imperative
+from fixpoint.workflows.imperative.workflow_context import (
     _WrappedWorkflowAgents,
     WorkflowContext,
 )
-from fixpoint_extras.workflows.imperative._workflow_agent import WorkflowAgent
+from fixpoint.workflows.imperative._workflow_agent import WorkflowAgent
 
 
 class TestWrappedWorkflowAgents:

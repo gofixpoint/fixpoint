@@ -4,7 +4,7 @@ from typing import Dict, List, Type
 from pydantic import BaseModel
 import pytest
 
-from fixpoint_extras.workflows.structured._callcache import (
+from fixpoint.workflows.structured._callcache import (
     serialize_args,
     CacheResult,
     StepInMemCallCache,

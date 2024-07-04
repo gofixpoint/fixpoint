@@ -28,13 +28,13 @@ from fastapi import FastAPI, HTTPException
 
 import fixpoint
 from fixpoint.agents.openai import OpenAIClients
-from fixpoint_extras.analyze.memory import DataframeMemory
-from fixpoint_extras.workflows.imperative import (
+from fixpoint.workflows.imperative import (
     Workflow,
     WorkflowRun,
     WorkflowContext,
     Form,
 )
+from fixpoint_extras.analyze.memory import DataframeMemory
 
 from .tasks import classify_form_type, FormType, gather_invoice_info, InvoiceQuestions
 from .controllers.infogather import InfoGatherer

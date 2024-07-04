@@ -1,6 +1,6 @@
 import pytest
 
-from fixpoint_extras.workflows import structured
+from fixpoint.workflows import structured
 
 
 def test_workflow_declaration() -> None:

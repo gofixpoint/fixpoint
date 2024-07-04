@@ -21,7 +21,7 @@ from fixpoint.completions import (
     ChatCompletionToolParam,
 )
 from fixpoint.memory import SupportsMemory
-from ..workflows import SupportsWorkflowRun
+from fixpoint._protocols.workflow_run import WorkflowRunData
 from ._shared import CacheMode
 
 
@@ -56,7 +56,7 @@ class BaseAgent(Protocol):
         messages: List[ChatCompletionMessageParam],
         response_model: None = None,
         model: Optional[str] = None,
-        workflow_run: Optional[SupportsWorkflowRun] = None,
+        workflow_run: Optional[WorkflowRunData] = None,
         tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
         tools: Optional[Iterable[ChatCompletionToolParam]] = None,
         temperature: Optional[float] = None,
@@ -71,7 +71,7 @@ class BaseAgent(Protocol):
         messages: List[ChatCompletionMessageParam],
         response_model: Type[T_contra],
         model: Optional[str] = None,
-        workflow_run: Optional[SupportsWorkflowRun] = None,
+        workflow_run: Optional[WorkflowRunData] = None,
         tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
         tools: Optional[Iterable[ChatCompletionToolParam]] = None,
         temperature: Optional[float] = None,
@@ -85,7 +85,7 @@ class BaseAgent(Protocol):
         messages: List[ChatCompletionMessageParam],
         response_model: Optional[Type[T_contra]] = None,
         model: Optional[str] = None,
-        workflow_run: Optional[SupportsWorkflowRun] = None,
+        workflow_run: Optional[WorkflowRunData] = None,
         tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
         tools: Optional[Iterable[ChatCompletionToolParam]] = None,
         temperature: Optional[float] = None,

@@ -213,7 +213,7 @@ def workflow_entrypoint() -> Callable[[AsyncFunc[Params, Ret]], AsyncFunc[Params
         validate_func_has_context_arg(func)
 
         @wraps(func)
-        def wrapper(*args: Any, **kwargs: Any) -> Ret:
+        def wrapper(*args: Params.args, **kwargs: Params.kwargs) -> Ret:
             result = func(*args, **kwargs)
             return result
 

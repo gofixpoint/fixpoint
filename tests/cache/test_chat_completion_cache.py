@@ -11,9 +11,8 @@ from fixpoint.cache import (
     CreateChatCompletionRequest,
     ChatCompletionDiskTLRUCache,
     ChatCompletionTLRUCache,
-    ChatCompletionTLRUCacheItem,
 )
-from fixpoint_extras.workflows.imperative.config import (
+from fixpoint.workflows.imperative.config import (
     create_chat_completion_cache_supabase_storage,
 )
 from ..supabase_test_utils import supabase_setup_url_and_key, is_supabase_enabled

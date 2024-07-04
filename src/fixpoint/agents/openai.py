@@ -28,6 +28,7 @@ import instructor
 import tiktoken
 
 from fixpoint.cache import SupportsChatCompletionCache, CreateChatCompletionRequest
+from fixpoint._protocols.workflow_run import WorkflowRunData
 from ..completions import (
     ChatCompletion,
     ChatCompletionMessageParam,
@@ -35,7 +36,6 @@ from ..completions import (
     ChatCompletionToolParam,
 )
 from ..memory import SupportsMemory, NoOpMemory
-from ..workflows import SupportsWorkflowRun
 from .protocol import BaseAgent, CompletionCallback, PreCompletionFn
 from ._shared import request_cached_completion, CacheMode
 
@@ -142,7 +142,7 @@ class OpenAIAgent(BaseAgent):
         *,
         messages: List[ChatCompletionMessageParam],
         model: Optional[str] = None,
-        workflow_run: Optional[SupportsWorkflowRun] = None,
+        workflow_run: Optional[WorkflowRunData] = None,
         response_model: Optional[Type[T_contra]] = None,
         tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
         tools: Optional[Iterable[ChatCompletionToolParam]] = None,
