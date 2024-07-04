@@ -36,3 +36,47 @@ git config core.hooksPath githooks/
 
 npm install -g lint-staged
 ```
+
+
+## Building and publishin
+
+To build the Python package, from the root of the repo just run:
+
+```bash
+poetry build
+```
+
+This will build a wheel and a tarball in the `dist/` directory.
+
+If you want to test the package locally, you can install the wheel, preferably
+in a new standalone virtual environment.
+
+```bash
+python3.12 -m venv /tmp/venv
+source /tmp/ven/bin/activate
+# we use a wildcard so we don't care what version
+pip install ./dist/fixpoint-*-py3-none-any.whl
+
+# or install some specific extra dependencies
+# Note, you will need to fully specify the wheel, without a wildcard
+pip install './dist/fixpoint-0.1.0-py3-none-any.whl[dev]'
+```
+
+### Publishing to PyPi
+
+In general, you should not publish from the command line, but instead through
+CI. See the `.github/workflows/pypi-release-*.yml` files for the CI actions to
+publish to PyPi.
+
+If you want to publish from the CLI, you can configure Poetry for publishing to
+the test PyPi and prod PyPi respectively:
+
+```bash
+poetry config pypi-token.testpypi <your-test-pypi-token>
+```
+
+To publish to the test index:
+
+```bash
+poetry publish --repository testpypi
+```
