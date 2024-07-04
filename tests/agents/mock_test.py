@@ -9,7 +9,7 @@ from fixpoint.agents.mock import MockAgent, new_mock_completion
 from fixpoint.memory import Memory
 from fixpoint.utils import messages
 from fixpoint.cache import CreateChatCompletionRequest
-from fixpoint.cache.chattlru import ChatCompletionTLRUCache
+from fixpoint.cache.tlru import ChatCompletionTLRUCache
 
 
 class TestMockAgent:
