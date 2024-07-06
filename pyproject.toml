@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "fixpoint"
-version = "0.1.0"
+version = "0.20.0-rc1"
 description = "Open source infra for reliable multi-step AI workflows."
 homepage = "https://fixpoint.co/"
 authors = ["Fixpoint <team@fixpoint.co>"]
