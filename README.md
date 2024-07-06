@@ -38,7 +38,7 @@ npm install -g lint-staged
 ```
 
 
-## Building and publishin
+## Building and publishing
 
 To build the Python package, from the root of the repo just run:
 
@@ -79,4 +79,16 @@ To publish to the test index:
 
 ```bash
 poetry publish --repository testpypi
+```
+
+### Installing from test repository
+
+If you want to test a pre-release version or a version only on the
+[test PyPi repository](https://test.pypi.org/):
+
+```bash
+pip install \
+    -i https://test.pypi.org/simple/ \
+    --extra-index-url https://pypi.org/simple/ \
+    fixpoint
 ```
