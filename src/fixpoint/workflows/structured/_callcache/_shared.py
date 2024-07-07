@@ -1,22 +1,16 @@
 """Module for caching task and step executions."""
 
 __all__ = [
-    "CallCacheKind",
     "CacheResult",
     "CallCache",
+    "CallCacheKind",
     "JSONEncoder",
+    "logger",
     "serialize_args",
     "serialize_step_cache_key",
     "serialize_task_cache_key",
     "T",
 ]
-
-# TODO(dbmikus) for on-disk or in-DB store, try using dacite or Temporal
-# converter.py[1] for deserialization.
-#
-# The problem is serializing and deserializing dataclasses.
-#
-# [1]: sdk-python/temporalio/converter.py
 
 import dataclasses
 from dataclasses import is_dataclass
@@ -25,6 +19,9 @@ import json
 from typing import Any, Generic, Optional, Protocol, TypeVar
 
 from pydantic import BaseModel
+
+from fixpoint.logging import logger as root_logger
+
 
 T = TypeVar("T")
 
@@ -97,3 +94,6 @@ def serialize_task_cache_key(*, run_id: str, task_id: str, args: str) -> str:
 def default_json_dumps(obj: Any) -> str:
     """Default serialization of an object to JSON"""
     return json.dumps(obj, sort_keys=True, separators=(",", ":"), cls=JSONEncoder)
+
+
+logger = root_logger.getChild("workflows.structured._callcache")

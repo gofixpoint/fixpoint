@@ -5,10 +5,13 @@ from typing import Optional, Union, Type
 
 from pydantic import BaseModel
 
-from ..completions import ChatCompletion
+from fixpoint._constants import (
+    DEFAULT_DISK_CACHE_SIZE_LIMIT_BYTES as DEFAULT_SIZE_LIMIT_BYTES,
+)
+from fixpoint.completions import ChatCompletion
 from .protocol import SupportsChatCompletionCache, CreateChatCompletionRequest
 from ._shared import logger, BM
-from ._genericcache.disktlru import DiskTLRUCache, DEFAULT_SIZE_LIMIT_BYTES
+from ._genericcache.disktlru import DiskTLRUCache
 
 
 # Pydantic models do not pickle well, so make a class that serializes and

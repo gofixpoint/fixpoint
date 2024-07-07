@@ -18,7 +18,6 @@ class StepInMemCallCache(CallCache):
     """An in-memory call-cache for steps"""
 
     cache_kind = CallCacheKind.STEP
-    kind_id: str
     _cache: Dict[str, Any]
 
     def __init__(self) -> None:
@@ -47,7 +46,6 @@ class TaskInMemCallCache(CallCache):
     """An in-memory call-cache for tasks"""
 
     cache_kind = CallCacheKind.TASK
-    kind_id: str
     _cache: Dict[str, Any]
 
     def __init__(self) -> None:
