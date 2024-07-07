@@ -2,7 +2,7 @@ from fixpoint.workflows.structured._callcache._shared import (
     serialize_args,
 )
 
-from .helpers import PBM, PBMInner, DC, DCInner
+from .fixtures import PBM, PBMInner, DC, DCInner
 
 
 class TestSerializeArgs:

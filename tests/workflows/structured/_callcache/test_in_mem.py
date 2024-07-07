@@ -10,7 +10,7 @@ from fixpoint.workflows.structured._callcache._in_mem import (
     TaskInMemCallCache,
 )
 
-from .helpers import DC, DCInner
+from .fixtures import DC, DCInner
 
 
 class TestInMemCallCache:
