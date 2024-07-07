@@ -16,7 +16,7 @@ import dataclasses
 from dataclasses import is_dataclass
 from enum import Enum
 import json
-from typing import Any, Generic, Optional, Protocol, TypeVar
+from typing import Any, Generic, Optional, Protocol, Type, TypeVar
 
 from pydantic import BaseModel
 
@@ -55,7 +55,11 @@ class CallCache(Protocol):
     cache_kind: CallCacheKind
 
     def check_cache(
-        self, run_id: str, kind_id: str, serialized_args: str
+        self,
+        run_id: str,
+        kind_id: str,
+        serialized_args: str,
+        type_hint: Optional[Type[Any]] = None,
     ) -> CacheResult[Any]:
         """Check if the result of a task or step call is cached"""
 

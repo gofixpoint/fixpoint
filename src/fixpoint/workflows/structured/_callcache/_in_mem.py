@@ -2,7 +2,7 @@
 
 __all__ = ["StepInMemCallCache", "TaskInMemCallCache"]
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional, Type
 
 from ._shared import (
     CallCache,
@@ -24,7 +24,11 @@ class StepInMemCallCache(CallCache):
         self._cache = {}
 
     def check_cache(
-        self, run_id: str, kind_id: str, serialized_args: str
+        self,
+        run_id: str,
+        kind_id: str,
+        serialized_args: str,
+        type_hint: Optional[Type[Any]] = None,
     ) -> CacheResult[T]:
         key = serialize_step_cache_key(
             run_id=run_id, step_id=kind_id, args=serialized_args
@@ -52,7 +56,11 @@ class TaskInMemCallCache(CallCache):
         self._cache = {}
 
     def check_cache(
-        self, run_id: str, kind_id: str, serialized_args: str
+        self,
+        run_id: str,
+        kind_id: str,
+        serialized_args: str,
+        type_hint: Optional[Type[Any]] = None,
     ) -> CacheResult[T]:
         key = serialize_task_cache_key(
             run_id=run_id, task_id=kind_id, args=serialized_args
