@@ -5,12 +5,11 @@ from typing import Union, cast
 
 import diskcache
 
+from fixpoint._constants import (
+    DEFAULT_DISK_CACHE_SIZE_LIMIT_BYTES as DEFAULT_SIZE_LIMIT_BYTES,
+)
 from .protocol import SupportsCache, K_contra, V
 from .._shared import logger
-
-
-# 50 MB
-DEFAULT_SIZE_LIMIT_BYTES = 50 * 1024 * 1024
 
 
 class DiskTLRUCache(SupportsCache[K_contra, V]):
