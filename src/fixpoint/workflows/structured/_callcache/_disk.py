@@ -32,14 +32,14 @@ class StepDiskCallCache(CallCache):
 
     cache_kind = CallCacheKind.STEP
     _ttl_s: Optional[float]
+    _cache: diskcache.Cache
 
     def __init__(
         self,
-        cache_dir: str,
+        cache: diskcache.Cache,
         ttl_s: Optional[float] = None,
-        size_limit_bytes: int = DEFAULT_SIZE_LIMIT_BYTES,
     ) -> None:
-        self._cache = diskcache.Cache(directory=cache_dir, size_limit=size_limit_bytes)
+        self._cache = cache
         self._ttl_s = ttl_s
 
     @classmethod
@@ -50,7 +50,8 @@ class StepDiskCallCache(CallCache):
     ) -> "StepDiskCallCache":
         """Create a new cache from inside a temporary directory"""
         cache_dir = tempfile.mkdtemp()
-        return cls(cache_dir, ttl_s, size_limit_bytes)
+        cache = diskcache.Cache(directory=cache_dir, size_limit=size_limit_bytes)
+        return cls(cache, ttl_s)
 
     def check_cache(
         self,
@@ -85,14 +86,14 @@ class TaskDiskCallCache(CallCache):
     """An on-disk call-cache for tasks"""
 
     cache_kind = CallCacheKind.TASK
+    _cache: diskcache.Cache
 
     def __init__(
         self,
-        cache_dir: str,
+        cache: diskcache.Cache,
         ttl_s: Optional[float] = None,
-        size_limit_bytes: int = DEFAULT_SIZE_LIMIT_BYTES,
     ) -> None:
-        self._cache = diskcache.Cache(directory=cache_dir, size_limit=size_limit_bytes)
+        self._cache = cache
         self._ttl_s = ttl_s
 
     @classmethod
@@ -103,7 +104,8 @@ class TaskDiskCallCache(CallCache):
     ) -> "TaskDiskCallCache":
         """Create a new cache from inside a temporary directory"""
         cache_dir = tempfile.mkdtemp()
-        return cls(cache_dir, ttl_s, size_limit_bytes)
+        cache = diskcache.Cache(directory=cache_dir, size_limit=size_limit_bytes)
+        return cls(cache, ttl_s)
 
     def check_cache(
         self,
