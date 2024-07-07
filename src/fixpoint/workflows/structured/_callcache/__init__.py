@@ -7,7 +7,10 @@ __all__ = [
     "CacheResult",
     "StepInMemCallCache",
     "TaskInMemCallCache",
+    "StepDiskCallCache",
+    "TaskDiskCallCache",
 ]
 
 from ._shared import CallCache, CallCacheKind, CacheResult, serialize_args
 from ._in_mem import StepInMemCallCache, TaskInMemCallCache
+from ._disk import StepDiskCallCache, TaskDiskCallCache
