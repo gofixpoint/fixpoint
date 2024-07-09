@@ -20,7 +20,7 @@ from fixpoint.completions import (
     ChatCompletionToolChoiceOptionParam,
     ChatCompletionToolParam,
 )
-from ..logging import logger as root_logger
+from fixpoint.logging import logger as root_logger
 
 
 logger = root_logger.getChild("cache")
