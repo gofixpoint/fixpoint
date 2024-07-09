@@ -109,6 +109,72 @@ class BaseAgent(Protocol):
         """If the agent has a cache, set its cache mode"""
 
 
+class AsyncBaseAgent(Protocol):
+    """The base protocol for async agents"""
+
+    id: str
+    memory: SupportsMemory
+
+    @overload
+    async def create_completion(
+        self,
+        *,
+        messages: List[ChatCompletionMessageParam],
+        response_model: None = None,
+        model: Optional[str] = None,
+        workflow_run: Optional[WorkflowRunData] = None,
+        tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
+        tools: Optional[Iterable[ChatCompletionToolParam]] = None,
+        temperature: Optional[float] = None,
+        cache_mode: Optional[CacheMode] = "normal",
+        **kwargs: Any,
+    ) -> ChatCompletion[BaseModel]: ...
+
+    @overload
+    async def create_completion(
+        self,
+        *,
+        messages: List[ChatCompletionMessageParam],
+        response_model: Type[T_contra],
+        model: Optional[str] = None,
+        workflow_run: Optional[WorkflowRunData] = None,
+        tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
+        tools: Optional[Iterable[ChatCompletionToolParam]] = None,
+        temperature: Optional[float] = None,
+        cache_mode: Optional[CacheMode] = "normal",
+        **kwargs: Any,
+    ) -> ChatCompletion[T_contra]: ...
+
+    async def create_completion(
+        self,
+        *,
+        messages: List[ChatCompletionMessageParam],
+        response_model: Optional[Type[T_contra]] = None,
+        model: Optional[str] = None,
+        workflow_run: Optional[WorkflowRunData] = None,
+        tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = None,
+        tools: Optional[Iterable[ChatCompletionToolParam]] = None,
+        temperature: Optional[float] = None,
+        cache_mode: Optional[CacheMode] = "normal",
+        **kwargs: Any,
+    ) -> ChatCompletion[T_contra]:
+        """Create a completion
+
+        The `model` argument is optional if the agent has a pre-defined model it
+        should use. In that case, specifying `model` overrides which model to
+        use.
+        """
+
+    def count_tokens(self, s: str) -> int:
+        """Count the tokens in the string, according to the model's agent(s)"""
+
+    def set_cache_mode(self, mode: CacheMode) -> None:
+        """If the agent has a cache, set its cache mode"""
+
+    def get_cache_mode(self) -> CacheMode:
+        """If the agent has a cache, set its cache mode"""
+
+
 PreCompletionFn = Callable[
     [List[ChatCompletionMessageParam]], List[ChatCompletionMessageParam]
 ]
