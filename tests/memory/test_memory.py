@@ -5,23 +5,22 @@ from typing import List, Tuple
 from pydantic import BaseModel
 
 from fixpoint.completions import ChatCompletionMessageParam, ChatCompletion
-from fixpoint.memory import Memory, MemoryItem
+from fixpoint.memory import Memory, MemoryItem, SupabaseMemory
 from fixpoint.agents.mock import new_mock_completion
-from fixpoint.workflows.imperative.config import create_memory_supabase_storage
 from ..supabase_test_utils import supabase_setup_url_and_key, is_supabase_enabled
 
 
 class TestWithMemory:
     def test_store_memory(self) -> None:
         memstore = Memory()
-        assert memstore.memories() == []
+        assert list(memstore.memories()) == []
         msgs: List[ChatCompletionMessageParam] = [
             {"role": "system", "content": "hello!"}
         ]
         cmpl: ChatCompletion[BaseModel] = new_mock_completion()
         memstore.store_memory("agent-1", msgs, cmpl)
 
-        stored_memory = memstore.memories()
+        stored_memory = list(memstore.memories())
         expected_memory = [
             MemoryItem(agent_id="agent-1", messages=msgs, completion=cmpl)
         ]
@@ -69,16 +68,15 @@ class TestWithMemoryWithStorage:
         self, supabase_setup_url_and_key: Tuple[str, str]
     ) -> None:
         url, key = supabase_setup_url_and_key
-        storage = create_memory_supabase_storage(url, key, "agent-1")
-        memstore = Memory(storage=storage)
-        assert memstore.memories() == []
+        memstore = SupabaseMemory(url, key)
+        assert list(memstore.memories()) == []
         msgs: List[ChatCompletionMessageParam] = [
             {"role": "system", "content": "hello!"}
         ]
         cmpl: ChatCompletion[BaseModel] = new_mock_completion()
         memstore.store_memory("agent-1", msgs, cmpl)
 
-        stored_memory = memstore.memories()
+        stored_memory = list(memstore.memories())
         expected_memory = [
             MemoryItem(agent_id="agent-1", messages=msgs, completion=cmpl)
         ]
@@ -101,7 +99,7 @@ class TestWithMemoryWithStorage:
             first_stored_memory.workflow_run_id == first_expected_memory.workflow_run_id
         )
 
-        fetched_mem = storage.fetch(first_stored_memory.id)
+        fetched_mem = memstore.get(first_stored_memory.id)
         assert fetched_mem is not None
         assert fetched_mem.agent_id == first_stored_memory.agent_id
         assert fetched_mem.messages == first_stored_memory.messages

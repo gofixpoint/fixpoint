@@ -63,7 +63,8 @@ for city in completion.fixp.structured_output.cities:
 
 
 # Look at the agent's memories to see the past chats.
-assert len(agent.fixp.memory.memories()) == 1
+assert len(list(agent.fixp.memory.memories())) == 1
 print("\n")
-print(agent.fixp.memory.memories()[0].messages)
-print(agent.fixp.memory.memories()[0].completion.choices[0].model_dump())
+mems = list(agent.fixp.memory.memories())
+print(mems[0].messages)
+print(mems[0].completion.choices[0].model_dump())
