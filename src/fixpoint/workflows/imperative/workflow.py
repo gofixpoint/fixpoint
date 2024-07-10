@@ -13,34 +13,13 @@ from pydantic import (
 
 from fixpoint._storage.protocol import SupportsStorage
 from fixpoint._utils.ids import make_resource_uuid
+from fixpoint.workflows.node_state import NodeState, CallHandle, _SpawnGroup
 
 from .document import Document
 from .form import Form
-from .shared import TASK_MAIN_ID, STEP_MAIN_ID
 from .config import StorageConfig, get_default_storage_config
 
 T = TypeVar("T", bound=BaseModel)
-
-
-class NodeState(BaseModel):
-    """
-    Each task or step in a workflow run is a "node". This keeps track of which
-    node the workflow run is in.
-    """
-
-    task: str = Field(description="The task that the node is in", default=TASK_MAIN_ID)
-    step: str = Field(description="The step that the node is in", default=STEP_MAIN_ID)
-
-    @computed_field  # type: ignore[misc]
-    @property
-    def id(self) -> str:
-        """The node's identifier within the workflow run"""
-        partsrev: List[str] = []
-        if self.step != STEP_MAIN_ID:
-            partsrev.append(self.step)
-        if self.step != STEP_MAIN_ID or self.task != TASK_MAIN_ID:
-            partsrev.append(self.task)
-        return "/" + "/".join(reversed(partsrev))
 
 
 class Workflow(BaseModel):
@@ -96,9 +75,7 @@ class WorkflowRun(BaseModel):
         exclude=True, default=None
     )
 
-    node_state: NodeState = Field(
-        default_factory=lambda: NodeState(task=TASK_MAIN_ID, step=STEP_MAIN_ID)
-    )
+    node_state: NodeState = Field(default_factory=NodeState)
 
     @computed_field  # type: ignore[misc]
     @property
@@ -136,30 +113,63 @@ class WorkflowRun(BaseModel):
         """Forms"""
         return self._forms
 
+    @property
+    def current_task_id(self) -> str:
+        """The current task"""
+        return self.node_state.contents.id
+
     # pylint: disable=unused-argument
-    def goto_task(self, *, task_id: str) -> None:
+    def goto_task(self, task_id: str) -> None:
         """Transition to the given task.
 
         Tasks do not need to be declared ahead of time. When you go to a task,
         we infer its existence.
         """
-        self.node_state = NodeState(task=task_id, step=STEP_MAIN_ID)
+        self.node_state = self.node_state.add_task(task_id)
 
     # pylint: disable=unused-argument
-    def goto_step(self, *, step_id: str) -> None:
+    def goto_step(self, step_id: str, task_id: Optional[str] = None) -> None:
         """Transition to the given step.
 
         Steps do not need to be declared ahead of time. When you go to a step,
         we infer its existence.
         """
-        self.node_state = NodeState(task=self.node_state.task, step=step_id)
+        self.node_state = self.node_state.add_step(step_id, task_id)
+
+    def _update_node_state(self, new_state: NodeState) -> NodeState:
+        self.node_state = new_state
+        return self.node_state
+
+    def call_step(self, step_id: str) -> CallHandle:
+        """Call a step"""
+        self.node_state = self.node_state.add_step(step_id)
+        return CallHandle(self.node_state, self._update_node_state)
+
+    def call_task(self, task_id: str) -> CallHandle:
+        """Call a task"""
+        self.node_state = self.node_state.add_task(task_id)
+        return CallHandle(self.node_state, self._update_node_state)
+
+    def spawn_step(self, step_id: str) -> CallHandle:
+        """Spawn a step"""
+        new_node = self.node_state.add_step(step_id)
+        return CallHandle(new_node)
+
+    def spawn_task(self, task_id: str) -> CallHandle:
+        """Spawn a task"""
+        new_node = self.node_state.add_task(task_id)
+        return CallHandle(new_node)
+
+    def SpawnGroup(self) -> _SpawnGroup:  # pylint: disable=invalid-name
+        """Handle for spawning a group of tasks"""
+        return _SpawnGroup(node_state=self.node_state)
 
     def clone(self) -> "WorkflowRun":
         """Clones the workflow run"""
         # we cannot deep copy because some of the fields cannot be pickled,
         # which is what the pydantic copy method uses
         new_self = self.model_copy(deep=False)
-        new_self.node_state = self.node_state.model_copy(deep=True)
+        new_self.node_state = self.node_state.model_copy(deep=False)
         return new_self
 
 
@@ -212,7 +222,7 @@ class _Documents:
         steps. By default, we store the document at the current task and step.
         """
         if path is None:
-            path = self.workflow_run.node_state.id
+            path = self.workflow_run.node_state.contents.id
         document = Document(
             id=id,
             path=path,
@@ -330,7 +340,7 @@ class _Forms:
         """
         # TODO(jakub): Pass in contents as well
         if path is None:
-            path = self.workflow_run.node_state.id
+            path = self.workflow_run.node_state.contents.id
         form = Form[T](
             form_schema=schema,
             id=form_id,

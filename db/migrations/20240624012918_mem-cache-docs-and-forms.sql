@@ -50,7 +50,7 @@ CREATE TABLE public.forms_with_metadata (
 
 CREATE INDEX idx_forms_workflow_run_id ON public.forms_with_metadata (workflow_run_id);
 CREATE INDEX idx_forms_path ON public.forms_with_metadata (path);
-CREATE INDEX idx_forms_path ON public.forms_with_metadata (task, step);
+CREATE INDEX idx_forms_path_2 ON public.forms_with_metadata (task, step);
 
 
 -- migrate:down
