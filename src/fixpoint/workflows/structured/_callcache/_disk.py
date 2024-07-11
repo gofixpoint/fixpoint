@@ -60,6 +60,16 @@ class StepDiskCallCache(CallCache):
         serialized_args: str,
         type_hint: Optional[Type[Any]] = None,
     ) -> CacheResult[T]:
+        """Get the cached result, if it exists.
+
+        Check the cache for the cached result for the given run, task/step, and
+        arguments. If it exists, return the cached result. Otherwise, return
+        None.
+
+        If you provide a `type_hint`, we will load the cached result into that
+        type. We can load in Pydantic models and dataclasses.
+        """
+
         key = serialize_step_cache_key(
             run_id=run_id, step_id=kind_id, args=serialized_args
         )
@@ -74,6 +84,7 @@ class StepDiskCallCache(CallCache):
     def store_result(
         self, run_id: str, kind_id: str, serialized_args: str, res: Any
     ) -> None:
+        """Stores the results of a task or step into the call cache."""
         key = serialize_step_cache_key(
             run_id=run_id, step_id=kind_id, args=serialized_args
         )
