@@ -104,3 +104,20 @@ class TestNodeStates:
         first_spawn.close(WorkflowStatus.COMPLETED)
         assert wfrun._node_state.next_states[0].info.status == WorkflowStatus.COMPLETED
         assert wfrun.current_node_info.id == "__main__/__main__"
+
+    def test_spawn_group_exception(self) -> None:
+        wfrun = Workflow(id="test_workflow").run()
+
+        try:
+            with wfrun.spawn_group() as sg:
+                sg.spawn_step("step_1")
+                sg.spawn_step("step_2")
+                raise ValueError("Test exception")
+        except ValueError:
+            pass
+        # Check that the current node id did not change
+        assert wfrun.current_node_info.id == "__main__/__main__"
+
+        # Check that the spawned nodes are in failed state
+        assert wfrun._node_state.next_states[0].info.status == WorkflowStatus.FAILED
+        assert wfrun._node_state.next_states[1].info.status == WorkflowStatus.FAILED

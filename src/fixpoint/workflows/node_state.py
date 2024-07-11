@@ -116,9 +116,12 @@ class SpawnGroup:
         exc_val: Union[BaseException, None],
         exc_tb: Union[TracebackType, None],
     ) -> None:
-        # Call close on all nodes in the spawn group
-        for node in self._spawned_nodes:
-            node.info.status = WorkflowStatus.COMPLETED
+        if exc_val is not None:
+            for node in self._spawned_nodes:
+                node.info.status = WorkflowStatus.FAILED
+        else:
+            for node in self._spawned_nodes:
+                node.info.status = WorkflowStatus.COMPLETED
 
     def spawn_task(self, task: str) -> CallHandle:
         """Spawn a task"""
