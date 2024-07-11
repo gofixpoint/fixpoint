@@ -9,6 +9,7 @@ from typing import Callable, List, Optional
 from pydantic import BaseModel
 
 from fixpoint import cache, memory, _storage
+from fixpoint._constants import DEFAULT_DISK_CACHE_SIZE_LIMIT_BYTES
 from .document import Document
 from .form import Form
 
@@ -69,9 +70,35 @@ class StorageConfig:
         )
 
     @classmethod
-    def with_disk(cls) -> "StorageConfig":
+    def with_disk(
+        cls,
+        *,
+        agent_cache_dir: str,
+        agent_cache_ttl_s: int,
+        agent_cache_size_limit_bytes: int = DEFAULT_DISK_CACHE_SIZE_LIMIT_BYTES,
+    ) -> "StorageConfig":
         """Configure disk storage"""
-        raise NotImplementedError()
+
+        # TODO(dbmikus) support on-disk memory storage
+        # https://linear.app/fixpoint/issue/PRO-41/add-on-disk-memory-storage
+        def memory_factory(_agent_id: str) -> memory.SupportsMemory:
+            """create memory collections per agent"""
+            return memory.Memory()
+
+        agent_cache = cache.ChatCompletionDiskTLRUCache(
+            cache_dir=agent_cache_dir,
+            ttl_s=agent_cache_ttl_s,
+            size_limit_bytes=agent_cache_size_limit_bytes,
+        )
+
+        return cls(
+            # TODO(dbmikus) support on-disk storage for forms and docs
+            # https://linear.app/fixpoint/issue/PRO-40/add-on-disk-step-and-task-storage-for-workflows
+            forms_storage=None,
+            docs_storage=None,
+            agent_cache=agent_cache,
+            memory_factory=memory_factory,
+        )
 
     @classmethod
     def with_in_memory(

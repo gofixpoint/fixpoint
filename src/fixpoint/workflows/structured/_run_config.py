@@ -2,12 +2,21 @@
 
 from dataclasses import dataclass
 
+import diskcache
+
+from fixpoint._constants import DEFAULT_DISK_CACHE_SIZE_LIMIT_BYTES
 from ..imperative import StorageConfig
 from ..imperative.config import (
     DEF_CHAT_CACHE_MAX_SIZE,
     DEF_CHAT_CACHE_TTL_S,
 )
-from ._callcache import CallCache, StepInMemCallCache, TaskInMemCallCache
+from ._callcache import (
+    CallCache,
+    StepInMemCallCache,
+    TaskInMemCallCache,
+    StepDiskCallCache,
+    TaskDiskCallCache,
+)
 
 
 @dataclass
@@ -57,9 +66,30 @@ class RunConfig:
         return cls(storage, call_cache)
 
     @classmethod
-    def with_disk(cls) -> "RunConfig":
+    def with_disk(
+        cls,
+        *,
+        agent_cache_dir: str,
+        agent_cache_ttl_s: int,
+        agent_cache_size_limit_bytes: int = DEFAULT_DISK_CACHE_SIZE_LIMIT_BYTES,
+        callcache_dir: str,
+        callcache_ttl_s: int,
+        callcache_size_limit_bytes: int = DEFAULT_DISK_CACHE_SIZE_LIMIT_BYTES,
+    ) -> "RunConfig":
         """Configure run for disk storage"""
-        raise NotImplementedError()
+        storage_config = StorageConfig.with_disk(
+            agent_cache_dir=agent_cache_dir,
+            agent_cache_ttl_s=agent_cache_ttl_s,
+            agent_cache_size_limit_bytes=agent_cache_size_limit_bytes,
+        )
+        call_cache = diskcache.Cache(
+            directory=callcache_dir, size_limit=callcache_size_limit_bytes
+        )
+        call_cache_config = CallCacheConfig(
+            steps=StepDiskCallCache(cache=call_cache, ttl_s=callcache_ttl_s),
+            tasks=TaskDiskCallCache(cache=call_cache, ttl_s=callcache_ttl_s),
+        )
+        return cls(storage_config, call_cache_config)
 
     @classmethod
     def with_in_memory(
