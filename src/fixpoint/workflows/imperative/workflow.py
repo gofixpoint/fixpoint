@@ -13,7 +13,7 @@ from pydantic import (
 
 from fixpoint._storage.protocol import SupportsStorage
 from fixpoint._utils.ids import make_resource_uuid
-from fixpoint.workflows.node_state import NodeState, CallHandle, _SpawnGroup
+from fixpoint.workflows.node_state import NodeState, CallHandle, SpawnGroup, NodeInfo
 
 from .document import Document
 from .form import Form
@@ -75,7 +75,7 @@ class WorkflowRun(BaseModel):
         exclude=True, default=None
     )
 
-    node_state: NodeState = Field(default_factory=NodeState)
+    _node_state: NodeState = PrivateAttr(default_factory=NodeState)
 
     @computed_field  # type: ignore[misc]
     @property
@@ -114,9 +114,9 @@ class WorkflowRun(BaseModel):
         return self._forms
 
     @property
-    def current_task_id(self) -> str:
+    def current_node_info(self) -> NodeInfo:
         """The current task"""
-        return self.node_state.contents.id
+        return self._node_state.info
 
     # pylint: disable=unused-argument
     def goto_task(self, task_id: str) -> None:
@@ -125,7 +125,7 @@ class WorkflowRun(BaseModel):
         Tasks do not need to be declared ahead of time. When you go to a task,
         we infer its existence.
         """
-        self.node_state = self.node_state.add_task(task_id)
+        self._node_state = self._node_state.add_task(task_id)
 
     # pylint: disable=unused-argument
     def goto_step(self, step_id: str, task_id: Optional[str] = None) -> None:
@@ -134,42 +134,43 @@ class WorkflowRun(BaseModel):
         Steps do not need to be declared ahead of time. When you go to a step,
         we infer its existence.
         """
-        self.node_state = self.node_state.add_step(step_id, task_id)
+        self._node_state = self._node_state.add_step(step_id, task_id)
 
     def _update_node_state(self, new_state: NodeState) -> NodeState:
-        self.node_state = new_state
-        return self.node_state
+        self._node_state = new_state
+        return self._node_state
 
     def call_step(self, step_id: str) -> CallHandle:
         """Call a step"""
-        self.node_state = self.node_state.add_step(step_id)
-        return CallHandle(self.node_state, self._update_node_state)
+        self._node_state = self._node_state.add_step(step_id)
+        return CallHandle(self._node_state, self._update_node_state)
 
     def call_task(self, task_id: str) -> CallHandle:
         """Call a task"""
-        self.node_state = self.node_state.add_task(task_id)
-        return CallHandle(self.node_state, self._update_node_state)
+        self._node_state = self._node_state.add_task(task_id)
+        return CallHandle(self._node_state, self._update_node_state)
 
     def spawn_step(self, step_id: str) -> CallHandle:
         """Spawn a step"""
-        new_node = self.node_state.add_step(step_id)
+        new_node = self._node_state.add_step(step_id)
         return CallHandle(new_node)
 
     def spawn_task(self, task_id: str) -> CallHandle:
         """Spawn a task"""
-        new_node = self.node_state.add_task(task_id)
+        new_node = self._node_state.add_task(task_id)
         return CallHandle(new_node)
 
-    def SpawnGroup(self) -> _SpawnGroup:  # pylint: disable=invalid-name
+    def spawn_group(self) -> SpawnGroup:  # pylint: disable=invalid-name
         """Handle for spawning a group of tasks"""
-        return _SpawnGroup(node_state=self.node_state)
+        return SpawnGroup(node_state=self._node_state)
 
     def clone(self) -> "WorkflowRun":
         """Clones the workflow run"""
         # we cannot deep copy because some of the fields cannot be pickled,
         # which is what the pydantic copy method uses
         new_self = self.model_copy(deep=False)
-        new_self.node_state = self.node_state.model_copy(deep=False)
+        # pylint: disable=protected-access
+        new_self._node_state = self._node_state.model_copy(deep=False)
         return new_self
 
 
@@ -222,7 +223,7 @@ class _Documents:
         steps. By default, we store the document at the current task and step.
         """
         if path is None:
-            path = self.workflow_run.node_state.contents.id
+            path = self.workflow_run.current_node_info.id
         document = Document(
             id=id,
             path=path,
@@ -340,7 +341,7 @@ class _Forms:
         """
         # TODO(jakub): Pass in contents as well
         if path is None:
-            path = self.workflow_run.node_state.contents.id
+            path = self.workflow_run.current_node_info.id
         form = Form[T](
             form_schema=schema,
             id=form_id,
