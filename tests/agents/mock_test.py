@@ -19,7 +19,7 @@ class TestMockAgent:
             completion_fn=MockCompletionGenerator().new_mock_completion, memory=mem
         )
 
-        assert mem.memories() == []
+        assert list(mem.memories()) == []
         cmpl = agent.create_completion(
             messages=[
                 messages.smsg("I am a system"),
@@ -27,7 +27,7 @@ class TestMockAgent:
             ]
         )
         assert cmpl.choices[0].message.content == "test 0"
-        mems = mem.memories()
+        mems = list(mem.memories())
         assert len(mems) == 1
         assert mems[0].messages == [
             messages.smsg("I am a system"),

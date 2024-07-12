@@ -54,12 +54,12 @@ class StorageConfig:
             ),
         )
 
+        # pylint: disable=unused-argument
         def memory_factory(agent_id: str) -> memory.SupportsMemory:
             """create memory collections per agent"""
-            return memory.Memory(
-                storage=create_memory_supabase_storage(
-                    supabase_url, supabase_api_key, agent_id
-                ),
+            return memory.SupabaseMemory(
+                supabase_url=supabase_url,
+                supabase_api_key=supabase_api_key,
             )
 
         return cls(
@@ -201,7 +201,7 @@ def create_str_cache_supabase_storage(
     )
 
 
-def create_memory_supabase_storage(
+def _create_memory_supabase_storage(
     supabase_url: str,
     supabase_api_key: str,
     agent_id: str,  # pylint: disable=unused-argument

@@ -1,122 +1,26 @@
 """Code for agent memory"""
 
-import json
-from typing import List, Protocol, Optional, Any, Callable
+__all__ = ["Memory", "OnDiskMemory", "SupabaseMemory"]
 
+
+from typing import Iterator, List, Optional
+
+import diskcache
 from pydantic import BaseModel
 
 from fixpoint._protocols.workflow_run import WorkflowRunData
-from fixpoint._utils.ids import make_resource_uuid
-from ..completions import ChatCompletionMessageParam, ChatCompletion
-from .._storage.protocol import SupportsStorage
-
-
-def new_memory_item_id() -> str:
-    """Generate a new memory item ID"""
-    return make_resource_uuid("amem")
-
-
-class MemoryItem:
-    """A single memory item"""
-
-    # The ID field is useful when identifying this resource in storage, or in a
-    # future HTTP-API
-    id: str
-    agent_id: str
-    messages: List[ChatCompletionMessageParam]
-    completion: ChatCompletion[BaseModel]
-    workflow_id: Optional[str] = None
-    workflow_run_id: Optional[str] = None
-
-    def __init__(
-        self,
-        agent_id: str,
-        messages: List[ChatCompletionMessageParam],
-        completion: ChatCompletion[BaseModel],
-        workflow_run: Optional[WorkflowRunData] = None,
-        workflow_id: Optional[str] = None,
-        workflow_run_id: Optional[str] = None,
-        serialize_fn: Callable[[Any], str] = json.dumps,
-        deserialize_fn: Callable[[str], Any] = json.loads,
-        _id: Optional[str] = None,
-    ) -> None:
-        """
-        In general, you should not pass in an ID, but it exists on the init
-        function for deserializing from storage.
-        """
-        if workflow_run and (workflow_id or workflow_run_id):
-            raise ValueError(
-                'you cannot pass "workflow_run" alongside "workflow_id" or "workflow_run_id"'
-            )
-
-        self.id = _id or new_memory_item_id()
-        self.agent_id = agent_id
-        self.messages = messages
-        self.completion = completion
-
-        if workflow_run:
-            self.workflow_id = workflow_run.workflow_id
-            self.workflow_run_id = workflow_run.id
-        else:
-            self.workflow_id = workflow_id
-            self.workflow_run_id = workflow_run_id
-
-        self._serialize_fn = serialize_fn
-        self._deserialize_fn = deserialize_fn
-
-    def serialize(self) -> dict[str, Any]:
-        """Convert the item to a dictionary"""
-        return {
-            "id": self.id,
-            "agent_id": self.agent_id,
-            "messages": self._serialize_fn(self.messages),
-            "completion": self.completion.serialize_json(),
-            "workflow_id": self.workflow_id,
-            "workflow_run_id": self.workflow_run_id,
-        }
-
-    @classmethod
-    def deserialize(cls, data: dict[str, Any]) -> "MemoryItem":
-        """Deserialize a dictionary into a TLRUCacheItem"""
-
-        return cls(
-            _id=data.pop("id"),
-            agent_id=data.pop("agent_id"),
-            messages=json.loads(data.pop("messages")),
-            completion=ChatCompletion[BaseModel].deserialize_json(
-                data.pop("completion")
-            ),
-            workflow_id=data.pop("workflow_id"),
-            workflow_run_id=data.pop("workflow_run_id"),
-        )
-
-
-class SupportsMemory(Protocol):
-    """A protocol for adding memory to an agent"""
-
-    def memories(self) -> List[MemoryItem]:
-        """Get the list of memories"""
-
-    def store_memory(
-        self,
-        agent_id: str,
-        messages: List[ChatCompletionMessageParam],
-        completion: ChatCompletion[BaseModel],
-        workflow_run: Optional[WorkflowRunData] = None,
-    ) -> None:
-        """Store the memory"""
-
-    def to_str(self) -> str:
-        """Return the formatted string of messages. Useful for printing/debugging"""
+from fixpoint.completions import ChatCompletionMessageParam, ChatCompletion
+from .protocol import SupportsMemory, MemoryItem
+from ._mem_storage import MemoryStorage, OnDiskMemoryStorage, SupabaseMemoryStorage
 
 
 class Memory(SupportsMemory):
     """A composable class to add memory to an agent"""
 
     _memory: List[MemoryItem]
-    _storage: Optional[SupportsStorage[MemoryItem]]
+    _storage: Optional[MemoryStorage]
 
-    def __init__(self, storage: Optional[SupportsStorage[MemoryItem]] = None) -> None:
+    def __init__(self, storage: Optional[MemoryStorage] = None) -> None:
         self._memory = []
         self._storage = storage
 
@@ -143,11 +47,27 @@ class Memory(SupportsMemory):
         if self._storage is not None:
             self._storage.insert(mem_item)
 
-    def memories(self) -> List[MemoryItem]:
+    def memories(self) -> Iterator[MemoryItem]:
         """Get the list of memories"""
+        cursor = None
         if self._storage is not None:
-            return self._storage.fetch_latest()
-        return self._memory
+            resp = self._storage.list(cursor=cursor)
+            yield from resp.memories
+            cursor = resp.next_cursor
+            if cursor is None:
+                return
+        else:
+            yield from self._memory
+
+    def get(self, mem_id: str) -> Optional[MemoryItem]:
+        """Get a memory item by ID"""
+        if self._storage is None:
+            for mem in self._memory:
+                if mem.id == mem_id:
+                    return mem
+            return None
+
+        return self._storage.get(mem_id)
 
     def to_str(self) -> str:
         """Return the formatted string of messages. Useful for printing/debugging"""
@@ -165,6 +85,20 @@ class Memory(SupportsMemory):
         lines = [f'{m["role"]}: {m["content"]}' for m in messages]
         lines.append(f"assistant: {completion.choices[0].message.content}")
         return lines
+
+
+class OnDiskMemory(Memory, SupportsMemory):
+    """Memories, stored on disk"""
+
+    def __init__(self, cache: diskcache.Cache) -> None:
+        super().__init__(storage=OnDiskMemoryStorage(cache))
+
+
+class SupabaseMemory(Memory, SupportsMemory):
+    """Memories, stored in Supabase"""
+
+    def __init__(self, supabase_url: str, supabase_api_key: str) -> None:
+        super().__init__(storage=SupabaseMemoryStorage(supabase_url, supabase_api_key))
 
 
 # Check that we implement the protocol
