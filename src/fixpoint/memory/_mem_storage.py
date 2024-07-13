@@ -2,10 +2,13 @@
 
 __all__ = ["MemoryStorage", "OnDiskMemoryStorage"]
 
+import base64
 from dataclasses import dataclass
-from typing import List, Protocol, Optional
-
-import diskcache
+import datetime
+import json
+import sqlite3
+import sys
+from typing import Any, List, Protocol, Optional, TypedDict
 
 from fixpoint._storage import SupabaseStorage
 from .protocol import MemoryItem
@@ -32,28 +35,118 @@ class MemoryStorage(Protocol):
         """Get a memory item by ID"""
 
 
+# typed dict for cursor
+class _Cursor(TypedDict):
+    id: str
+    created_at: datetime.datetime
+
+
 class OnDiskMemoryStorage(MemoryStorage):
     """Store memories on disk"""
 
-    _cache: diskcache.Cache
+    _conn: sqlite3.Connection
 
     def __init__(
         self,
-        cache: diskcache.Cache,
+        dbpath: str,
     ) -> None:
-        self._cache = cache
+        if sys.version_info >= (3, 12):
+            self._conn = sqlite3.connect(database=dbpath, autocommit=False)
+        else:
+            self._conn = sqlite3.connect(database=dbpath)
+        with self._conn:
+            self._conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS memories (
+                    id TEXT PRIMARY KEY,
+                    agent_id TEXT,
+                    workflow_id TEXT,
+                    workflow_run_id TEXT,
+                    messages TEXT,
+                    completion TExT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                );
+                """
+            )
 
     def insert(self, memory: MemoryItem) -> None:
         """Insert a memory into the storage"""
-        raise NotImplementedError()
+        with self._conn:
+            self._conn.execute(
+                """
+                INSERT INTO memories (id, agent_id, workflow_id, workflow_run_id, messages, completion)
+                VALUES (:id, :agent_id, :workflow_id, :workflow_run_id, :messages, :completion)
+                """,
+                memory.serialize(),
+            )
 
-    def list(self, cursor: Optional[str] = None) -> _ListResponse:
+    def list(self, cursor: Optional[str] = None, n: int = 100) -> _ListResponse:
         """Get the list of memories"""
-        raise NotImplementedError()
+        cursor_obj = self.parse_cursor(cursor) if cursor else None
+        with self._conn:
+            if cursor_obj:
+                dbcursor = self._conn.execute(
+                        """
+                    SELECT id, agent_id, workflow_id, workflow_run_id, messages, completion, created_at, updated_at
+                    FROM memories
+                    WHERE created_at < :created_at OR (created_at = :created_at AND id > :id)
+                    ORDER BY created_at DESC, ASC DESC
+                    LIMIT :n
+                    """,
+                    {"n": n, "created_at": cursor_obj["created_at"].isoformat(), "id": cursor_obj["id"]},
+                )
+            else:
+                dbcursor = self._conn.execute(
+                        """
+                    SELECT id, agent_id, workflow_id, workflow_run_id, messages, completion, created_at, updated_at
+                    FROM memories
+                    ORDER BY created_at DESC, ASC DESC
+                    LIMIT :n
+                    """,
+                    {"n": n},
+                )
+            mems: List[MemoryItem] = []
+            for row in dbcursor.fetchall():
+                mems.append(self._load_row(row))
+            return _ListResponse(memories=mems, next_cursor=self._format_cursor(mems) if len(mems) == n else None)
 
     def get(self, mem_id: str) -> Optional[MemoryItem]:
         """Get a memory item by ID"""
-        raise NotImplementedError()
+        with self._conn:
+            dbcursor = self._conn.execute(
+                """
+                SELECT id, agent_id, workflow_id, workflow_run_id, messages, completion, created_at, updated_at
+                FROM memories
+                WHERE id = :id
+                """,
+                {"id": mem_id},
+            )
+            row = dbcursor.fetchone()
+            if row:
+                return self._load_row(row)
+            return None
+
+    def _load_row(self, row: Any) -> MemoryItem:
+        row_dict = {
+            "id": row[0],
+            "agent_id": row[1],
+            "workflow_id": row[2],
+            "workflow_run_id": row[3],
+            "messages": row[4],
+            "completion": row[5],
+            "created_at": row[6],
+            "updated_at": row[7],
+        }
+        return MemoryItem.deserialize(row_dict)
+
+    def _format_cursor(self, memories: List[MemoryItem]) -> str:
+        last_mem = memories[-1]
+        return base64.urlsafe_b64encode(json.dumps({"id": last_mem.id, "created_at": last_mem.created_at.isoformat()}).encode()).decode()
+
+    def parse_cursor(self, cursor: str) -> _Cursor:
+        d = json.loads(base64.urlsafe_b64decode(cursor).decode())
+        return {"id": d["id"], "created_at": datetime.datetime.fromisoformat(d["created_at"])}
 
 
 class SupabaseMemoryStorage(MemoryStorage):
