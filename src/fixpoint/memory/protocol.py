@@ -31,7 +31,6 @@ class MemoryItem:
     workflow_id: Optional[str] = None
     workflow_run_id: Optional[str] = None
     created_at: datetime.datetime
-    updated_at: datetime.datetime
 
     def __init__(
         self,
@@ -45,7 +44,6 @@ class MemoryItem:
         deserialize_fn: Callable[[str], Any] = json.loads,
         _id: Optional[str] = None,
         created_at: Optional[datetime.datetime] = None,
-        updated_at: Optional[datetime.datetime] = None,
     ) -> None:
         """
         In general, you should not pass in an ID, but it exists on the init
@@ -71,7 +69,30 @@ class MemoryItem:
         self._serialize_fn = serialize_fn
         self._deserialize_fn = deserialize_fn
         self.created_at = created_at or datetime.datetime.now()
-        self.updated_at = updated_at or datetime.datetime.now()
+
+    def __repr__(self) -> str:
+        # pylint: disable=line-too-long
+        return f"MemoryItem(id={self.id}, agent_id={self.agent_id}, workflow_id={self.workflow_id}, workflow_run_id={self.workflow_run_id}, created_at={self.created_at})"
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, MemoryItem):
+            return False
+
+        if self.id != other.id:
+            return False
+        if self.agent_id != other.agent_id:
+            return False
+        if self.workflow_id != other.workflow_id:
+            return False
+        if self.workflow_run_id != other.workflow_run_id:
+            return False
+        if self.messages != other.messages:
+            return False
+        if self.completion != other.completion:
+            return False
+        if self.created_at != other.created_at:
+            return False
+        return True
 
     def serialize(self) -> dict[str, Any]:
         """Convert the item to a dictionary"""
@@ -83,7 +104,6 @@ class MemoryItem:
             "workflow_id": self.workflow_id,
             "workflow_run_id": self.workflow_run_id,
             "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat(),
         }
 
     @classmethod
@@ -93,13 +113,10 @@ class MemoryItem:
             _id=data["id"],
             agent_id=data["agent_id"],
             messages=json.loads(data["messages"]),
-            completion=ChatCompletion[BaseModel].deserialize_json(
-                data["completion"]
-            ),
+            completion=ChatCompletion[BaseModel].deserialize_json(data["completion"]),
             workflow_id=data["workflow_id"],
             workflow_run_id=data["workflow_run_id"],
             created_at=datetime.datetime.fromisoformat(data["created_at"]),
-            updated_at=datetime.datetime.fromisoformat(data["updated_at"]),
         )
 
 

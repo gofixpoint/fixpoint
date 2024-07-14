@@ -51,7 +51,7 @@ class Memory(SupportsMemory):
         """Get the list of memories"""
         cursor = None
         if self._storage is not None:
-            resp = self._storage.list(page_token=cursor)
+            resp = self._storage.list(cursor=cursor)
             yield from resp.memories
             cursor = resp.next_cursor
             if cursor is None:
