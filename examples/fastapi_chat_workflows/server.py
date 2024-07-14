@@ -65,7 +65,7 @@ def create_workflow_run() -> WorkflowRun:
 def create_chat(workflow_run_id: str, user_message: str) -> str:
     """Create a chat for a workflow run."""
     wfctx = get_workflow_context(workflow_run_id)
-    task = wfctx.workflow_run.node_state.task
+    task = wfctx.workflow_run.current_node_info.task
     if task == "__main__":
         return classify_task(wfctx, user_message)
     elif task == FormType.INVOICE.value:

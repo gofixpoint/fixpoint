@@ -1,20 +1,4 @@
 from fixpoint.workflows import imperative
-from fixpoint.workflows.imperative.workflow import NodeState
-
-
-class TestNodeState:
-    def test_id(self) -> None:
-        node = NodeState()
-        assert node.id == "/"
-
-        node = NodeState(task="test_task", step="test_step")
-        assert node.id == "/test_task/test_step"
-
-        node = NodeState(task="test_task")
-        assert node.id == "/test_task"
-
-        node = NodeState(step="test_step")
-        assert node.id == "/__main__/test_step"
 
 
 class TestWorkflowRun:
@@ -35,9 +19,9 @@ class TestWorkflowRun:
 
         # should have a new node_state
         # references are different...
-        assert new_run.node_state is not run.node_state
+        assert new_run._node_state is not run._node_state
         # but content is the same
-        assert new_run.node_state.id == run.node_state.id
+        assert new_run.current_node_info.id == run.current_node_info.id
 
         # It's fine that workflow is the same, because we do not expect to
         # mutate it.
