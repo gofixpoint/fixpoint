@@ -5,7 +5,8 @@ CREATE TABLE public.memory_store (
     messages jsonb NOT NULL,
     completion jsonb,
     workflow_id text,
-    workflow_run_id text
+    workflow_run_id text,
+    created_at timestamp with time zone DEFAULT now()
 );
 
 CREATE INDEX idx_memory_store_agent_id ON public.memory_store (agent_id);
