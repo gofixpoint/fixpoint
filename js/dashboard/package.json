@@ -9,12 +9,22 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@headlessui/tailwindcss": "^0.2.1",
+    "@radix-ui/react-slot": "^1.1.0",
+    "@radix-ui/react-toast": "^1.2.1",
+    "@radix-ui/react-tooltip": "^1.1.2",
+    "@tanstack/react-query": "^5.51.1",
+    "autoprefixer": "^10.4.19",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "deepmerge": "^4.3.1",
+    "jotai": "^2.9.0",
+    "lucide-react": "^0.408.0",
     "next": "14.2.5",
     "react": "^18",
     "react-dom": "^18",
-    "tailwind-merge": "^2.4.0"
+    "tailwind-merge": "^2.4.0",
+    "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
     "@types/node": "^20",
@@ -23,7 +33,7 @@
     "eslint": "^8",
     "eslint-config-next": "14.2.5",
     "postcss": "^8",
-    "tailwindcss": "^3.4.1",
+    "tailwindcss": "^3.4.4",
     "typescript": "^5"
   }
 }
