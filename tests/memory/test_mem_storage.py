@@ -32,7 +32,10 @@ class TestOnDiskMemoryStorage:
         mem_item = self.create_mem_item()
         storage.insert(mem_item)
         result = storage.get(mem_item.id)
+
         assert result is not None
+        assert result == mem_item
+        # also check the individual fields, in case the MemoryItem.__eq__ method is implemented wrong
         assert result.id == mem_item.id
         assert result.agent_id == mem_item.agent_id
         assert result.workflow_id == mem_item.workflow_id

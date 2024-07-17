@@ -78,21 +78,18 @@ class MemoryItem:
         if not isinstance(other, MemoryItem):
             return False
 
-        if self.id != other.id:
-            return False
-        if self.agent_id != other.agent_id:
-            return False
-        if self.workflow_id != other.workflow_id:
-            return False
-        if self.workflow_run_id != other.workflow_run_id:
-            return False
-        if self.messages != other.messages:
-            return False
-        if self.completion != other.completion:
-            return False
-        if self.created_at != other.created_at:
-            return False
-        return True
+        return all(
+            getattr(self, attr) == getattr(other, attr)
+            for attr in [
+                "id",
+                "agent_id",
+                "workflow_id",
+                "workflow_run_id",
+                "messages",
+                "completion",
+                "created_at",
+            ]
+        )
 
     def serialize(self) -> dict[str, Any]:
         """Convert the item to a dictionary"""
