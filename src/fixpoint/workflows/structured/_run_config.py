@@ -1,6 +1,7 @@
 """Configuration for running workflows."""
 
 from dataclasses import dataclass
+import os
 
 import diskcache
 
@@ -69,19 +70,19 @@ class RunConfig:
     def with_disk(
         cls,
         *,
-        agent_cache_dir: str,
+        storage_path: str,
         agent_cache_ttl_s: int,
         agent_cache_size_limit_bytes: int = DEFAULT_DISK_CACHE_SIZE_LIMIT_BYTES,
-        callcache_dir: str,
         callcache_ttl_s: int,
         callcache_size_limit_bytes: int = DEFAULT_DISK_CACHE_SIZE_LIMIT_BYTES,
     ) -> "RunConfig":
         """Configure run for disk storage"""
         storage_config = StorageConfig.with_disk(
-            agent_cache_dir=agent_cache_dir,
+            storage_path=storage_path,
             agent_cache_ttl_s=agent_cache_ttl_s,
             agent_cache_size_limit_bytes=agent_cache_size_limit_bytes,
         )
+        callcache_dir = os.path.join(storage_path, "callcache")
         call_cache = diskcache.Cache(
             directory=callcache_dir, size_limit=callcache_size_limit_bytes
         )
