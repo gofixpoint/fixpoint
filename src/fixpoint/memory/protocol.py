@@ -3,6 +3,7 @@
 __all__ = ["MemoryItem", "SupportsMemory"]
 
 
+import datetime
 import json
 from typing import Iterator, List, Protocol, Optional, Any, Callable
 
@@ -29,6 +30,7 @@ class MemoryItem:
     completion: ChatCompletion[BaseModel]
     workflow_id: Optional[str] = None
     workflow_run_id: Optional[str] = None
+    created_at: datetime.datetime
 
     def __init__(
         self,
@@ -41,6 +43,7 @@ class MemoryItem:
         serialize_fn: Callable[[Any], str] = json.dumps,
         deserialize_fn: Callable[[str], Any] = json.loads,
         _id: Optional[str] = None,
+        created_at: Optional[datetime.datetime] = None,
     ) -> None:
         """
         In general, you should not pass in an ID, but it exists on the init
@@ -65,6 +68,28 @@ class MemoryItem:
 
         self._serialize_fn = serialize_fn
         self._deserialize_fn = deserialize_fn
+        self.created_at = created_at or datetime.datetime.now()
+
+    def __repr__(self) -> str:
+        # pylint: disable=line-too-long
+        return f"MemoryItem(id={self.id}, agent_id={self.agent_id}, workflow_id={self.workflow_id}, workflow_run_id={self.workflow_run_id}, created_at={self.created_at})"
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, MemoryItem):
+            return False
+
+        return all(
+            getattr(self, attr) == getattr(other, attr)
+            for attr in [
+                "id",
+                "agent_id",
+                "workflow_id",
+                "workflow_run_id",
+                "messages",
+                "completion",
+                "created_at",
+            ]
+        )
 
     def serialize(self) -> dict[str, Any]:
         """Convert the item to a dictionary"""
@@ -75,21 +100,20 @@ class MemoryItem:
             "completion": self.completion.serialize_json(),
             "workflow_id": self.workflow_id,
             "workflow_run_id": self.workflow_run_id,
+            "created_at": self.created_at.isoformat(),
         }
 
     @classmethod
     def deserialize(cls, data: dict[str, Any]) -> "MemoryItem":
         """Deserialize a dictionary into a TLRUCacheItem"""
-
         return cls(
-            _id=data.pop("id"),
-            agent_id=data.pop("agent_id"),
-            messages=json.loads(data.pop("messages")),
-            completion=ChatCompletion[BaseModel].deserialize_json(
-                data.pop("completion")
-            ),
-            workflow_id=data.pop("workflow_id"),
-            workflow_run_id=data.pop("workflow_run_id"),
+            _id=data["id"],
+            agent_id=data["agent_id"],
+            messages=json.loads(data["messages"]),
+            completion=ChatCompletion[BaseModel].deserialize_json(data["completion"]),
+            workflow_id=data["workflow_id"],
+            workflow_run_id=data["workflow_run_id"],
+            created_at=datetime.datetime.fromisoformat(data["created_at"]),
         )
 
 

@@ -54,7 +54,8 @@ class TestWithMemoryWithStorage:
             messages jsonb NOT NULL,
             completion jsonb,
             workflow_id text,
-            workflow_run_id text
+            workflow_run_id text,
+            created_at timestamp with time zone DEFAULT now()
         );
 
         TRUNCATE TABLE public.memory_store;
