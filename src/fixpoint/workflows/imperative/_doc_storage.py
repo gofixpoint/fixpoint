@@ -2,9 +2,11 @@
 
 __all__ = ["DocStorage", "SupabaseDocStorage"]
 
-from typing import List, Optional, Protocol
+import sqlite3
+from typing import Any, Dict, List, Optional, Protocol
 
 from fixpoint._storage import SupportsStorage
+from fixpoint._storage.sql import format_where_clause
 from .document import Document
 
 
@@ -55,3 +57,132 @@ class SupabaseDocStorage(DocStorage):
         if path:
             conditions["path"] = path
         return self._storage.fetch_with_conditions(conditions)
+
+
+class OnDiskDocStorage(DocStorage):
+    """On-disk document storage for workflows"""
+
+    _conn: sqlite3.Connection
+
+    def __init__(self, conn: sqlite3.Connection):
+        self._conn = conn
+        with self._conn:
+            self._conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS documents (
+                    id text PRIMARY KEY,
+                    workflow_id text,
+                    workflow_run_id text,
+                    path text NOT NULL,
+                    metadata jsonb NOT NULL,
+                    contents text NOT NULL,
+                    task text,
+                    step text,
+                    versions jsonb
+                );
+                """
+            )
+
+    # pylint: disable=redefined-builtin
+    def get(self, id: str) -> Optional[Document]:
+        with self._conn:
+            dbcursor = self._conn.execute(
+                """
+                SELECT
+                    id,
+                    workflow_id,
+                    workflow_run_id,
+                    path,
+                    metadata,
+                    contents,
+                    task,
+                    step,
+                    versions
+                FROM documents WHERE id = :id
+                """,
+                {"id": id},
+            )
+            row = dbcursor.fetchone()
+            if not row:
+                return None
+            return self._load_row(row)
+
+    def create(self, document: Document) -> None:
+        with self._conn:
+            self._conn.execute(
+                """
+                INSERT INTO documents (
+                    id,
+                    workflow_id,
+                    workflow_run_id,
+                    path,
+                    metadata,
+                    contents,
+                    task,
+                    step,
+                    versions
+                )
+                VALUES (
+                    :id,
+                    :workflow_id,
+                    :workflow_run_id,
+                    :path,
+                    :metadata,
+                    :contents,
+                    :task,
+                    :step,
+                    :versions
+                )
+                """,
+                document.model_dump(),
+            )
+
+    def update(self, document: Document) -> None:
+        doc_dict = {
+            "id": document.id,
+            "metadata": document.metadata,
+            "contents": document.contents,
+        }
+        with self._conn:
+            self._conn.execute(
+                """
+                UPDATE documents SET
+                    metadata = :metadata,
+                    contents = :contents
+                WHERE id = :id
+                """,
+                doc_dict,
+            )
+
+    def list(
+        self, path: Optional[str] = None, workflow_run_id: Optional[str] = None
+    ) -> List[Document]:
+        params: Dict[str, Any] = {}
+        where_clause = ""
+        if path:
+            params["path"] = path
+        if workflow_run_id:
+            params["workflow_run_id"] = workflow_run_id
+        if params:
+            where_clause = format_where_clause(params)
+
+        with self._conn:
+            dbcursor = self._conn.execute(
+                f"""
+                SELECT * FROM forms_with_metadata
+                {where_clause}
+                """,
+                params,
+            )
+            return [self._load_row(row) for row in dbcursor]
+
+    def _load_row(self, row: Any) -> Document:
+        return Document(
+            id=row[0],
+            workflow_id=row[1],
+            workflow_run_id=row[2],
+            path=row[3],
+            metadata=row[4],
+            contents=row[5],
+            versions=row[6],
+        )

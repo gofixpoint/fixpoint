@@ -229,10 +229,11 @@ class _Documents:
             path = self.workflow_run.current_node_info.id
         document = Document(
             id=id,
+            workflow_id=self.workflow_run.workflow_id,
+            workflow_run_id=self.workflow_run.id,
             path=path,
             contents=contents,
             metadata=metadata or {},
-            workflow_run_id=self.workflow_run.id,
         )
         if self._storage:
             self._storage.create(document)
@@ -350,9 +351,10 @@ class _Forms:
         form = Form[T](
             form_schema=schema,
             id=form_id,
+            workflow_id=self.workflow_run.workflow_id,
+            workflow_run_id=self.workflow_run.id,
             path=path,
             metadata=metadata or {},
-            workflow_run_id=self.workflow_run.id,
         )
         if self._storage:
             # Storage layer only expects "BaseModel"

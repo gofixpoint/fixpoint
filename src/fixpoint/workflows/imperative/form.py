@@ -43,6 +43,7 @@ class Form(BaseModel, Generic[T]):
         default=[], description="The versions of the document"
     )
 
+    workflow_id: str = Field(description="The workflow id")
     workflow_run_id: str = Field(description="The workflow run id")
 
     @computed_field  # type: ignore[misc]
@@ -197,6 +198,7 @@ class Form(BaseModel, Generic[T]):
     @classmethod
     def deserialize(cls, data: dict[str, Any]) -> "Form[BaseModel]":
         """Deserialize the form from a string"""
+        data = data.copy()
         form_schema = data.pop("form_schema")
         if isinstance(form_schema, str):
             form_schema = json.loads(form_schema)

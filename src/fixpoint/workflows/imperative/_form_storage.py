@@ -2,11 +2,13 @@
 
 __all__ = ["FormStorage", "SupabaseFormStorage"]
 
-from typing import List, Optional, Protocol
+import sqlite3
+from typing import Any, Dict, List, Optional, Protocol
 
 from pydantic import BaseModel
 
 from fixpoint._storage import SupportsStorage
+from fixpoint._storage.sql import format_where_clause
 from .form import Form
 
 
@@ -57,3 +59,142 @@ class SupabaseFormStorage(FormStorage):
         if path:
             conditions["path"] = path
         return self._storage.fetch_with_conditions(conditions)
+
+
+class OnDiskFormStorage(FormStorage):
+    """On-disk form storage for workflows"""
+
+    _conn: sqlite3.Connection
+
+    def __init__(self, conn: sqlite3.Connection):
+        self._conn = conn
+        with self._conn:
+            self._conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS forms_with_metadata (
+                    id text PRIMARY KEY,
+                    workflow_id text,
+                    workflow_run_id text,
+                    metadata jsonb,
+                    path text NOT NULL,
+                    contents jsonb NOT NULL,
+                    form_schema text NOT NULL,
+                    versions jsonb,
+                    task text,
+                    step text
+                );
+                """
+            )
+
+    # pylint: disable=redefined-builtin
+    def get(self, id: str) -> Optional[Form[BaseModel]]:
+        with self._conn:
+            dbcursor = self._conn.execute(
+                """
+                SELECT
+                    id,
+                    workflow_id,
+                    workflow_run_id,
+                    metadata,
+                    path,
+                    contents,
+                    form_schema,
+                    versions,
+                    task,
+                    step
+                FROM forms_with_metadata
+                WHERE id = :id
+                """,
+                {"id": id},
+            )
+            row = dbcursor.fetchone()
+            if not row:
+                return None
+            return self._load_row(row)
+
+    def create(self, form: Form[BaseModel]) -> None:
+        with self._conn:
+            self._conn.execute(
+                """
+                INSERT INTO forms_with_metadata (
+                    id,
+                    workflow_id,
+                    workflow_run_id,
+                    metadata,
+                    path,
+                    contents,
+                    form_schema,
+                    versions,
+                    task,
+                    step
+                ) VALUES (
+                    :id,
+                    :workflow_id,
+                    :workflow_run_id,
+                    :metadata,
+                    :path,
+                    :contents,
+                    :form_schema,
+                    :versions,
+                    :task,
+                    :step
+                )
+                """,
+                form.serialize(),
+            )
+
+    def update(self, form: Form[BaseModel]) -> None:
+        form_dict = {
+            "id": form.id,
+            "metadata": form.metadata,
+            "contents": form.contents,
+        }
+        with self._conn:
+            self._conn.execute(
+                """
+                UPDATE forms_with_metadata
+                SET metadata = :metadata,
+                    contents = :contents
+                WHERE id = :id
+                """,
+                form_dict,
+            )
+
+    def list(
+        self, path: Optional[str] = None, workflow_run_id: Optional[str] = None
+    ) -> List[Form[BaseModel]]:
+        params: Dict[str, Any] = {}
+        where_clause = ""
+        if path:
+            params["path"] = path
+        if workflow_run_id:
+            params["workflow_run_id"] = workflow_run_id
+        if params:
+            where_clause = format_where_clause(params)
+
+        with self._conn:
+            dbcursor = self._conn.execute(
+                f"""
+                SELECT * FROM forms_with_metadata
+                {where_clause}
+                """,
+                params,
+            )
+            return [self._load_row(row) for row in dbcursor]
+
+    def _load_row(self, row: Any) -> Form[BaseModel]:
+        # id, workflow_id, workflow_run_id, metadata, path, contents,
+        # form_schema, versions, task, step
+        return Form.deserialize(
+            {
+                "id": row[0],
+                "workflow_id": row[1],
+                "workflow_run_id": row[2],
+                "metadata": row[3],
+                "path": row[4],
+                "form_schema": row[6],
+                "versions": row[7],
+                "task": row[8],
+                "step": row[9],
+            }
+        )

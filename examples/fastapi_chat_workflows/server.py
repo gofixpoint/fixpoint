@@ -110,6 +110,7 @@ def invoice_task(wfctx: WorkflowContext, user_message: str) -> str:
         form = Form[InvoiceQuestions](
             id=form_id,
             workflow_run_id=wfrun.id,
+            workflow_id=wfrun.workflow_id,
             form_schema=InvoiceQuestions,
         )
     else:
