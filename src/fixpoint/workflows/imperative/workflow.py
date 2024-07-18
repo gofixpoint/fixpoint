@@ -17,8 +17,8 @@ from fixpoint.workflows.node_state import NodeState, CallHandle, SpawnGroup, Nod
 from .document import Document
 from .form import Form
 from .config import StorageConfig, get_default_storage_config
-from ._doc_storage import DocStorage, SupabaseDocStorage
-from ._form_storage import FormStorage, SupabaseFormStorage
+from ._doc_storage import DocStorage
+from ._form_storage import FormStorage
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -94,11 +94,10 @@ class WorkflowRun(BaseModel):
         docs_storage: Optional[DocStorage] = None
         forms_storage: Optional[FormStorage] = None
         if self.storage_config:
-            # TODO(dbmikus) support SQLite storage
             if self.storage_config.docs_storage:
-                docs_storage = SupabaseDocStorage(self.storage_config.docs_storage)
+                docs_storage = self.storage_config.docs_storage
             if self.storage_config.forms_storage:
-                forms_storage = SupabaseFormStorage(self.storage_config.forms_storage)
+                forms_storage = self.storage_config.forms_storage
         self._documents = _Documents(workflow_run=self, storage=docs_storage)
         self._forms = _Forms(workflow_run=self, storage=forms_storage)
 

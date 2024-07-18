@@ -12,6 +12,8 @@ from pydantic import BaseModel
 from fixpoint import cache, memory, _storage
 from fixpoint.utils.storage import new_sqlite_conn
 from fixpoint._constants import DEFAULT_DISK_CACHE_SIZE_LIMIT_BYTES
+from ._doc_storage import DocStorage, SupabaseDocStorage
+from ._form_storage import FormStorage, SupabaseFormStorage
 from .document import Document
 from .form import Form
 
@@ -23,8 +25,8 @@ DEF_CHAT_CACHE_TTL_S = 60 * 60 * 24 * 7
 class StorageConfig:
     """Storage configuration for imperative workflows and its agents, etc."""
 
-    forms_storage: Optional[_storage.SupportsStorage[Form[BaseModel]]]
-    docs_storage: Optional[_storage.SupportsStorage[Document]]
+    forms_storage: Optional[FormStorage]
+    docs_storage: Optional[DocStorage]
     agent_cache: Optional[cache.SupportsChatCompletionCache]
     memory_factory: Callable[[str], memory.SupportsMemory]
 
@@ -148,9 +150,9 @@ def get_default_storage_config() -> StorageConfig:
 
 def create_form_supabase_storage(
     supabase_url: str, supabase_api_key: str
-) -> _storage.SupabaseStorage[Form[BaseModel]]:
+) -> FormStorage:
     """Create a supabase storage driver for forms"""
-    return _storage.SupabaseStorage[Form[BaseModel]](
+    supabase_storage = _storage.SupabaseStorage[Form[BaseModel]](
         url=supabase_url,
         key=supabase_api_key,
         table="forms_with_metadata",
@@ -158,13 +160,14 @@ def create_form_supabase_storage(
         id_column="id",
         value_type=Form[BaseModel],
     )
+    return SupabaseFormStorage(supabase_storage)
 
 
 def create_docs_supabase_storage(
     supabase_url: str, supabase_api_key: str
-) -> _storage.SupabaseStorage[Document]:
+) -> DocStorage:
     """Create a supabase storage driver for documents"""
-    return _storage.SupabaseStorage[Document](
+    supabase_storage = _storage.SupabaseStorage[Document](
         url=supabase_url,
         key=supabase_api_key,
         table="documents",
@@ -172,6 +175,7 @@ def create_docs_supabase_storage(
         id_column="id",
         value_type=Document,
     )
+    return SupabaseDocStorage(supabase_storage)
 
 
 def create_chat_completion_cache_supabase_storage(
