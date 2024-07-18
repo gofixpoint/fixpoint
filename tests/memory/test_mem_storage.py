@@ -4,6 +4,7 @@ from typing import List, Optional
 from fixpoint.completions import ChatCompletion
 from fixpoint.agents.mock import new_mock_completion
 from fixpoint.utils.messages import smsg, umsg
+from fixpoint.utils.storage import new_sqlite_conn
 from fixpoint.memory import MemoryItem
 from fixpoint.memory._mem_storage import OnDiskMemoryStorage
 
@@ -28,7 +29,7 @@ class TestOnDiskMemoryStorage:
 
     def test_insert(self) -> None:
         """Test inserting a memory item"""
-        storage = OnDiskMemoryStorage(":memory:")
+        storage = OnDiskMemoryStorage(new_sqlite_conn(":memory:"))
         mem_item = self.create_mem_item()
         storage.insert(mem_item)
         result = storage.get(mem_item.id)
@@ -46,7 +47,7 @@ class TestOnDiskMemoryStorage:
     def test_get(self) -> None:
         """Test getting a memory item by ID"""
         mem_item = self.create_mem_item()
-        storage = OnDiskMemoryStorage(":memory:")
+        storage = OnDiskMemoryStorage(new_sqlite_conn(":memory:"))
         storage.insert(mem_item)
         result = storage.get(mem_item.id)
         assert result is not None
@@ -65,7 +66,7 @@ class TestOnDiskMemoryStorage:
 
     def test_list(self) -> None:
         """Test listing memory items"""
-        storage = OnDiskMemoryStorage(":memory:")
+        storage = OnDiskMemoryStorage(new_sqlite_conn(":memory:"))
 
         mem_items: List[MemoryItem] = [
             # different times are sorted in descending order

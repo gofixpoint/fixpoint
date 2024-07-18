@@ -4,11 +4,13 @@ Configuration for imperative workflows, such as setting up storage.
 """
 
 from dataclasses import dataclass
+import os
 from typing import Callable, List, Optional
 
 from pydantic import BaseModel
 
 from fixpoint import cache, memory, _storage
+from fixpoint.utils.storage import new_sqlite_conn
 from fixpoint._constants import DEFAULT_DISK_CACHE_SIZE_LIMIT_BYTES
 from .document import Document
 from .form import Form
@@ -73,17 +75,20 @@ class StorageConfig:
     def with_disk(
         cls,
         *,
-        agent_cache_dir: str,
+        storage_path: str,
         agent_cache_ttl_s: int,
         agent_cache_size_limit_bytes: int = DEFAULT_DISK_CACHE_SIZE_LIMIT_BYTES,
     ) -> "StorageConfig":
         """Configure disk storage"""
 
+        agent_cache_dir = os.path.join(storage_path, "agent_cache")
+        mem_conn = new_sqlite_conn(os.path.join(storage_path, "memory_db.sqlite"))
+
         # TODO(dbmikus) support on-disk memory storage
         # https://linear.app/fixpoint/issue/PRO-41/add-on-disk-memory-storage
         def memory_factory(_agent_id: str) -> memory.SupportsMemory:
             """create memory collections per agent"""
-            return memory.Memory()
+            return memory.OnDiskMemory(conn=mem_conn)
 
         agent_cache = cache.ChatCompletionDiskTLRUCache(
             cache_dir=agent_cache_dir,

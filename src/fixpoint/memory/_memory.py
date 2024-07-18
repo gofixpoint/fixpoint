@@ -3,9 +3,9 @@
 __all__ = ["Memory", "OnDiskMemory", "SupabaseMemory"]
 
 
+import sqlite3
 from typing import Iterator, List, Optional
 
-import diskcache
 from pydantic import BaseModel
 
 from fixpoint._protocols.workflow_run import WorkflowRunData
@@ -90,8 +90,8 @@ class Memory(SupportsMemory):
 class OnDiskMemory(Memory, SupportsMemory):
     """Memories, stored on disk"""
 
-    def __init__(self, cache: diskcache.Cache) -> None:
-        super().__init__(storage=OnDiskMemoryStorage(cache))
+    def __init__(self, conn: sqlite3.Connection) -> None:
+        super().__init__(storage=OnDiskMemoryStorage(conn))
 
 
 class SupabaseMemory(Memory, SupportsMemory):

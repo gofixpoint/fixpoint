@@ -1,13 +1,12 @@
 """Memory storage protocol and implementations."""
 
-__all__ = ["MemoryStorage", "OnDiskMemoryStorage"]
+__all__ = ["MemoryStorage", "OnDiskMemoryStorage", "SupabaseMemoryStorage"]
 
 import base64
 from dataclasses import dataclass
 import datetime
 import json
 import sqlite3
-import sys
 from typing import Any, List, Protocol, Optional, TypedDict
 
 from fixpoint._storage import SupabaseStorage
@@ -48,12 +47,9 @@ class OnDiskMemoryStorage(MemoryStorage):
 
     def __init__(
         self,
-        dbpath: str,
+        conn: sqlite3.Connection,
     ) -> None:
-        if sys.version_info >= (3, 12):
-            self._conn = sqlite3.connect(database=dbpath, autocommit=False)
-        else:
-            self._conn = sqlite3.connect(database=dbpath)
+        self._conn = conn
         with self._conn:
             self._conn.execute(
                 """
