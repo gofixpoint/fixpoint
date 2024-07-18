@@ -2,6 +2,7 @@
 
 __all__ = ["DocStorage", "SupabaseDocStorage"]
 
+import json
 import sqlite3
 from typing import Any, Dict, List, Optional, Protocol
 
@@ -108,6 +109,9 @@ class OnDiskDocStorage(DocStorage):
             return self._load_row(row)
 
     def create(self, document: Document) -> None:
+        mdict = document.model_dump()
+        mdict["metadata"] = json.dumps(mdict["metadata"])
+        mdict["versions"] = json.dumps(mdict["versions"])
         with self._conn:
             self._conn.execute(
                 """
@@ -134,13 +138,13 @@ class OnDiskDocStorage(DocStorage):
                     :versions
                 )
                 """,
-                document.model_dump(),
+                mdict,
             )
 
     def update(self, document: Document) -> None:
         doc_dict = {
             "id": document.id,
-            "metadata": document.metadata,
+            "metadata": json.dumps(document.metadata),
             "contents": document.contents,
         }
         with self._conn:
@@ -169,7 +173,17 @@ class OnDiskDocStorage(DocStorage):
         with self._conn:
             dbcursor = self._conn.execute(
                 f"""
-                SELECT * FROM forms_with_metadata
+                SELECT
+                    id,
+                    workflow_id,
+                    workflow_run_id,
+                    path,
+                    metadata,
+                    contents,
+                    task,
+                    step,
+                    versions
+                FROM documents
                 {where_clause}
                 """,
                 params,
@@ -182,7 +196,7 @@ class OnDiskDocStorage(DocStorage):
             workflow_id=row[1],
             workflow_run_id=row[2],
             path=row[3],
-            metadata=row[4],
+            metadata=json.loads(row[4]),
             contents=row[5],
-            versions=row[6],
+            versions=json.loads(row[8]),
         )

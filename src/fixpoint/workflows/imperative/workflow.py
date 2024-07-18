@@ -258,7 +258,8 @@ class _Documents:
                 document.metadata = metadata
 
         else:
-            document = self._memory[document_id]
+            # copy it so the document object is immutable
+            document = self._memory[document_id].model_copy()
             if metadata is not None:
                 document.metadata = metadata
             document.contents = contents
@@ -387,7 +388,8 @@ class _Forms:
                 form.metadata = metadata
 
         else:
-            form = self._memory[form_id]
+            # copy it so the document object is immutable
+            form = self._memory[form_id].model_copy()
             if metadata is not None:
                 form.metadata = metadata
             form.update_contents(contents)
