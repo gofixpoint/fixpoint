@@ -12,8 +12,8 @@ from pydantic import BaseModel
 from fixpoint import cache, memory, _storage
 from fixpoint.utils.storage import new_sqlite_conn
 from fixpoint._constants import DEFAULT_DISK_CACHE_SIZE_LIMIT_BYTES
-from ._doc_storage import DocStorage, SupabaseDocStorage
-from ._form_storage import FormStorage, SupabaseFormStorage
+from ._doc_storage import DocStorage, SupabaseDocStorage, OnDiskDocStorage
+from ._form_storage import FormStorage, SupabaseFormStorage, OnDiskFormStorage
 from .document import Document
 from .form import Form
 
@@ -84,7 +84,10 @@ class StorageConfig:
         """Configure disk storage"""
 
         agent_cache_dir = os.path.join(storage_path, "agent_cache")
-        mem_conn = new_sqlite_conn(os.path.join(storage_path, "memory_db.sqlite"))
+        sqlite_conn = new_sqlite_conn(os.path.join(storage_path, "db.sqlite"))
+        mem_conn = sqlite_conn
+        doc_conn = sqlite_conn
+        form_conn = sqlite_conn
 
         # TODO(dbmikus) support on-disk memory storage
         # https://linear.app/fixpoint/issue/PRO-41/add-on-disk-memory-storage
@@ -101,8 +104,8 @@ class StorageConfig:
         return cls(
             # TODO(dbmikus) support on-disk storage for forms and docs
             # https://linear.app/fixpoint/issue/PRO-40/add-on-disk-step-and-task-storage-for-workflows
-            forms_storage=None,
-            docs_storage=None,
+            forms_storage=OnDiskFormStorage(form_conn),
+            docs_storage=OnDiskDocStorage(doc_conn),
             agent_cache=agent_cache,
             memory_factory=memory_factory,
         )

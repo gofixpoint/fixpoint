@@ -27,6 +27,7 @@ class Document(BaseModel):
 
     contents: str = Field(description="The contents of the document")
 
+    workflow_id: str = Field(description="The workflow id")
     workflow_run_id: str = Field(description="The workflow run id")
 
     @computed_field  # type: ignore[misc]

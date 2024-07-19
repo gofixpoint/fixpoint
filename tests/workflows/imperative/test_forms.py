@@ -31,6 +31,7 @@ class TestForms:
             Form[WithoutOptional](
                 id="myform",
                 workflow_run_id="myworkflowrun",
+                workflow_id="myworkflow",
                 form_schema=WithoutOptional,
             )
 
@@ -42,6 +43,7 @@ class TestForms:
             Form[WithInvalidComplex](
                 id="myform",
                 workflow_run_id="myworkflowrun",
+                workflow_id="myworkflow",
                 form_schema=WithInvalidComplex,
             )
 
@@ -57,6 +59,7 @@ class TestForms:
             form = Form[BaseModel](
                 id="myform",
                 workflow_run_id="myworkflowrun",
+                workflow_id="myworkflow",
                 form_schema=form_schema_cls,
             )
             assert form.id == "myform"
@@ -67,6 +70,7 @@ class TestForms:
         form = Form[TicketOrderForm](
             id="myform",
             workflow_run_id="myworkflowrun",
+            workflow_id="myworkflow",
             path="/task/step",
             form_schema=TicketOrderForm,
             metadata={"organization": "fixpoint.co"},
@@ -159,6 +163,7 @@ class TestForms:
         form = Form[TicketOrderForm](
             id="myform",
             workflow_run_id="myworkflowrun",
+            workflow_id="myworkflow",
             path="/task/step",
             form_schema=TicketOrderForm,
         )
