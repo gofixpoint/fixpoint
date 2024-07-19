@@ -117,8 +117,11 @@ class WorkflowRun(BaseModel):
         return self._forms
 
     @property
-    def current_node_info(self) -> NodeInfo:
-        """The current task"""
+    def node_info(self) -> NodeInfo:
+        """The info about the current execution node
+
+        What task or step are we in, and what is it's status?
+        """
         return self._node_state.info
 
     # pylint: disable=unused-argument
@@ -226,7 +229,7 @@ class _Documents:
         steps. By default, we store the document at the current task and step.
         """
         if path is None:
-            path = self.workflow_run.current_node_info.id
+            path = self.workflow_run.node_info.id
         document = Document(
             id=id,
             workflow_id=self.workflow_run.workflow_id,
@@ -348,7 +351,7 @@ class _Forms:
         """
         # TODO(jakub): Pass in contents as well
         if path is None:
-            path = self.workflow_run.current_node_info.id
+            path = self.workflow_run.node_info.id
         form = Form[T](
             form_schema=schema,
             id=form_id,
