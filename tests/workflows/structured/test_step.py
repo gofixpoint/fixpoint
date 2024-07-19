@@ -1,7 +1,7 @@
+import asyncio
 from dataclasses import dataclass
 import pytest
-from fixpoint.workflows import imperative
-from fixpoint.workflows import structured
+from fixpoint.workflows import imperative, structured, TASK_MAIN_ID, STEP_MAIN_ID
 from fixpoint.workflows.structured._run_config import RunConfig
 
 
@@ -67,6 +67,35 @@ async def test_step_cache() -> None:
     res = await structured.call_step(ctx, my_step, args=[StepArgs(x=10, y=2)])
     assert res == 12
     assert values["counter"] == 2
+
+
+@pytest.mark.asyncio
+async def test_step_context() -> None:
+    ctx = new_workflow_context("my-workflow")
+
+    def assert_ctx_main(ctx: structured.WorkflowContext) -> None:
+        assert ctx.workflow_run.node_info.task == TASK_MAIN_ID
+        assert ctx.workflow_run.node_info.step == STEP_MAIN_ID
+
+    assert_ctx_main(ctx)
+
+    @structured.step(id="step1")
+    async def step1(ctx: structured.WorkflowContext) -> None:
+        assert ctx.workflow_run.node_info.task == TASK_MAIN_ID
+        assert ctx.workflow_run.node_info.step == "step1"
+
+    @structured.step(id="step2")
+    async def step2(ctx: structured.WorkflowContext) -> None:
+        assert ctx.workflow_run.node_info.task == TASK_MAIN_ID
+        assert ctx.workflow_run.node_info.step == "step2"
+
+    s1_future = structured.call_step(ctx, step1)
+    s2_future = structured.call_step(ctx, step2)
+    assert_ctx_main(ctx)
+    await s1_future
+    assert_ctx_main(ctx)
+    await s2_future
+    assert_ctx_main(ctx)
 
 
 def new_workflow_context(workflow_id: str) -> structured.WorkflowContext:

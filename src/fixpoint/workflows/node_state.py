@@ -2,14 +2,15 @@
 Node state management for workflows.
 """
 
+__all__ = ["WorkflowStatus", "NodeInfo", "CallHandle", "NodeState", "SpawnGroup"]
+
 import threading
 from enum import Enum
 from types import TracebackType
 from typing import List, Optional, Callable, Union
 from pydantic import BaseModel, Field, computed_field, PrivateAttr
 
-# TODO(jakub): Move shared contents to fixpoint.workflows
-from fixpoint.workflows.imperative.shared import TASK_MAIN_ID, STEP_MAIN_ID
+from fixpoint.workflows.constants import TASK_MAIN_ID, STEP_MAIN_ID
 
 
 class WorkflowStatus(Enum):

@@ -18,7 +18,8 @@ from typing import (
     cast,
 )
 
-from .. import imperative
+from ..constants import STEP_MAIN_ID
+from .. import WorkflowStatus, imperative
 from ..imperative import WorkflowRun
 from ._context import WorkflowContext
 from .errors import DefinitionException, InternalException
@@ -295,7 +296,15 @@ async def call_task(
 
     args = args or []
     kwargs = kwargs or {}
+    task_handle = ctx.workflow_run.spawn_task(fixpmeta.task_id)
+    new_ctx = ctx.clone(new_task=fixpmeta.task_id, new_step=STEP_MAIN_ID)
     # The Params type gets confused because we are injecting an additional
     # WorkflowContext. Ignore that error.
-    res = await task_entry(task_instance, ctx, *args, **kwargs)  # type: ignore[arg-type]
+    try:
+        res = await task_entry(task_instance, new_ctx, *args, **kwargs)  # type: ignore[arg-type]
+    except:
+        task_handle.close(WorkflowStatus.FAILED)
+        raise
+    else:
+        task_handle.close(WorkflowStatus.COMPLETED)
     return res

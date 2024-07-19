@@ -170,13 +170,20 @@ class WorkflowRun(BaseModel):
         """Handle for spawning a group of tasks"""
         return SpawnGroup(node_state=self._node_state)
 
-    def clone(self) -> "WorkflowRun":
+    def clone(
+        self, new_task: str | None = None, new_step: str | None = None
+    ) -> "WorkflowRun":
         """Clones the workflow run"""
         # we cannot deep copy because some of the fields cannot be pickled,
         # which is what the pydantic copy method uses
         new_self = self.model_copy(deep=False)
         # pylint: disable=protected-access
         new_self._node_state = self._node_state.model_copy(deep=False)
+        new_self._node_state.info = self._node_state.info.model_copy(deep=True)
+        if new_task:
+            new_self._node_state.info.task = new_task
+        if new_step:
+            new_self._node_state.info.step = new_step
         return new_self
 
 

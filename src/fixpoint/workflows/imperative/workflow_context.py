@@ -52,10 +52,12 @@ class WorkflowContext:
         # pylint: disable=protected-access
         self.agents._update_agents(workflow_run)
 
-    def clone(self) -> "WorkflowContext":
+    def clone(
+        self, new_task: str | None = None, new_step: str | None = None
+    ) -> "WorkflowContext":
         """Clones the workflow context"""
         # clone the workflow run
-        new_workflow_run = self.workflow_run.clone()
+        new_workflow_run = self.workflow_run.clone(new_task=new_task, new_step=new_step)
         # clone the agents
         new_agents = self.agents.clone(new_workflow_run)
 
