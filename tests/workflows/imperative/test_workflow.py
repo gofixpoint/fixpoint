@@ -124,6 +124,16 @@ class TestWorkflowRun:
 
         assert run.docs.get(document_id="test_doc") == updated_doc
 
+        all_docs = run.docs.list()
+        assert len(all_docs) == 2
+        assert updated_doc in all_docs
+        assert doc2 in all_docs
+
+        step2_docs = run.docs.list(path="task1/step2")
+        assert len(step2_docs) == 1
+        assert updated_doc in step2_docs
+        assert doc2 not in step2_docs
+
     def test_on_disk_form_storage(self, tmp_path: pathlib.Path) -> None:
         storage_config = imperative.StorageConfig.with_disk(
             storage_path=tmp_path.as_posix(),
