@@ -6,7 +6,21 @@ Build and connect multiple AI agents that know your data and work together to
 run reliable autonomous or human-in-the-loop workflows, so that the humans can focus on
 more important work.
 
+<h3>
+
 [Homepage](https://www.fixpoint.co/) | [Documentation](https://docs.fixpoint.co/) | [Discord](https://discord.gg/tdRmQQXAhY) | [Examples](https://github.com/gofixpoint/fixpoint/tree/main/examples)
+
+</h3>
+
+## Table of contents
+
+- [Why Fixpoint?](#why-fixpoint)
+- [Fixpoint's features](#fixpoints-features)
+- [Getting started](#getting-started)
+  - [A drop-in replacement for OpenAI](#a-drop-in-replacement-for-openai)
+  - [Making it a multi-step workflow](#making-it-a-multi-step-workflow)
+- [Examples](#examples)
+- [Contributing and Development](#contributing-and-development)
 
 
 ## Why Fixpoint?
