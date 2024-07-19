@@ -239,9 +239,9 @@ def get_task_entrypoint_fixp_from_fn(fn: Callable[..., Any]) -> Optional[TaskEnt
     return None
 
 
-def call_task(
+async def call_task(
     ctx: WorkflowContext,
-    task_entry: Callable[Params, Ret],
+    task_entry: AsyncFunc[Params, Ret],
     args: Optional[List[Any]] = None,
     kwargs: Optional[Dict[str, Any]] = None,
 ) -> Ret:
@@ -297,5 +297,5 @@ def call_task(
     kwargs = kwargs or {}
     # The Params type gets confused because we are injecting an additional
     # WorkflowContext. Ignore that error.
-    res = task_entry(task_instance, ctx, *args, **kwargs)  # type: ignore[arg-type]
+    res = await task_entry(task_instance, ctx, *args, **kwargs)  # type: ignore[arg-type]
     return res

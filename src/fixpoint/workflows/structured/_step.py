@@ -80,9 +80,9 @@ def get_step_fixp(fn: Callable[..., Any]) -> Optional[StepFixp]:
     return None
 
 
-def call_step(
+async def call_step(
     ctx: WorkflowContext,
-    fn: Callable[Params, Ret],
+    fn: AsyncFunc[Params, Ret],
     args: Optional[List[Any]] = None,
     kwargs: Optional[Dict[str, Any]] = None,
 ) -> Ret:
@@ -118,5 +118,5 @@ def call_step(
     if not step_fixp:
         raise DefinitionException(f"Step {fn.__name__} is not a valid step definition")
 
-    ret = fn(ctx, *args, **kwargs)  # type: ignore[arg-type]
+    ret = await fn(ctx, *args, **kwargs)  # type: ignore[arg-type]
     return ret
