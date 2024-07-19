@@ -11,13 +11,14 @@ from pydantic import (
     SkipValidation,
 )
 
-from fixpoint._storage.protocol import SupportsStorage
 from fixpoint._utils.ids import make_resource_uuid
 from fixpoint.workflows.node_state import NodeState, CallHandle, SpawnGroup, NodeInfo
 
 from .document import Document
 from .form import Form
 from .config import StorageConfig, get_default_storage_config
+from ._doc_storage import DocStorage
+from ._form_storage import FormStorage
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -90,11 +91,13 @@ class WorkflowRun(BaseModel):
         return self._id
 
     def model_post_init(self, _context: Any) -> None:
-        docs_storage = None
-        forms_storage = None
+        docs_storage: Optional[DocStorage] = None
+        forms_storage: Optional[FormStorage] = None
         if self.storage_config:
-            docs_storage = self.storage_config.docs_storage
-            forms_storage = self.storage_config.forms_storage
+            if self.storage_config.docs_storage:
+                docs_storage = self.storage_config.docs_storage
+            if self.storage_config.forms_storage:
+                forms_storage = self.storage_config.forms_storage
         self._documents = _Documents(workflow_run=self, storage=docs_storage)
         self._forms = _Forms(workflow_run=self, storage=forms_storage)
 
@@ -176,13 +179,13 @@ class WorkflowRun(BaseModel):
 
 class _Documents:
     workflow_run: WorkflowRun
-    _storage: Optional[SupportsStorage[Document]]
+    _storage: Optional[DocStorage]
     _memory: Dict[str, Document]
 
     def __init__(
         self,
         workflow_run: WorkflowRun,
-        storage: Optional[SupportsStorage[Document]] = None,
+        storage: Optional[DocStorage] = None,
     ) -> None:
         self.workflow_run = workflow_run
         self._storage = storage
@@ -198,7 +201,7 @@ class _Documents:
         """
         document = None
         if self._storage:
-            document = self._storage.fetch(resource_id=document_id)
+            document = self._storage.get(document_id)
         else:
             document = self._memory.get(document_id, None)
         return document
@@ -232,7 +235,7 @@ class _Documents:
             workflow_run_id=self.workflow_run.id,
         )
         if self._storage:
-            self._storage.insert(document)
+            self._storage.create(document)
         else:
             self._memory[id] = document
         return document
@@ -274,13 +277,15 @@ class _Documents:
         we list all documents at the root of the workflow, outside of all tasks and
         steps.
         """
-        conditions = {"workflow_run_id": self.workflow_run.id}
-        if path:
-            conditions["path"] = path
 
         if self._storage:
-            documents = self._storage.fetch_with_conditions(conditions=conditions)
+            documents = self._storage.list(
+                path=path, workflow_run_id=self.workflow_run.id
+            )
         else:
+            conditions = {"workflow_run_id": self.workflow_run.id}
+            if path:
+                conditions["path"] = path
             documents = [
                 doc
                 for doc in self._memory.values()
@@ -294,13 +299,13 @@ class _Documents:
 
 class _Forms:
     workflow_run: WorkflowRun
-    _storage: Optional[SupportsStorage[Form[BaseModel]]]
+    _storage: Optional[FormStorage]
     _memory: Dict[str, Form[BaseModel]]
 
     def __init__(
         self,
         workflow_run: WorkflowRun,
-        storage: Optional[SupportsStorage[Form[BaseModel]]] = None,
+        storage: Optional[FormStorage] = None,
     ) -> None:
         self.workflow_run = workflow_run
         self._storage = storage
@@ -314,7 +319,7 @@ class _Forms:
         form = None
         if self._storage:
             # Form id is the primary identifier for a form, so specifying more fields is unecessary
-            form = self._storage.fetch(resource_id=form_id)
+            form = self._storage.get(form_id)
         else:
             # If we are not using a storage backend, we assume that the form is in memory
             form = self._memory.get(form_id, None)
@@ -351,7 +356,7 @@ class _Forms:
         )
         if self._storage:
             # Storage layer only expects "BaseModel"
-            self._storage.insert(cast(Form[BaseModel], form))
+            self._storage.create(cast(Form[BaseModel], form))
         else:
             self._memory[form_id] = cast(Form[BaseModel], form)
 
@@ -402,16 +407,18 @@ class _Forms:
         """
         forms_with_meta: List[Form[BaseModel]] = []
         forms: List[Form[BaseModel]] = []
-        conditions = {"workflow_run_id": self.workflow_run.id}
-        if path:
-            conditions["path"] = path
         if self._storage:
-            forms_with_meta = self._storage.fetch_with_conditions(conditions=conditions)
+            forms_with_meta = self._storage.list(
+                path=path, workflow_run_id=self.workflow_run.id
+            )
             forms = [
                 Form(**form_with_meta.model_dump())
                 for form_with_meta in forms_with_meta
             ]
         else:
+            conditions = {"workflow_run_id": self.workflow_run.id}
+            if path:
+                conditions["path"] = path
             # Filter forms in memory based on conditions
             forms = [
                 Form(**form_with_meta.model_dump())
