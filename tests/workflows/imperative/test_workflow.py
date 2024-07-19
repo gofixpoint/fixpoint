@@ -1,6 +1,10 @@
 import pathlib
+from typing import Tuple
+
+import pytest
 
 from fixpoint.workflows import imperative
+from ...supabase_test_utils import supabase_setup_url_and_key, is_supabase_enabled
 
 
 class TestWorkflowRun:
@@ -29,14 +33,54 @@ class TestWorkflowRun:
         # mutate it.
         assert new_run.workflow is run.workflow
 
-    def test_doc_storage(self, tmp_path: pathlib.Path) -> None:
-        workflow = imperative.Workflow(id="test_workflow")
-        run = workflow.run(
-            storage_config=imperative.StorageConfig.with_disk(
-                storage_path=tmp_path.as_posix(),
-                agent_cache_ttl_s=60,
-            )
+    def test_on_disk_doc_storage(self, tmp_path: pathlib.Path) -> None:
+        storage_config = imperative.StorageConfig.with_disk(
+            storage_path=tmp_path.as_posix(),
+            agent_cache_ttl_s=60,
         )
+        self.assert_doc_storage(storage_config)
+
+    @pytest.mark.skipif(
+        not is_supabase_enabled(),
+        reason="Supabase must be turned on",
+    )
+    @pytest.mark.parametrize(
+        "supabase_setup_url_and_key",
+        [
+            (
+                f"""
+        CREATE TABLE IF NOT EXISTS public.documents (
+            id text PRIMARY KEY,
+            workflow_id text,
+            workflow_run_id text,
+            path text NOT NULL,
+            metadata jsonb NOT NULL,
+            contents text NOT NULL,
+            task text,
+            step text,
+            versions jsonb
+        );
+
+        TRUNCATE TABLE public.documents;
+        """,
+                "public.documents",
+            )
+        ],
+        indirect=True,
+    )
+    def test_supabase_doc_storage(
+        self, supabase_setup_url_and_key: Tuple[str, str]
+    ) -> None:
+        url, key = supabase_setup_url_and_key
+        storage_config = imperative.StorageConfig.with_supabase(
+            supabase_url=url,
+            supabase_api_key=key,
+        )
+        self.assert_doc_storage(storage_config)
+
+    def assert_doc_storage(self, storage_config: imperative.StorageConfig) -> None:
+        workflow = imperative.Workflow(id="test_workflow")
+        run = workflow.run(storage_config=storage_config)
         doc = run.docs.store(
             id="test_doc",
             contents="test_contents",
