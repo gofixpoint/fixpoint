@@ -1,10 +1,16 @@
 import pathlib
-from typing import Tuple
+from typing import Optional, Tuple, TypeVar
 
+from pydantic import BaseModel, Field
 import pytest
 
 from fixpoint.workflows import imperative
+from fixpoint.workflows.imperative import Form
 from ...supabase_test_utils import supabase_setup_url_and_key, is_supabase_enabled
+
+
+T1 = TypeVar("T1", bound=BaseModel)
+T2 = TypeVar("T2", bound=BaseModel)
 
 
 class TestWorkflowRun:
@@ -117,3 +123,156 @@ class TestWorkflowRun:
         assert fetched_doc2 == doc2
 
         assert run.docs.get(document_id="test_doc") == updated_doc
+
+    def test_on_disk_form_storage(self, tmp_path: pathlib.Path) -> None:
+        storage_config = imperative.StorageConfig.with_disk(
+            storage_path=tmp_path.as_posix(),
+            agent_cache_ttl_s=60,
+        )
+        self.assert_form_storage(storage_config)
+
+    @pytest.mark.skipif(
+        not is_supabase_enabled(),
+        reason="Supabase must be turned on",
+    )
+    @pytest.mark.parametrize(
+        "supabase_setup_url_and_key",
+        [
+            (
+                f"""
+        CREATE TABLE IF NOT EXISTS public.forms_with_metadata (
+            id text PRIMARY KEY,
+            workflow_id text,
+            workflow_run_id text,
+            metadata jsonb,
+            path text NOT NULL,
+            contents jsonb NOT NULL,
+            form_schema text NOT NULL,
+            versions jsonb,
+            task text,
+            step text
+        );
+
+        TRUNCATE TABLE public.forms_with_metadata;
+        """,
+                "public.forms_with_metadata",
+            )
+        ],
+        indirect=True,
+    )
+    def test_supabase_form_storage(
+        self, supabase_setup_url_and_key: Tuple[str, str]
+    ) -> None:
+        url, key = supabase_setup_url_and_key
+        storage_config = imperative.StorageConfig.with_supabase(
+            supabase_url=url,
+            supabase_api_key=key,
+        )
+        self.assert_form_storage(storage_config)
+
+    def assert_form_storage(self, storage_config: imperative.StorageConfig) -> None:
+        class Person(BaseModel):
+            name: Optional[str] = Field(
+                description="The name of the person", default=None
+            )
+            age: Optional[int] = Field(
+                description="The age of the person", default=None
+            )
+
+        workflow = imperative.Workflow(id="test_workflow")
+        run = workflow.run(storage_config=storage_config)
+        form = run.forms.store(
+            schema=Person,
+            form_id="test_form",
+            path="task1/step2",
+            metadata={"author": "Dylan"},
+        )
+
+        assert form.workflow_id == workflow.id
+        assert form.workflow_run_id == run.id
+        assert form.path == "task1/step2"
+        assert form.metadata == {"author": "Dylan"}
+        assert form.form_schema == Person
+
+        fetched_form = run.forms.get(form_id="test_form")
+        assert fetched_form is not None
+        # compare every field in form and fetched_form except "form_schema"
+        for attr_key in form.model_fields:
+            if attr_key != "form_schema":
+                assert getattr(form, attr_key) == getattr(fetched_form, attr_key)
+        assert (
+            fetched_form.form_schema.model_json_schema()
+            == form.form_schema.model_json_schema()
+        )
+
+        updated_form = run.forms.update(
+            form_id="test_form",
+            contents=Person(name="Jakub"),
+            metadata={"classified_level": "super-secret"},
+        )
+        assert updated_form.id == form.id
+        assert updated_form.workflow_id == workflow.id
+        assert updated_form.workflow_run_id == run.id
+        assert updated_form.path == "task1/step2"
+        assert (
+            updated_form.form_schema.model_json_schema() == Person.model_json_schema()
+        )
+        assert updated_form.contents.model_dump() == Person(name="Jakub").model_dump()
+        assert updated_form.metadata == {"classified_level": "super-secret"}
+
+        class PersonGoal(BaseModel):
+            name: Optional[str] = Field(
+                description="The name of the person", default=None
+            )
+            goal_description: Optional[str] = Field(
+                description="The goal of the person", default=None
+            )
+
+        form_2 = run.forms.store(
+            schema=PersonGoal,
+            form_id="test_form_goal",
+            path="task1/step3",
+            metadata={"author": "Dylan"},
+        )
+        self.assert_compare_forms(form_2, run.forms.get(form_id="test_form_goal"))
+        self.assert_compare_forms(updated_form, run.forms.get(form_id="test_form"))
+
+        all_forms = run.forms.list()
+        assert len(all_forms) == 2
+        assert any(self.eq_forms(f, form_2) for f in all_forms)
+        assert any(self.eq_forms(f, updated_form) for f in all_forms)
+
+        step2_forms = run.forms.list(path="task1/step2")
+        assert len(step2_forms) == 1
+        assert not any(self.eq_forms(f, form_2) for f in step2_forms)
+        assert any(self.eq_forms(f, updated_form) for f in step2_forms)
+
+    def assert_compare_forms(
+        self, form1: Form[T1] | None, form2: Form[T2] | None
+    ) -> None:
+        if form1 is None or form2 is None:
+            assert form1 is None and form2 is None
+            return
+
+        # compare every field in form and fetched_form except "form_schema"
+        for attr_key in form1.model_fields:
+            if attr_key != "form_schema":
+                assert getattr(form1, attr_key) == getattr(form2, attr_key)
+        assert (
+            form1.form_schema.model_json_schema()
+            == form2.form_schema.model_json_schema()
+        )
+
+    def eq_forms(self, form1: Form[T1] | None, form2: Form[T2] | None) -> bool:
+        if form1 is None or form2 is None:
+            return form1 is None and form2 is None
+
+        # compare every field in form and fetched_form except "form_schema"
+        for attr_key in form1.model_fields:
+            if attr_key != "form_schema":
+                if not getattr(form1, attr_key) == getattr(form2, attr_key):
+                    return False
+        return (
+            form1.form_schema.model_json_schema()
+            == form2.form_schema.model_json_schema()
+        )

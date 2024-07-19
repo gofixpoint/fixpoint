@@ -2,6 +2,7 @@
 
 __all__ = ["FormStorage", "SupabaseFormStorage"]
 
+import json
 import sqlite3
 from typing import Any, Dict, List, Optional, Protocol
 
@@ -113,6 +114,12 @@ class OnDiskFormStorage(FormStorage):
             return self._load_row(row)
 
     def create(self, form: Form[BaseModel]) -> None:
+        fdict = form.serialize()
+        fdict["metadata"] = json.dumps(fdict["metadata"])
+        fdict["contents"] = json.dumps(fdict["contents"])
+        fdict["form_schema"] = json.dumps(fdict["form_schema"])
+        fdict["versions"] = json.dumps(fdict["versions"])
+
         with self._conn:
             self._conn.execute(
                 """
@@ -140,14 +147,14 @@ class OnDiskFormStorage(FormStorage):
                     :step
                 )
                 """,
-                form.serialize(),
+                fdict,
             )
 
     def update(self, form: Form[BaseModel]) -> None:
         form_dict = {
             "id": form.id,
-            "metadata": form.metadata,
-            "contents": form.contents,
+            "metadata": json.dumps(form.metadata),
+            "contents": form.contents.model_dump_json(),
         }
         with self._conn:
             self._conn.execute(
@@ -183,17 +190,16 @@ class OnDiskFormStorage(FormStorage):
             return [self._load_row(row) for row in dbcursor]
 
     def _load_row(self, row: Any) -> Form[BaseModel]:
-        # id, workflow_id, workflow_run_id, metadata, path, contents,
-        # form_schema, versions, task, step
         return Form.deserialize(
             {
                 "id": row[0],
                 "workflow_id": row[1],
                 "workflow_run_id": row[2],
-                "metadata": row[3],
+                "metadata": json.loads(row[3]),
                 "path": row[4],
-                "form_schema": row[6],
-                "versions": row[7],
+                "contents": json.loads(row[5]),
+                "form_schema": json.loads(row[6]),
+                "versions": json.loads(row[7]),
                 "task": row[8],
                 "step": row[9],
             }
