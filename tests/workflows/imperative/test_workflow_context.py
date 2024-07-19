@@ -4,10 +4,8 @@ from fixpoint.cache import ChatCompletionTLRUCache
 from fixpoint.agents import BaseAgent
 from fixpoint.agents.mock import MockAgent, new_mock_completion
 from fixpoint.workflows import imperative
-from fixpoint.workflows.imperative.workflow_context import (
-    _WrappedWorkflowAgents,
-    WorkflowContext,
-)
+from fixpoint.workflows.imperative._wrapped_workflow_agents import WrappedWorkflowAgents
+from fixpoint.workflows.imperative.workflow_context import WorkflowContext
 from fixpoint.workflows.imperative._workflow_agent import WorkflowAgent
 
 
@@ -20,9 +18,7 @@ class TestWrappedWorkflowAgents:
         workflow_run = workflow.run()
         agents: List[BaseAgent] = [agent1, agent2]
 
-        wrapped_agents = _WrappedWorkflowAgents(
-            agents=agents, workflow_run=workflow_run
-        )
+        wrapped_agents = WrappedWorkflowAgents(agents=agents, workflow_run=workflow_run)
         pre_cloned_agents = wrapped_agents._agents
         pre_cloned_workflow_run = wrapped_agents._workflow_run
         assert wrapped_agents._workflow_run == workflow_run

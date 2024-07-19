@@ -7,6 +7,7 @@ from fixpoint.agents import BaseAgent
 from fixpoint.cache import SupportsChatCompletionCache
 
 from ..imperative import WorkflowContext as ImperativeWorkflowContext, WorkflowRun
+from ..imperative._wrapped_workflow_agents import WrappedWorkflowAgents
 from ._run_config import RunConfig
 
 
@@ -38,6 +39,34 @@ class WorkflowContext(ImperativeWorkflowContext):
         agents: List[BaseAgent],
         cache: Optional[SupportsChatCompletionCache] = None,
         logger: Optional[logging.Logger] = None,
+        *,
+        _workflow_agents_override_: Optional[WrappedWorkflowAgents] = None,
     ) -> None:
-        super().__init__(workflow_run, agents, cache, logger)
+        super().__init__(
+            workflow_run,
+            agents,
+            cache,
+            logger,
+            _workflow_agents_override_=_workflow_agents_override_,
+        )
         self.run_config = run_config
+
+    def clone(self) -> "WorkflowContext":
+        """Clones the workflow context"""
+
+        # We need to override this metod from the child class because we have
+        # different init parameters.
+
+        # clone the workflow run
+        new_workflow_run = self.workflow_run.clone()
+        # clone the agents
+        new_agents = self.agents.clone(new_workflow_run)
+
+        return self.__class__(
+            agents=[],
+            workflow_run=new_workflow_run,
+            cache=self.cache,
+            logger=self.logger,
+            run_config=self.run_config,
+            _workflow_agents_override_=new_agents,
+        )
