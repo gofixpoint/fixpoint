@@ -25,7 +25,7 @@ export const workflowStatusEnum = z.enum([
 const editableConfigSchema = z.object({
   is_editable: z.boolean(),
   is_required: z.boolean(),
-  human_contents: z.boolean(),
+  human_contents: z.string().optional(),
 });
 
 const entryFieldSchema = z.object({
@@ -37,13 +37,17 @@ const entryFieldSchema = z.object({
 });
 
 const taskSchema = z.object({
-  workflowId: z.string(),
-  workflowRunId: z.string(),
+  id: z.string(),
+  workflow_id: z.string(),
+  workflow_run_id: z.string(),
   status: workflowStatusEnum,
-  createdAt: z.string(),
-  updatedAt: z.string(),
-  entryFields: z.array(entryFieldSchema),
+  created_at: z.string(),
+  updated_at: z.string(),
+  entry_fields: z.array(entryFieldSchema),
 });
+
+export const tasksResponseSchema = z.array(taskSchema);
+
 export type WorkflowStatus = z.infer<typeof workflowStatusEnum>;
 export type Task = z.infer<typeof taskSchema>;
 export const listTasksRequestSchema = z.object({});

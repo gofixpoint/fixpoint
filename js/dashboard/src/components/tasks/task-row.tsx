@@ -6,7 +6,7 @@ import { flexRender, Row } from "@tanstack/react-table";
 import { cn } from "@/lib/utils";
 import { Task } from "@/components/tasks/data/schema";
 import { TableCell, TableRow } from "@/components/ui/table";
-import { UpDownLLMLogSidesheet } from "@/components/tasks/sidesheet";
+import { UpDownTaskSidesheet } from "@/components/tasks/sidesheet";
 import * as sheet from "@/components/ui/sheet";
 
 interface TaskRowProps {
@@ -48,7 +48,7 @@ export function TaskRow(props: TaskRowProps) {
           </>
         </sheet.SheetTrigger>
       </TableRow>
-      <UpDownLLMLogSidesheet
+      <UpDownTaskSidesheet
         open={open}
         setOpen={setOpen}
         rows={props.allRows}

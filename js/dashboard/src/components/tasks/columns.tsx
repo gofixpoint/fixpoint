@@ -8,14 +8,30 @@ import { WorkflowStatusDisplay } from "./workflow-status";
 
 export const columns: ColumnDef<Task>[] = [
   {
-    accessorKey: "workflowId",
+    accessorKey: "id",
+    meta: {
+      displayName: "ID",
+    },
+    cell: ({ row }) => {
+      return (
+        <div className="flex flex-row w-[120px] justify-center">
+          <span>{row.getValue<string>("id")}</span>
+        </div>
+      );
+    },
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Task Id" />
+    ),
+  },
+  {
+    accessorKey: "workflow_id",
     meta: {
       displayName: "Workflow ID",
     },
     cell: ({ row }) => {
       return (
         <div className="flex flex-row w-[120px] justify-center">
-          <span>{row.getValue<string>("workflowId")}</span>
+          <span>{row.getValue<string>("workflow_id")}</span>
         </div>
       );
     },
@@ -24,14 +40,14 @@ export const columns: ColumnDef<Task>[] = [
     ),
   },
   {
-    accessorKey: "workflowRunId",
+    accessorKey: "workflow_run_id",
     meta: {
       displayName: "Workflow Run ID",
     },
     cell: ({ row }) => {
       return (
         <div className="flex w-[120px] justify-center">
-          <span>{row.getValue<string>("workflowRunId")}</span>
+          <span>{row.getValue<string>("workflow_run_id")}</span>
         </div>
       );
     },
@@ -57,7 +73,7 @@ export const columns: ColumnDef<Task>[] = [
     ),
   },
   {
-    accessorKey: "createdAt",
+    accessorKey: "created_at",
     meta: {
       displayName: "Created At",
     },
@@ -67,7 +83,7 @@ export const columns: ColumnDef<Task>[] = [
     cell: ({ row }) => (
       <div className="min-w-[180px]">
         {DateTime.fromISO(
-          row.getValue<Required<Task["createdAt"]>>("createdAt"),
+          row.getValue<Required<Task["created_at"]>>("created_at"),
         ).toFormat("yyyy-MM-dd  HH:mm:ss")}
       </div>
     ),

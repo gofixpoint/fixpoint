@@ -5,7 +5,11 @@ import {
   useQuery,
   QueryKey,
 } from "@tanstack/react-query";
-import { ListTasksResponseParsed } from "@/components/tasks/data/schema";
+import {
+  ListTasksResponseParsed,
+  tasksResponseSchema,
+} from "@/components/tasks/data/schema";
+import { fetchTasksAction } from "@/utils/supabase/actions";
 
 export type ListTasksPages = InfiniteData<ListTasksResponseParsed>;
 
@@ -21,10 +25,12 @@ export type PageParams = { pageSize: number; pageCursor?: string };
 async function fetchTasks(
   pageParams: PageParams,
 ): Promise<ListTasksResponseParsed> {
-  //TODO: Implement
+  const tasks = await fetchTasksAction();
+  const parsedTasks = tasksResponseSchema.parse(tasks);
+
   return {
-    tasks: [],
-    totalEntries: BigInt(10),
+    tasks: parsedTasks,
+    totalEntries: BigInt(parsedTasks.length),
   };
 }
 
@@ -47,5 +53,5 @@ export function usePaginatedListTasks(
 }
 
 function formatQueryKey(pageParams: PageParams): QueryKey {
-  return ["tasks", pageParams.pageSize, pageParams.pageCursor];
+  return ["tasks"];
 }
