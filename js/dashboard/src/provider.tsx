@@ -14,13 +14,13 @@ export function RootProvider(props: {
   env: Env;
 }): React.JSX.Element {
   return (
-      <JotaiProvider>
-        <QueryClientProvider client={queryClient}>
-          <TooltipProvider>
-            <AtomsInit env={props.env}>{props.children}</AtomsInit>
-          </TooltipProvider>
-        </QueryClientProvider>
-      </JotaiProvider>
+    <JotaiProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <AtomsInit env={props.env}>{props.children}</AtomsInit>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </JotaiProvider>
   );
 }
 

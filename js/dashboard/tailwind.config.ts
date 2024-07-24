@@ -9,9 +9,7 @@ import {
 /** @type {import('tailwindcss').Config} */
 const shadcnConfig = {
   darkMode: ["class"],
-  content: [
-    "./src/**/*.{ts,tsx}",
-  ],
+  content: ["./src/**/*.{ts,tsx}"],
   theme: shadcnTheme,
   plugins: [require("tailwindcss-animate")],
 };
