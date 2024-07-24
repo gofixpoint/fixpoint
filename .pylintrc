@@ -440,7 +440,8 @@ disable=raw-checker-failed,
         consider-iterating-dictionary,
         no-else-raise,
         no-member, # disabled because pylint gets this wrong on Pydantic and mypy covers it
-        not-callable # disabled because pylint gets this wrong sometimes and mypy covers it
+        not-callable, # disabled because pylint gets this wrong sometimes and mypy covers it
+        unsupported-binary-operation
 
 
 # Enable the message, report, category or checker with the given id(s). You can

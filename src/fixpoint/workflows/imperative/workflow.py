@@ -117,8 +117,11 @@ class WorkflowRun(BaseModel):
         return self._forms
 
     @property
-    def current_node_info(self) -> NodeInfo:
-        """The current task"""
+    def node_info(self) -> NodeInfo:
+        """The info about the current execution node
+
+        What task or step are we in, and what is it's status?
+        """
         return self._node_state.info
 
     # pylint: disable=unused-argument
@@ -167,13 +170,20 @@ class WorkflowRun(BaseModel):
         """Handle for spawning a group of tasks"""
         return SpawnGroup(node_state=self._node_state)
 
-    def clone(self) -> "WorkflowRun":
+    def clone(
+        self, new_task: str | None = None, new_step: str | None = None
+    ) -> "WorkflowRun":
         """Clones the workflow run"""
         # we cannot deep copy because some of the fields cannot be pickled,
         # which is what the pydantic copy method uses
         new_self = self.model_copy(deep=False)
         # pylint: disable=protected-access
         new_self._node_state = self._node_state.model_copy(deep=False)
+        new_self._node_state.info = self._node_state.info.model_copy(deep=True)
+        if new_task:
+            new_self._node_state.info.task = new_task
+        if new_step:
+            new_self._node_state.info.step = new_step
         return new_self
 
 
@@ -226,7 +236,7 @@ class _Documents:
         steps. By default, we store the document at the current task and step.
         """
         if path is None:
-            path = self.workflow_run.current_node_info.id
+            path = self.workflow_run.node_info.id
         document = Document(
             id=id,
             workflow_id=self.workflow_run.workflow_id,
@@ -348,7 +358,7 @@ class _Forms:
         """
         # TODO(jakub): Pass in contents as well
         if path is None:
-            path = self.workflow_run.current_node_info.id
+            path = self.workflow_run.node_info.id
         form = Form[T](
             form_schema=schema,
             id=form_id,

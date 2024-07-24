@@ -15,6 +15,7 @@ past or current steps and tasks.
 from functools import wraps
 from typing import Any, Callable, Dict, List, Optional
 
+from fixpoint.workflows import WorkflowStatus
 from ._context import WorkflowContext
 from .errors import DefinitionException
 from ._callcache import CallCacheKind
@@ -80,9 +81,9 @@ def get_step_fixp(fn: Callable[..., Any]) -> Optional[StepFixp]:
     return None
 
 
-def call_step(
+async def call_step(
     ctx: WorkflowContext,
-    fn: Callable[Params, Ret],
+    fn: AsyncFunc[Params, Ret],
     args: Optional[List[Any]] = None,
     kwargs: Optional[Dict[str, Any]] = None,
 ) -> Ret:
@@ -118,5 +119,13 @@ def call_step(
     if not step_fixp:
         raise DefinitionException(f"Step {fn.__name__} is not a valid step definition")
 
-    ret = fn(ctx, *args, **kwargs)  # type: ignore[arg-type]
+    step_handle = ctx.workflow_run.spawn_step(step_fixp.id)
+    new_ctx = ctx.clone(new_step=step_fixp.id)
+    try:
+        ret = await fn(new_ctx, *args, **kwargs)  # type: ignore[arg-type]
+    except:
+        step_handle.close(WorkflowStatus.FAILED)
+        raise
+    else:
+        step_handle.close(WorkflowStatus.COMPLETED)
     return ret

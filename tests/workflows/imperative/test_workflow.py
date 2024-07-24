@@ -33,7 +33,7 @@ class TestWorkflowRun:
         # references are different...
         assert new_run._node_state is not run._node_state
         # but content is the same
-        assert new_run.current_node_info.id == run.current_node_info.id
+        assert new_run.node_info.id == run.node_info.id
 
         # It's fine that workflow is the same, because we do not expect to
         # mutate it.
