@@ -1,15 +1,19 @@
 import React from "react";
-import { atom } from "jotai";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { Row } from "@tanstack/react-table";
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
-import { ArrowUp, ArrowDown, Maximize, Minimize } from "lucide-react";
+import {
+  ArrowUp,
+  ArrowDown,
+  Maximize,
+  Minimize,
+  Bot,
+  CircleUserRound,
+} from "lucide-react";
 import * as sheet from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import {
-  EntryField,
   Task,
   WorkflowStatus,
   workflowStatusEnum,
@@ -31,10 +35,11 @@ import {
   SelectContent,
   SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
+import { useUpdateTask } from "@/queries/update-task";
+import { Textarea } from "../ui/textarea";
 
 type OnUpDownFn = (updown: "up" | "down") => void;
 
@@ -140,20 +145,21 @@ function SheetSections(props: SheetSectionsProps): React.JSX.Element {
       <div className="flex flex-col gap-2">
         <H3>Meta</H3>
         <div>
-          <TaskSection name="Workflow Id" value={props.row.workflowId} />
-          <TaskSection name="Workflow Run Id" value={props.row.workflowRunId} />
+          <TaskSection name="Task Id" value={props.row.id} />
+          <TaskSection name="Workflow Id" value={props.row.workflow_id} />
+          <TaskSection
+            name="Workflow Run Id"
+            value={props.row.workflow_run_id}
+          />
           <TaskSection
             name="Status"
             value={<WorkflowStatusDisplay status={props.row.status} />}
           />
-          <TaskSection name="Created At" value={props.row.createdAt} />
+          <TaskSection name="Created At" value={props.row.created_at} />
         </div>
         <div></div>
         <H3>Task Fields</H3>
-        <TaskEntriesForm
-          entryFields={props.row.entryFields}
-          status={props.row.status}
-        />
+        <TaskEntriesForm task={props.row} />
       </div>
     </div>
   );
@@ -164,47 +170,66 @@ const formSchema = z.object({
   fields: z.record(z.string()),
 });
 
-function TaskEntriesForm(props: {
-  entryFields: EntryField[];
-  status: WorkflowStatus;
-}): React.JSX.Element {
-  const fieldValues = props.entryFields.reduce<{ [key: string]: any }>(
-    (acc, ef) => {
-      acc[ef.id] = ef.contents;
-      return acc;
-    },
-    {},
-  );
+function TaskEntriesForm(props: { task: Task }): React.JSX.Element {
+  const { mutate: updateTask } = useUpdateTask();
   // Define a submission form
   const form = useForm<z.infer<typeof formSchema>>({
     defaultValues: {
-      fields: fieldValues,
       status: workflowStatusEnum.Enum.RUNNING,
     },
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     // Do something with the form values.
-    console.log(values);
+    let updatedTask = {
+      ...props.task,
+      status: values.status,
+      entry_fields: props.task.entry_fields.map((ef) => {
+        if (values.fields[ef.id]) {
+          let editable_config = { ...ef.editable_config };
+          editable_config.human_contents = values.fields[ef.id];
+          return { ...ef, editable_config };
+        }
+        return ef;
+      }),
+    };
+    updateTask(updatedTask);
   }
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        {props.entryFields.map((ef) => {
+        {props.task.entry_fields.map((ef) => {
+          const defaultHumanContents = ef.editable_config.human_contents
+            ? ef.editable_config.human_contents
+            : ef.contents;
           return (
             <FormField
               control={form.control}
               name={`fields.${ef.id}`}
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="bg-gray-100 bg-opacity-10 rounded-md p-4">
                   <FormLabel>{ef.display_name}</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
                   {ef.description && (
                     <FormDescription>{ef.description}</FormDescription>
                   )}
+                  <FormControl>
+                    <>
+                      <div className="flex gap-2 items-center">
+                        <Bot />
+                        <Textarea disabled={true} value={ef.contents} />
+                      </div>
+                      {ef.editable_config.is_editable && (
+                        <div className="flex gap-2 items-center">
+                          <CircleUserRound />
+                          <Input
+                            {...field}
+                            defaultValue={defaultHumanContents}
+                          />
+                        </div>
+                      )}
+                    </>
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -229,7 +254,7 @@ function TaskEntriesForm(props: {
             )}
           />
         }
-        <Button type="submit">Submit</Button>
+        <Button type="submit">Update</Button>
       </form>
     </Form>
   );
@@ -281,7 +306,7 @@ export interface UpDownTaskSidesheetProps {
 
 // The LLMLogSidesheet but hooked up so that we can navigate between llm log
 // rows.
-export function UpDownLLMLogSidesheet(
+export function UpDownTaskSidesheet(
   props: UpDownTaskSidesheetProps,
 ): React.JSX.Element {
   // When we close the sheet, we want to unmount it so that its inner state can
@@ -318,32 +343,3 @@ function InnerUpDownTaskSidesheet(
     />
   );
 }
-
-interface ISectionsOpen {
-  attributes: boolean;
-  messages: boolean;
-  evaluations: boolean;
-  datasets: boolean;
-  applicationLogs: boolean;
-}
-
-const sectionsOpenBaseAtom = atom<ISectionsOpen>({
-  attributes: true,
-  messages: true,
-  evaluations: true,
-  datasets: true,
-  applicationLogs: true,
-});
-
-const sectionsOpenAtom = atom(
-  (get) => get(sectionsOpenBaseAtom),
-  (_get, set, update: string[]) => {
-    set(sectionsOpenBaseAtom, {
-      attributes: update.includes("attributes"),
-      messages: update.includes("messages"),
-      evaluations: update.includes("evaluations"),
-      datasets: update.includes("datasets"),
-      applicationLogs: update.includes("app-logs"),
-    });
-  },
-);

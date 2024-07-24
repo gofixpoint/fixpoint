@@ -19,16 +19,10 @@ import {
 
 import {
   ListTasksPageQueryResult,
-  PageParams,
   usePaginatedListTasks,
 } from "@/queries/list-tasks";
-import {
-  Task,
-  ListTasksResponseParsed,
-  workflowStatusEnum,
-} from "./data/schema";
+import { Task } from "./data/schema";
 import { DataTableBase, useRowSelectionSyncedToAtom } from "./data-table-base";
-import { useQuery } from "@tanstack/react-query";
 
 interface DataTableProps<TValue> {
   columns: ColumnDef<Task, TValue>[];
@@ -83,7 +77,7 @@ export function DataTable<TValue>({
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
-    getRowId: (row) => row.workflowRunId,
+    getRowId: (row) => row.workflow_run_id,
     onPaginationChange: onPaginationChange,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
