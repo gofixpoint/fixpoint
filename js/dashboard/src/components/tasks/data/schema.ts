@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { isSet } from "@/lib/utils";
+import { metadata } from "@/app/layout";
 
 export enum FineTuneStatus {
   UNSPECIFIED = "FINE_TUNE_STATUS_UNSPECIFIED",
@@ -44,6 +45,8 @@ const taskSchema = z.object({
   created_at: z.string(),
   updated_at: z.string(),
   entry_fields: z.array(entryFieldSchema),
+  metadata: z.record(z.string()).nullable(),
+  source_node: z.string(),
 });
 
 export const tasksResponseSchema = z.array(taskSchema);

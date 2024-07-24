@@ -143,9 +143,10 @@ function SheetSections(props: SheetSectionsProps): React.JSX.Element {
     >
       <H2>Task Details</H2>
       <div className="flex flex-col gap-2">
-        <H3>Meta</H3>
+        <H3>Attributes</H3>
         <div>
           <TaskSection name="Task Id" value={props.row.id} />
+          <TaskSection name="Source Node" value={props.row.source_node} />
           <TaskSection name="Workflow Id" value={props.row.workflow_id} />
           <TaskSection
             name="Workflow Run Id"

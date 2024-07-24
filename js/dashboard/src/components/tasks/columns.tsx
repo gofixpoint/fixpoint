@@ -24,6 +24,22 @@ export const columns: ColumnDef<Task>[] = [
     ),
   },
   {
+    accessorKey: "source_node",
+    meta: {
+      displayName: "Source Node",
+    },
+    cell: ({ row }) => {
+      return (
+        <div className="flex flex-row w-[120px] justify-center">
+          <span>{row.getValue<string>("source_node")}</span>
+        </div>
+      );
+    },
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Source Node" />
+    ),
+  },
+  {
     accessorKey: "workflow_id",
     meta: {
       displayName: "Workflow ID",

@@ -4,6 +4,8 @@ CREATE TABLE public.workflow_tasks(
     workflow_id TEXT,
     workflow_run_id TEXT,
     status TEXT NOT NULL,
+    metadata JSONB,
+    source_node text NOT NULL,
     created_at TIMESTAMP default now(),
     updated_at TIMESTAMP default now(),
     entry_fields JSONB NOT NULL
