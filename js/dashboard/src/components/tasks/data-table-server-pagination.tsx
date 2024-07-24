@@ -40,7 +40,7 @@ export function DataTable<TValue>({
   noResultsMessage,
   isDataset,
 }: DataTableProps<TValue>) {
-  const data: Task[] = React.useMemo((): Task[] => {
+  let data: Task[] = React.useMemo((): Task[] => {
     if (query.status === "success") {
       return query.data.tasks;
     }
@@ -98,7 +98,6 @@ export function DataTable<TValue>({
   const canGetNextPage =
     query.status === "success" && !!query.data.nextPageToken;
 
-  console.log('here')
   return (
     <DataTableBase
       columns={columns}
