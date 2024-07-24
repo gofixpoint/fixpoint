@@ -1,0 +1,48 @@
+# Fixpoint versus Others
+
+We have the table-stakes:
+
+- structured output
+- LLM memory and caching
+- tool calling support
+
+We focus on a few extra things:
+
+- human-in-the-loop interfaces for a human to review, audit, correct, change, or otherwise interact with part of a workflow
+- durable, stateful LLM workflows that look like normal computer programs
+- (soon) tightly integrated with specialized agents for common tasks, like web-scraping, RPA, SQL generation, or agents that interact with other service's APIs
+  - unify your model usage tracking and billing across these agents
+
+
+## LangChain
+
+- LangChain is a totally different abstraction for prompting than OpenAI's APIs
+
+## LangGraph
+
+- Enforces strict graph structure on how AIs interact
+- State machines tend to fall apart for complex workflows (TODO add blog post link)
+- We're more used to defining programs that look like normal programs with
+  function calling that defining graphs. A normal program is still a graph, but
+  it is easier to code and understand.
+
+## CrewAI
+
+- CrewAI is focused on autonomous crews that take multiple autonomous steps together before passing control back to the computer program.
+- We think that the best LLM apps and workflows have some parts that are tightly controlled by a normal program and the decisions of the human programmer, and have other parts where the Crew-style model works well.
+- Fixpoint is infra-focused, so we want to provide the storage layers and runtime for LLM workflow state.
+- We focus on specific types of LLM workflows:
+  - structured workflows, which look like normal programs
+  - request/reply workflows, which look like normal client/server interactions and are useful for chatbots
+  - UI for human-in-the-loop interrupts and other intra-workflow steps rely on external input
+  - blending these things together
+- In fact, you could technically use Crew AI within Fixpoint.
+- we're an async-first framework
+
+
+## AutoGen
+
+- Same as Crew AI
+
+
+## Queuing and durable workflow infra
