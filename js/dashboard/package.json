@@ -6,7 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
+    "format": "prettier --write --list-different .",
+    "formatcheck": "prettier --check .",
+    "lint": "eslint",
+    "typecheck": "tsc --pretty --noEmit",
+    "test:watch": "jest --watch",
+    "test": "jest"
   },
   "dependencies": {
     "@headlessui/tailwindcss": "^0.2.1",
@@ -32,6 +38,7 @@
     "lucide-react": "^0.408.0",
     "luxon": "^3.4.4",
     "next": "14.2.5",
+    "prettier": "^3.3.3",
     "react": "^18",
     "react-dom": "^18",
     "react-hook-form": "^7.52.1",
@@ -40,6 +47,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@types/luxon": "^3.4.2",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

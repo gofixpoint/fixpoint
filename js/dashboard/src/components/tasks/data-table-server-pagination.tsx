@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useState, useEffect } from "react";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -16,13 +17,22 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 
-import { ListTasksQueryResult } from "@/queries/list-tasks";
-import { Task } from "./data/schema";
+import {
+  ListTasksPageQueryResult,
+  PageParams,
+  usePaginatedListTasks,
+} from "@/queries/list-tasks";
+import {
+  Task,
+  ListTasksResponseParsed,
+  workflowStatusEnum,
+} from "./data/schema";
 import { DataTableBase, useRowSelectionSyncedToAtom } from "./data-table-base";
+import { useQuery } from "@tanstack/react-query";
 
 interface DataTableProps<TValue> {
   columns: ColumnDef<Task, TValue>[];
-  query: ListTasksQueryResult;
+  query: ListTasksPageQueryResult;
   onPaginationChange: OnChangeFn<PaginationState>;
   pagination: PaginationState;
 
@@ -40,7 +50,7 @@ export function DataTable<TValue>({
   noResultsMessage,
   isDataset,
 }: DataTableProps<TValue>) {
-  let data: Task[] = React.useMemo((): Task[] => {
+  const data: Task[] = React.useMemo((): Task[] => {
     if (query.status === "success") {
       return query.data.tasks;
     }
@@ -73,7 +83,7 @@ export function DataTable<TValue>({
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
-    getRowId: (row) => row.name,
+    getRowId: (row) => row.workflowRunId,
     onPaginationChange: onPaginationChange,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -102,9 +112,53 @@ export function DataTable<TValue>({
     <DataTableBase
       columns={columns}
       table={table}
+      canGetNextPageOverride={canGetNextPage}
       noResultsMessage={noResultsMessage}
       loadingStatus={query.status}
       isDataset={isDataset}
     />
   );
+}
+
+export function useIndexPaginatedTasks(pageParams: {
+  pageSize: number;
+  pageIndex: number;
+}): ListTasksPageQueryResult {
+  // Start with empty string instead of undefined, because the default first
+  // empty cursor is "" instead of undefined. If we don't find an exact match,
+  // we accidentally end up with: [undefined, ""] for the first two elements in
+  // our page cursor list.
+  const [pageCursors, setPageCursors] = useState<Array<string | undefined>>([
+    "",
+  ]);
+
+  useEffect(() => {
+    setPageCursors([""]);
+  }, []);
+
+  if (pageParams.pageIndex >= pageCursors.length) {
+    throw new Error("Page index out of bounds");
+  }
+
+  const cursor = pageCursors[pageParams.pageIndex];
+  const query = usePaginatedListTasks({
+    pageSize: pageParams.pageSize,
+    pageCursor: cursor,
+  });
+
+  useEffect(() => {
+    if (query.status === "success") {
+      const nextToken = query.data.nextPageToken;
+      setPageCursors((prevPageCursors) => {
+        const lastToken = prevPageCursors[prevPageCursors.length - 1];
+        if (nextToken !== lastToken) {
+          return [...prevPageCursors, nextToken];
+        } else {
+          return prevPageCursors;
+        }
+      });
+    }
+  }, [query.status, query.data?.nextPageToken]);
+
+  return query;
 }

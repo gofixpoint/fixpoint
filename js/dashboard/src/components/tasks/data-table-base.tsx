@@ -77,11 +77,11 @@ export function DataTableBase<TData extends Task, TValue>({
               table
                 .getRowModel()
                 .rows.map((row, idx) => (
-                    <TaskRow
-                        key={row.id}
-                        allRows={table.getRowModel().rows}
-                        rowIndex={idx}
-                    />
+                  <TaskRow
+                    key={row.id}
+                    allRows={table.getRowModel().rows}
+                    rowIndex={idx}
+                  />
                 ))
             ) : (
               <TableRow>

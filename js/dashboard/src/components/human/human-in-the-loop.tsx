@@ -1,18 +1,12 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Metadata } from "next";
-import { useAtomValue } from "jotai";
 import { PaginationState } from "@tanstack/table-core";
 import { Loader2 } from "lucide-react";
-
-import { envAtom } from "@/atoms/env";
 import { columns } from "@/components/tasks/columns";
 import { DataTable } from "@/components/tasks/data-table-server-pagination";
-import {
-  ListTasksQueryResult,
-  useInfiniteListTasks,
-} from "@/queries/list-tasks";
+import { usePaginatedListTasks } from "@/queries/list-tasks";
 
 export default function HumanInTheLoop() {
   return <DataTableLoader />;
@@ -30,9 +24,20 @@ function DataTableLoader() {
     pageSize: PAGE_SIZE,
     pageIndex: 0,
   });
- 
 
-  const listTasksQuery = useInfiniteListTasks();
+  const [pageCursors, setPageCursors] = useState<Array<string | undefined>>([
+    "",
+  ]);
+
+  useEffect(() => {
+    setPageCursors([""]);
+  }, []);
+
+  const cursor = pageCursors[pageParams.pageIndex];
+  const listTasksQuery = usePaginatedListTasks({
+    pageSize: pageParams.pageSize,
+    pageCursor: cursor,
+  });
 
   if (listTasksQuery.status === "error") {
     console.warn("Error fetching tasks");
@@ -59,7 +64,6 @@ function DataTableLoader() {
 
   return (
     <div className="h-full">
-      <QueryStatus query={listTasksQuery} />
       <DataTable
         query={listTasksQuery}
         columns={columns}
@@ -68,28 +72,5 @@ function DataTableLoader() {
         noResultsMessage={noResultsMessage}
       />
     </div>
-  );
-}
-
-function QueryStatus(props: { query: ListTasksQueryResult }) {
-  const { query } = props;
-  const env = useAtomValue(envAtom);
-  if (!env.flags.showListTasksQueryStatus) {
-    return null;
-  }
-
-  const debugQueryStatusCSS = "border-x border-white px-4";
-  return (
-    <p>
-      <span className={debugQueryStatusCSS}>
-        Is loading: {query.isLoading ? "true" : "false"}
-      </span>
-      <span className={debugQueryStatusCSS}>
-        Is fetching: {query.isFetching ? "true" : "false"}
-      </span>
-      <span className={debugQueryStatusCSS}>
-        Is pending: {query.isPending ? "true" : "false"}
-      </span>
-    </p>
   );
 }

@@ -2,7 +2,6 @@ import React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import { H2, H3 } from "@/components/ui/headings";
-import { CrumbItemProps, BreadCrumbs } from "@/components/ui/breadcrumbs";
 
 const mainContentVariants = cva("h-screen flex-1 flex-col space-y-8 md:flex", {
   variants: {
@@ -22,7 +21,6 @@ export interface MainContentProps
   title: string;
   subTitle?: string;
   description?: string;
-  breadCrumbItems?: CrumbItemProps[];
 }
 
 export function MainContent(props: MainContentProps): JSX.Element {
@@ -30,9 +28,6 @@ export function MainContent(props: MainContentProps): JSX.Element {
     <main className={mainContentVariants({ variant: props.variant })}>
       <div className="flex items-center justify-between space-y-2">
         <div className="h-full">
-          {props.breadCrumbItems && (
-            <BreadCrumbs className="mb-4" crumbItems={props.breadCrumbItems} />
-          )}
           <H2>{props.title}</H2>
           {props.subTitle && <H3>{props.subTitle}</H3>}
           {props.description && <p className="mt-2">{props.description}</p>}

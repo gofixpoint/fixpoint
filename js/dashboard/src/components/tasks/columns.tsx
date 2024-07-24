@@ -6,7 +6,6 @@ import { DataTableColumnHeader } from "@/components/ui/data-table-column-header"
 import { Task, WorkflowStatus } from "./data/schema";
 import { WorkflowStatusDisplay } from "./workflow-status";
 
-
 export const columns: ColumnDef<Task>[] = [
   {
     accessorKey: "workflowId",
@@ -14,15 +13,15 @@ export const columns: ColumnDef<Task>[] = [
       displayName: "Workflow ID",
     },
     cell: ({ row }) => {
-        return (
-          <div className="flex flex-row w-[120px] justify-center">
-            <span>{row.getValue<string>("workflowId")}</span>
-          </div>
-        );
-      },
+      return (
+        <div className="flex flex-row w-[120px] justify-center">
+          <span>{row.getValue<string>("workflowId")}</span>
+        </div>
+      );
+    },
     header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Workflow Id" />
-    )
+      <DataTableColumnHeader column={column} title="Workflow Id" />
+    ),
   },
   {
     accessorKey: "workflowRunId",
@@ -30,15 +29,15 @@ export const columns: ColumnDef<Task>[] = [
       displayName: "Workflow Run ID",
     },
     cell: ({ row }) => {
-        return (
-          <div className="flex w-[120px] justify-center">
-            <span>{row.getValue<string>("workflowRunId")}</span>
-          </div>
-        );
-      },
+      return (
+        <div className="flex w-[120px] justify-center">
+          <span>{row.getValue<string>("workflowRunId")}</span>
+        </div>
+      );
+    },
     header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Workflow Run Id" />
-    )
+      <DataTableColumnHeader column={column} title="Workflow Run Id" />
+    ),
   },
   {
     accessorKey: "status",
@@ -46,16 +45,16 @@ export const columns: ColumnDef<Task>[] = [
       displayName: "Status",
     },
     cell: ({ row }) => {
-        const status = row.getValue<string>("status");
-        return (
-            <div className="flex w-[120px]">
-                <WorkflowStatusDisplay status={status as WorkflowStatus} />
-            </div>
-        );
+      const status = row.getValue<string>("status");
+      return (
+        <div className="flex w-[120px]">
+          <WorkflowStatusDisplay status={status as WorkflowStatus} />
+        </div>
+      );
     },
     header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Status" />
-    )
+      <DataTableColumnHeader column={column} title="Status" />
+    ),
   },
   {
     accessorKey: "createdAt",
@@ -75,5 +74,4 @@ export const columns: ColumnDef<Task>[] = [
     enableSorting: true,
     enableHiding: true,
   },
-
 ];
