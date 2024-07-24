@@ -34,6 +34,7 @@ from fixpoint.workflows.imperative import (
     WorkflowContext,
     Form,
 )
+from fixpoint.workflows.node_state import WorkflowStatus
 from fixpoint_extras.analyze.memory import DataframeMemory
 
 from .tasks import classify_form_type, FormType, gather_invoice_info, InvoiceQuestions
@@ -58,7 +59,7 @@ _wf = Workflow(id="test_workflow")
 @app.post("/workflow_runs")
 def create_workflow_run() -> WorkflowRun:
     """Create a new workflow run."""
-    return _wf.run()
+    return _wf.run(max_interactions=3)
 
 
 @app.post("/workflow_runs/{workflow_run_id}/chats")
@@ -103,6 +104,8 @@ def get_workflow_context(workflow_run_id: str) -> WorkflowContext:
 def invoice_task(wfctx: WorkflowContext, user_message: str) -> str:
     """Handle the invoice task for a workflow run."""
     wfrun = wfctx.workflow_run
+    wfrun.increment_interactions()
+
     form_id = "invoice_questions"
     stored_form = wfrun.forms.get(form_id=form_id)
 
@@ -132,6 +135,32 @@ def invoice_task(wfctx: WorkflowContext, user_message: str) -> str:
 
     if info_gatherer.is_complete():
         return f"Here is your form:\n\n{info_gatherer.form.contents.model_dump_json()}"
-    else:
-        more_questions = info_gatherer.format_questions()
-        return more_questions
+
+    task_id = wfrun.node_info.id
+    if wfrun.is_stuck():
+        curr_form = wfrun.forms.get(form_id=form_id)
+        if curr_form is None:
+            raise HTTPException(
+                status_code=400, detail="Unexpected error. Form not found."
+            )
+        current_human_task = wfrun.human.get_task(task_id, curr_form.contents)
+        if current_human_task is None:
+            wfrun.human.send_task(task_id, curr_form.contents)
+            return (
+                "Looks like you're having trouble with your invoice. "
+                "A real person has been notified to help you out! "
+                "Check back in a few short moments!"
+            )
+        else:
+            if current_human_task.status == WorkflowStatus.COMPLETED.value:
+                updated_form_contents = current_human_task.to_original_model()
+                wfrun.forms.update(form_id=form_id, contents=updated_form_contents)
+                return (
+                    f"A real person is done reviewing your form. Here it is:\n\n"
+                    f"{updated_form_contents.model_dump_json()}"
+                )
+            else:
+                return "A real person is working hard on fixing it. Please check back later!"
+
+    more_questions = info_gatherer.format_questions()
+    return more_questions

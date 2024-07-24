@@ -13,6 +13,7 @@ from pydantic import (
 
 from fixpoint._utils.ids import make_resource_uuid
 from fixpoint.workflows.node_state import NodeState, CallHandle, SpawnGroup, NodeInfo
+from fixpoint.workflows.human_in_the_loop import HumanInTheLoop
 
 from .document import Document
 from .form import Form
@@ -34,10 +35,18 @@ class Workflow(BaseModel):
     id: str = Field(description="The unique identifier for the workflow.")
     _memory: Dict[str, "WorkflowRun"] = PrivateAttr(default_factory=dict)
 
-    def run(self, storage_config: Optional[StorageConfig] = None) -> "WorkflowRun":
+    def run(
+        self,
+        storage_config: Optional[StorageConfig] = None,
+        max_interactions: int = 100,
+    ) -> "WorkflowRun":
         """Create and run a Workflow Run"""
         storage_config = storage_config or get_default_storage_config()
-        new_workflow_run = WorkflowRun(workflow=self, storage_config=storage_config)
+        new_workflow_run = WorkflowRun(
+            workflow=self,
+            storage_config=storage_config,
+            max_interactions=max_interactions,
+        )
         self._memory[new_workflow_run.id] = new_workflow_run
         return new_workflow_run
 
@@ -77,6 +86,12 @@ class WorkflowRun(BaseModel):
     )
 
     _node_state: NodeState = PrivateAttr(default_factory=NodeState)
+    _human_in_the_loop: HumanInTheLoop = PrivateAttr()
+    max_interactions: int = Field(
+        default=100,
+        description="Max number of interactions allowed for this workflow run.",
+    )
+    _num_interactions: int = PrivateAttr(default=0)
 
     @computed_field  # type: ignore[misc]
     @property
@@ -100,6 +115,10 @@ class WorkflowRun(BaseModel):
                 forms_storage = self.storage_config.forms_storage
         self._documents = _Documents(workflow_run=self, storage=docs_storage)
         self._forms = _Forms(workflow_run=self, storage=forms_storage)
+        self._human_in_the_loop = HumanInTheLoop(
+            workflow_id=self.workflow_id,
+            workflow_run_id=self.id,
+        )
 
     @property
     def docs(self) -> "_Documents":
@@ -123,6 +142,11 @@ class WorkflowRun(BaseModel):
         What task or step are we in, and what is it's status?
         """
         return self._node_state.info
+
+    @property
+    def human(self) -> HumanInTheLoop:
+        """Get the human in the loop for the workflow run"""
+        return self._human_in_the_loop
 
     # pylint: disable=unused-argument
     def goto_task(self, task_id: str) -> None:
@@ -169,6 +193,14 @@ class WorkflowRun(BaseModel):
     def spawn_group(self) -> SpawnGroup:  # pylint: disable=invalid-name
         """Handle for spawning a group of tasks"""
         return SpawnGroup(node_state=self._node_state)
+
+    def is_stuck(self) -> bool:
+        """Check if the workflow run is stuck"""
+        return self._num_interactions >= self.max_interactions
+
+    def increment_interactions(self) -> None:
+        """Increment the number of interactions"""
+        self._num_interactions += 1
 
     def clone(
         self, new_task: str | None = None, new_step: str | None = None

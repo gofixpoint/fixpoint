@@ -26,14 +26,14 @@ export const workflowStatusEnum = z.enum([
 const editableConfigSchema = z.object({
   is_editable: z.boolean(),
   is_required: z.boolean(),
-  human_contents: z.string().optional(),
+  human_contents: z.string().nullable(),
 });
 
 const entryFieldSchema = z.object({
   id: z.string(),
-  display_name: z.string(),
-  description: z.string().optional(),
-  contents: z.string().optional(),
+  display_name: z.string().nullable(),
+  description: z.string().nullable(),
+  contents: z.string().nullable(),
   editable_config: editableConfigSchema,
 });
 
@@ -46,7 +46,7 @@ const taskSchema = z.object({
   updated_at: z.string(),
   entry_fields: z.array(entryFieldSchema),
   metadata: z.record(z.string()).nullable(),
-  source_node: z.string(),
+  source_node: z.string().nullable(),
 });
 
 export const tasksResponseSchema = z.array(taskSchema);

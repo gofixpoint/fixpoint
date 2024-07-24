@@ -309,7 +309,7 @@ class TestForms:
 
         # List forms
         listed_forms = run.forms.list()
-        print(listed_forms)
+
         assert isinstance(listed_forms, List)
         assert len(listed_forms) == 1
         assert isinstance(listed_forms[0], Form)
