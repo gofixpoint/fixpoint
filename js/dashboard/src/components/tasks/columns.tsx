@@ -20,6 +20,22 @@ export const columns: ColumnDef<Task>[] = [
       );
     },
     header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Id" />
+    ),
+  },
+  {
+    accessorKey: "task_id",
+    meta: {
+      displayName: "Task ID",
+    },
+    cell: ({ row }) => {
+      return (
+        <div className="flex flex-row w-[120px] justify-center">
+          <span>{row.getValue<string>("task_id")}</span>
+        </div>
+      );
+    },
+    header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Task Id" />
     ),
   },
