@@ -4,6 +4,7 @@ import os
 from typing import Any, List, Optional
 from pydantic import BaseModel, Field, PrivateAttr, SkipValidation
 from supabase import create_client, Client
+from fixpoint._utils.ids import make_resource_uuid
 
 from fixpoint.workflows.node_state import WorkflowStatus
 
@@ -35,12 +36,20 @@ class EntryField(BaseModel):
     )
 
 
-class HumanTask(BaseModel):
+def new_task_entry_id() -> str:
+    """Create a new workflow run id"""
+    return make_resource_uuid("ht")
+
+
+class HumanTaskEntry(BaseModel):
     """
-    A task that a human can complete.
+    A task entry that a human can complete.
     """
 
-    id: str = Field(description="The task id")
+    id: str = Field(
+        description="The id of task entry", default_factory=new_task_entry_id
+    )
+    task_id: str = Field(description="The task id")
     workflow_id: str = Field(description="The workflow id")
     workflow_run_id: str = Field(description="The workflow run id")
     source_node: Optional[str] = Field(
@@ -94,7 +103,7 @@ class HumanInTheLoop(BaseModel):
     workflow_id: str = Field(description="The workflow id")
     workflow_run_id: str = Field(description="The workflow run id")
 
-    tasks: List[HumanTask] = Field(description="The tasks", default=[])
+    tasks: List[HumanTaskEntry] = Field(description="The tasks", default=[])
     _db_client: Optional[Client] = PrivateAttr(default=None)
 
     def model_post_init(self, __context: Any) -> None:
@@ -107,10 +116,12 @@ class HumanInTheLoop(BaseModel):
         else:
             print("Warning: HumanInTheLoop > Database client not initialized")
 
-    def send_task(self, task_id: str, original_model: BaseModel) -> HumanTask:
-        """Sends a task"""
-        task = HumanTask(
-            id=task_id,
+    def send_task_entry(
+        self, task_id: str, original_model: BaseModel
+    ) -> HumanTaskEntry:
+        """Sends a task entry"""
+        task = HumanTaskEntry(
+            task_id=task_id,
             workflow_id=self.workflow_id,
             workflow_run_id=self.workflow_run_id,
             original_model=original_model,
@@ -119,25 +130,26 @@ class HumanInTheLoop(BaseModel):
         if self._db_client is None:
             raise AttributeError("Database client is not initialized")
 
-        self._db_client.table("workflow_tasks").insert(model_dump).execute()
+        self._db_client.table("task_entries").insert(model_dump).execute()
 
         return task
 
-    def get_task(self, task_id: str, original_model: BaseModel) -> HumanTask | None:
+    def get_task_entry(
+        self, task_entry_id: str, original_model: BaseModel
+    ) -> HumanTaskEntry | None:
         """Retrieves a task"""
         if self._db_client is None:
             raise AttributeError("Database client is not initialized")
 
         response = (
-            self._db_client.table("workflow_tasks")
+            self._db_client.table("task_entries")
             .select("*")
-            .eq("id", task_id)
-            .eq("workflow_run_id", self.workflow_run_id)
+            .eq("id", task_entry_id)
             .execute()
         )
 
         if len(response.data) == 0:
             return None
-        task = HumanTask(**response.data[0], original_model=original_model)
+        task = HumanTaskEntry(**response.data[0], original_model=original_model)
 
         return task

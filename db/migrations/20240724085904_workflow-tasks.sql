@@ -1,6 +1,7 @@
 -- migrate:up
-CREATE TABLE public.workflow_tasks(
+CREATE TABLE public.task_entries(
     id TEXT PRIMARY KEY,
+    task_id TEXT,
     workflow_id TEXT,
     workflow_run_id TEXT,
     status TEXT NOT NULL,
@@ -12,4 +13,4 @@ CREATE TABLE public.workflow_tasks(
 );
 
 -- migrate:down
-DROP TABLE public.workflow_tasks;
+DROP TABLE public.task_entries;

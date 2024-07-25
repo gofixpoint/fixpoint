@@ -33,12 +33,13 @@ const entryFieldSchema = z.object({
   id: z.string(),
   display_name: z.string().nullable(),
   description: z.string().nullable(),
-  contents: z.string().nullable(),
+  contents: z.any().nullable(),
   editable_config: editableConfigSchema,
 });
 
-const taskSchema = z.object({
+const taskEntrySchema = z.object({
   id: z.string(),
+  task_id: z.string(),
   workflow_id: z.string(),
   workflow_run_id: z.string(),
   status: workflowStatusEnum,
@@ -49,13 +50,13 @@ const taskSchema = z.object({
   source_node: z.string().nullable(),
 });
 
-export const tasksResponseSchema = z.array(taskSchema);
+export const tasksResponseSchema = z.array(taskEntrySchema);
 
 export type WorkflowStatus = z.infer<typeof workflowStatusEnum>;
-export type Task = z.infer<typeof taskSchema>;
+export type Task = z.infer<typeof taskEntrySchema>;
 export const listTasksRequestSchema = z.object({});
 export const listTasksResponseSchema = z.object({
-  tasks: z.array(taskSchema),
+  tasks: z.array(taskEntrySchema),
   nextPageToken: z.string().optional(),
   totalEntries: z
     .union([z.string(), z.number(), z.null(), z.undefined()])
