@@ -1,6 +1,6 @@
 "use server";
 
-import { Task } from "@/components/tasks/data/schema";
+import { TaskEntry } from "@/components/tasks/data/schema";
 import { createClient } from "@/utils/supabase/server";
 
 export async function fetchTasksAction() {
@@ -9,7 +9,7 @@ export async function fetchTasksAction() {
   return tasks;
 }
 
-export async function updateTaskAction(task: Task): Promise<Task> {
+export async function updateTaskAction(task: TaskEntry): Promise<TaskEntry> {
   const supabase = createClient();
 
   const { error } = await supabase.from("task_entries").upsert(task);

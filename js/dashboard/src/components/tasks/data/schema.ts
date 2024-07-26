@@ -53,7 +53,7 @@ const taskEntrySchema = z.object({
 export const tasksResponseSchema = z.array(taskEntrySchema);
 
 export type WorkflowStatus = z.infer<typeof workflowStatusEnum>;
-export type Task = z.infer<typeof taskEntrySchema>;
+export type TaskEntry = z.infer<typeof taskEntrySchema>;
 export const listTasksRequestSchema = z.object({});
 export const listTasksResponseSchema = z.object({
   tasks: z.array(taskEntrySchema),
