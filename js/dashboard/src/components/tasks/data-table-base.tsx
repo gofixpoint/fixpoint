@@ -18,7 +18,7 @@ import {
   DataTablePagination,
   DataTablePaginationProps,
 } from "@/components/ui/data-table";
-import { Task } from "./data/schema";
+import { TaskEntry } from "./data/schema";
 import { TaskRow } from "./task-row";
 
 interface DataTableProps<TData, TValue> {
@@ -42,7 +42,7 @@ interface DataTableProps<TData, TValue> {
   isDataset?: boolean;
 }
 
-export function DataTableBase<TData extends Task, TValue>({
+export function DataTableBase<TData extends TaskEntry, TValue>({
   columns,
   table,
   noResultsMessage,
@@ -106,7 +106,7 @@ export function DataTableBase<TData extends Task, TValue>({
   );
 }
 
-export function useRowSelectionSyncedToAtom<TData extends Task>(
+export function useRowSelectionSyncedToAtom<TData extends TaskEntry>(
   data: TData[],
 ): [
   Record<string, boolean>,

@@ -21,11 +21,11 @@ import {
   ListTasksPageQueryResult,
   usePaginatedListTasks,
 } from "@/queries/list-tasks";
-import { Task } from "./data/schema";
+import { TaskEntry } from "./data/schema";
 import { DataTableBase, useRowSelectionSyncedToAtom } from "./data-table-base";
 
 interface DataTableProps<TValue> {
-  columns: ColumnDef<Task, TValue>[];
+  columns: ColumnDef<TaskEntry, TValue>[];
   query: ListTasksPageQueryResult;
   onPaginationChange: OnChangeFn<PaginationState>;
   pagination: PaginationState;
@@ -44,7 +44,7 @@ export function DataTable<TValue>({
   noResultsMessage,
   isDataset,
 }: DataTableProps<TValue>) {
-  const data: Task[] = React.useMemo((): Task[] => {
+  const data: TaskEntry[] = React.useMemo((): TaskEntry[] => {
     if (query.status === "success") {
       return query.data.tasks;
     }

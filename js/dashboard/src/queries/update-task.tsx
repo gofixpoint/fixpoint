@@ -1,6 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { updateTaskAction } from "@/utils/supabase/actions";
-import { ListTasksResponseParsed, Task } from "@/components/tasks/data/schema";
+import {
+  ListTasksResponseParsed,
+  TaskEntry,
+} from "@/components/tasks/data/schema";
 import { useToast } from "@/components/ui/use-toast";
 
 export function useUpdateTask() {
@@ -8,10 +11,10 @@ export function useUpdateTask() {
   const { toast } = useToast();
 
   const mutation = useMutation({
-    mutationFn: (task: Task) => {
+    mutationFn: (task: TaskEntry) => {
       return updateTaskAction(task);
     },
-    onSuccess: (updatedTask: Task) => {
+    onSuccess: (updatedTask: TaskEntry) => {
       // On success update the query to include the new dataset in the query
       queryClient.setQueryData(
         ["tasks"],

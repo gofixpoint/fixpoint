@@ -14,11 +14,11 @@ import {
 import * as sheet from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import {
-  Task,
+  TaskEntry,
   WorkflowStatus,
   workflowStatusEnum,
 } from "@/components/tasks/data/schema";
-import { H2, H3 } from "../ui/headings";
+import { H2 } from "../ui/headings";
 import { WorkflowStatusDisplay } from "./workflow-status";
 import {
   Form,
@@ -40,6 +40,12 @@ import {
 } from "../ui/select";
 import { useUpdateTask } from "@/queries/update-task";
 import { Textarea } from "../ui/textarea";
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from "../ui/accordion";
 
 type OnUpDownFn = (updown: "up" | "down") => void;
 
@@ -51,7 +57,7 @@ interface ControlSettings {
 export interface TaskSidesheetProps {
   open: boolean;
   setOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  row: Task;
+  row: TaskEntry;
   onUpDownClick: OnUpDownFn;
   controlSettings: ControlSettings;
 }
@@ -132,7 +138,7 @@ function ControlIcons(props: ControlIconsProps): React.JSX.Element {
 }
 
 interface SheetSectionsProps {
-  row: Task;
+  row: TaskEntry;
 }
 
 function SheetSections(props: SheetSectionsProps): React.JSX.Element {
@@ -141,27 +147,49 @@ function SheetSections(props: SheetSectionsProps): React.JSX.Element {
       className="px-6 pt-0 pb-6 overflow-y-auto gap-3 flex flex-col"
       style={{ maxHeight: `calc(100% - ${headerHeight}px)` }}
     >
-      <H2>Task Details</H2>
-      <div className="flex flex-col gap-2">
-        <H3>Attributes</H3>
-        <div>
-          <TaskSection name="Task Id" value={props.row.id} />
-          <TaskSection name="Source Node" value={props.row.source_node} />
-          <TaskSection name="Workflow Id" value={props.row.workflow_id} />
-          <TaskSection
-            name="Workflow Run Id"
-            value={props.row.workflow_run_id}
-          />
-          <TaskSection
-            name="Status"
-            value={<WorkflowStatusDisplay status={props.row.status} />}
-          />
-          <TaskSection name="Created At" value={props.row.created_at} />
-        </div>
-        <div></div>
-        <H3>Task Fields</H3>
-        <TaskEntriesForm task={props.row} />
+      <div className="flex flex-row justify-center">
+        <H2>Task Entry Details</H2>
       </div>
+      <Accordion type="multiple" className="w-full">
+        <AccordionItem value="item-1">
+          <AccordionTrigger>Attributes</AccordionTrigger>
+          <AccordionContent>
+            <TaskEntryAttributes taskEntry={props.row} />
+          </AccordionContent>
+        </AccordionItem>
+        <AccordionItem value="item-2">
+          <AccordionTrigger>Task Fields</AccordionTrigger>
+          <AccordionContent>
+            <TaskEntriesForm task={props.row} />
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+    </div>
+  );
+}
+type TaskEntryAttributesProps = {
+  taskEntry: TaskEntry;
+};
+
+function TaskEntryAttributes(
+  props: TaskEntryAttributesProps,
+): React.JSX.Element {
+  const { taskEntry } = props;
+  return (
+    <div>
+      <TaskSection name="Id" value={taskEntry.id} />
+      <TaskSection name="Task Id" value={taskEntry.task_id} />
+      <TaskSection
+        name="Source Node"
+        value={taskEntry.source_node ? taskEntry.source_node : "N/A"}
+      />
+      <TaskSection name="Workflow Id" value={taskEntry.workflow_id} />
+      <TaskSection name="Workflow Run Id" value={taskEntry.workflow_run_id} />
+      <TaskSection
+        name="Status"
+        value={<WorkflowStatusDisplay status={taskEntry.status} />}
+      />
+      <TaskSection name="Created At" value={taskEntry.created_at} />
     </div>
   );
 }
@@ -171,7 +199,7 @@ const formSchema = z.object({
   fields: z.record(z.string()),
 });
 
-function TaskEntriesForm(props: { task: Task }): React.JSX.Element {
+function TaskEntriesForm(props: { task: TaskEntry }): React.JSX.Element {
   const { mutate: updateTask } = useUpdateTask();
   // Define a submission form
   const form = useForm<z.infer<typeof formSchema>>({
@@ -210,7 +238,7 @@ function TaskEntriesForm(props: { task: Task }): React.JSX.Element {
               name={`fields.${ef.id}`}
               render={({ field }) => (
                 <FormItem className="bg-gray-100 bg-opacity-10 rounded-md p-4">
-                  <FormLabel>{ef.display_name}</FormLabel>
+                  <FormLabel>{ef.display_name ?? ef.id}</FormLabel>
                   {ef.description && (
                     <FormDescription>{ef.description}</FormDescription>
                   )}
@@ -301,7 +329,7 @@ function TaskSection(props: TaskSectionProps): React.JSX.Element {
 export interface UpDownTaskSidesheetProps {
   open: boolean;
   setOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  rows: Row<Task>[];
+  rows: Row<TaskEntry>[];
   startingRowIndex: number;
 }
 
