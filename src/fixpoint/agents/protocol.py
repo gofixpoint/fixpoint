@@ -10,6 +10,7 @@ from typing import (
     Type,
     TypeVar,
     overload,
+    runtime_checkable,
 )
 
 from pydantic import BaseModel
@@ -28,6 +29,7 @@ from ._shared import CacheMode
 T_contra = TypeVar("T_contra", bound=BaseModel, contravariant=True)
 
 
+@runtime_checkable
 class BaseAgent(Protocol):
     """The base protocol for agents"""
 
@@ -109,6 +111,7 @@ class BaseAgent(Protocol):
         """If the agent has a cache, set its cache mode"""
 
 
+@runtime_checkable
 class AsyncBaseAgent(Protocol):
     """The base protocol for async agents"""
 
