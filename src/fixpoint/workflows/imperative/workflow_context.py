@@ -43,9 +43,17 @@ class WorkflowContext:
         else:
             self.cache = None
 
-        self.logger = logger or logging.getLogger(
-            f"fixpoint/workflows/runs/{workflow_run.id}"
-        )
+        self.logger = logger or self._setup_logger(workflow_run)
+
+    def _setup_logger(self, workflow_run: WorkflowRun) -> logging.Logger:
+        logger = logging.getLogger(f"fixpoint/workflows/runs/{workflow_run.id}")
+        # We need to add this stream handler, because otherwise I think the
+        # logger is using the handler from the default logger, which has a
+        # log-level of "warning". This means that we do not print "info" logs.
+        c_handler = logging.StreamHandler()
+        logger.addHandler(c_handler)
+        logger.setLevel(logging.INFO)
+        return logger
 
     def _update_workflow_run(self, workflow_run: WorkflowRun) -> None:
         self.workflow_run = workflow_run
