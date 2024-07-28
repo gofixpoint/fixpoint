@@ -22,7 +22,7 @@ from ..constants import STEP_MAIN_ID
 from .. import WorkflowStatus, imperative
 from ..imperative import WorkflowRun
 from ._context import WorkflowContext
-from .errors import DefinitionException, InternalException
+from .errors import DefinitionError, InternalError
 from ._callcache import CallCacheKind
 from ._helpers import (
     validate_func_has_context_arg,
@@ -59,7 +59,7 @@ class _TaskMeta(type):
 
         entry_fixp = _TaskMeta._get_entrypoint_fixp(attrs)
         if not entry_fixp:
-            raise DefinitionException(f"Task {name} has no entrypoint")
+            raise DefinitionError(f"Task {name} has no entrypoint")
 
         retclass = super(_TaskMeta, mcs).__new__(mcs, name, bases, attrs)  # type: ignore[misc]
 
@@ -185,12 +185,12 @@ def task_entrypoint() -> Callable[[AsyncFunc[Params, Ret]], AsyncFunc[Params, Re
         async def wrapper(*args: Params.args, **kwargs: Params.kwargs) -> Ret:
             taskentry_fixp = get_task_entrypoint_fixp_from_fn(func)
             if taskentry_fixp is None:
-                raise InternalException("task entry __fixp is not defined")
+                raise InternalError("task entry __fixp is not defined")
             if taskentry_fixp.task_cls is None:
-                raise InternalException("task entry __fixp.task_cls is not defined")
+                raise InternalError("task entry __fixp.task_cls is not defined")
             task_meta_fixp = get_task_definition_meta_fixp(taskentry_fixp.task_cls)
             if task_meta_fixp is None:
-                raise InternalException("task definition __fixp_meta is not defined")
+                raise InternalError("task definition __fixp_meta is not defined")
             task_id = task_meta_fixp.task_id
 
             wrapped_func: AsyncFunc[Params, Ret] = decorate_with_cache(
@@ -269,18 +269,18 @@ async def call_task(
     """
     entryfixp = get_task_entrypoint_fixp_from_fn(task_entry)
     if not entryfixp:
-        raise DefinitionException(
+        raise DefinitionError(
             f'Task "{task_entry.__name__}" is not a valid task entrypoint'
         )
 
     task_defn = entryfixp.task_cls
     if not task_defn:
-        raise DefinitionException(
+        raise DefinitionError(
             f'Task "{task_entry.__name__}" is not a valid task entrypoint'
         )
     fixpmeta = get_task_definition_meta_fixp(task_defn)
     if not fixpmeta:
-        raise DefinitionException(
+        raise DefinitionError(
             f'Task "{task_defn.__name__}" is not a valid task definition'
         )
 
@@ -288,7 +288,7 @@ async def call_task(
     # Double-underscore names get mangled to prevent conflicts
     instancefixp = get_task_instance_fixp(task_instance)
     if not instancefixp:
-        raise DefinitionException(
+        raise DefinitionError(
             f'Task "{task_defn.__name__}" is not a valid task definition'
         )
 

@@ -7,20 +7,20 @@ NoneCoro = Coroutine[Any, Any, None]
 
 
 def test_task_declaration() -> None:
-    with pytest.raises(structured.DefinitionException):
+    with pytest.raises(structured.DefinitionError):
 
         @structured.task(id="task_without_entrypoint")
         class taskWithoutEntrypoint1:
             pass
 
-    with pytest.raises(structured.DefinitionException):
+    with pytest.raises(structured.DefinitionError):
 
         @structured.task(id="task_without_entrypoint")
         class taskWithoutEntrypoint2:
             def main(self, _ctx: structured.WorkflowContext) -> None:
                 pass
 
-    with pytest.raises(structured.DefinitionException):
+    with pytest.raises(structured.DefinitionError):
 
         @structured.task(id="two_main_tasks")
         class TwoMainTasks:
@@ -34,7 +34,7 @@ def test_task_declaration() -> None:
 
 
 def test_at_least_ctx_arg() -> None:
-    with pytest.raises(structured.DefinitionException):
+    with pytest.raises(structured.DefinitionError):
 
         @structured.task(id="task_without_main_task")
         class taskWithoutMainTask:
