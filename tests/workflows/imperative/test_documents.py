@@ -1,5 +1,6 @@
 from typing import List, Tuple
 import pytest
+from fixpoint._storage import definitions as storage_definitions
 from fixpoint.workflows.imperative.workflow import Workflow
 from fixpoint.workflows.imperative.document import Document
 from fixpoint.workflows.imperative.config import create_docs_supabase_storage
@@ -71,16 +72,9 @@ class TestDocuments:
         [
             (
                 f"""
-        CREATE TABLE IF NOT EXISTS public.documents (
-            id text PRIMARY KEY,
-            workflow_id text,
-            workflow_run_id text,
-            path text NOT NULL,
-            metadata jsonb NOT NULL,
-            contents text NOT NULL
-        );
+        {storage_definitions.DOCS_POSTGRES_TABLE}
 
-        TRUNCATE TABLE public.documents
+        TRUNCATE TABLE public.documents;
         """,
                 "public.documents",
             )

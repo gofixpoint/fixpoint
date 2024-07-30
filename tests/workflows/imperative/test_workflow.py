@@ -4,6 +4,7 @@ from typing import Optional, Tuple, TypeVar
 from pydantic import BaseModel, Field
 import pytest
 
+from fixpoint._storage import definitions as storage_definitions
 from fixpoint.workflows import imperative
 from fixpoint.workflows.imperative import Form
 from ...supabase_test_utils import supabase_setup_url_and_key, is_supabase_enabled
@@ -55,17 +56,7 @@ class TestWorkflowRun:
         [
             (
                 f"""
-        CREATE TABLE IF NOT EXISTS public.documents (
-            id text PRIMARY KEY,
-            workflow_id text,
-            workflow_run_id text,
-            path text NOT NULL,
-            metadata jsonb NOT NULL,
-            contents text NOT NULL,
-            task text,
-            step text,
-            versions jsonb
-        );
+        {storage_definitions.DOCS_POSTGRES_TABLE}
 
         TRUNCATE TABLE public.documents;
         """,
