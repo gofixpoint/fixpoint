@@ -127,7 +127,7 @@ class WorkflowInstanceFixp:
         self.run_fixp = None
 
     def run(
-        self, run_config: RunConfig, agents: List[fixpoint.agents.BaseAgent]
+        self, run_config: RunConfig, agents: List[fixpoint.agents.AsyncBaseAgent]
     ) -> WorkflowContext:
         """Internal function to "run" a workflow.
 
@@ -255,7 +255,7 @@ def spawn_workflow(
     workflow_entry: AsyncFunc[Params, Ret_co],
     *,
     run_config: RunConfig,
-    agents: List[fixpoint.agents.BaseAgent],
+    agents: List[fixpoint.agents.AsyncBaseAgent],
     args: Optional[Sequence[Any]] = None,
     kwargs: Optional[Dict[str, Any]] = None,
 ) -> WorkflowRunHandle[Ret_co]:
@@ -335,7 +335,7 @@ async def run_workflow(
     workflow_entry: AsyncFunc[Params, Ret_co],
     *,
     run_config: RunConfig,
-    agents: List[fixpoint.agents.BaseAgent],
+    agents: List[fixpoint.agents.AsyncBaseAgent],
     args: Optional[Sequence[Any]] = None,
     kwargs: Optional[Dict[str, Any]] = None,
 ) -> Ret_co:

@@ -3,11 +3,11 @@
 import logging
 from typing import List, Optional
 
-from fixpoint.agents import BaseAgent
+from fixpoint.agents import BaseAgent, AsyncBaseAgent
 from fixpoint.cache import SupportsChatCompletionCache
 from .workflow import Workflow, WorkflowRun
 from .config import StorageConfig
-from ._wrapped_workflow_agents import WrappedWorkflowAgents
+from ._wrapped_workflow_agents import WrappedWorkflowAgents, AsyncWrappedWorkflowAgents
 
 
 class WorkflowContext:
@@ -18,6 +18,7 @@ class WorkflowContext:
     """
 
     agents: WrappedWorkflowAgents
+    async_agents: AsyncWrappedWorkflowAgents
     workflow_run: WorkflowRun
     cache: Optional[SupportsChatCompletionCache]
     logger: logging.Logger
@@ -26,15 +27,25 @@ class WorkflowContext:
         self,
         workflow_run: WorkflowRun,
         agents: List[BaseAgent],
+        async_agents: Optional[List[AsyncBaseAgent]] = None,
         cache: Optional[SupportsChatCompletionCache] = None,
         logger: Optional[logging.Logger] = None,
         *,
         _workflow_agents_override_: Optional[WrappedWorkflowAgents] = None,
+        _async_workflow_agents_override_: Optional[AsyncWrappedWorkflowAgents] = None,
     ) -> None:
         if _workflow_agents_override_ is None:
             self.agents = WrappedWorkflowAgents(agents, workflow_run)
         else:
             self.agents = _workflow_agents_override_
+
+        if _async_workflow_agents_override_ is None:
+            self.async_agents = AsyncWrappedWorkflowAgents(
+                async_agents or [], workflow_run
+            )
+        else:
+            self.async_agents = _async_workflow_agents_override_
+
         self.workflow_run = workflow_run
 
         if cache:
@@ -55,11 +66,6 @@ class WorkflowContext:
         logger.addHandler(c_handler)
         logger.setLevel(logging.INFO)
         return logger
-
-    def _update_workflow_run(self, workflow_run: WorkflowRun) -> None:
-        self.workflow_run = workflow_run
-        # pylint: disable=protected-access
-        self.agents._update_agents(workflow_run)
 
     @classmethod
     def load_from_workflow_run(
