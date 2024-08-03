@@ -6,7 +6,7 @@ import json
 import sqlite3
 from typing import Any, Dict, List, Optional, Protocol
 
-from fixpoint._storage import SupportsStorage
+from fixpoint._storage import SupportsStorage, definitions as storage_definitions
 from fixpoint._storage.sql import format_where_clause
 from .document import Document
 
@@ -68,21 +68,7 @@ class OnDiskDocStorage(DocStorage):
     def __init__(self, conn: sqlite3.Connection):
         self._conn = conn
         with self._conn:
-            self._conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS documents (
-                    id text PRIMARY KEY,
-                    workflow_id text,
-                    workflow_run_id text,
-                    path text NOT NULL,
-                    metadata jsonb NOT NULL,
-                    contents text NOT NULL,
-                    task text,
-                    step text,
-                    versions jsonb
-                );
-                """
-            )
+            self._conn.execute(storage_definitions.DOCS_SQLITE_TABLE)
 
     # pylint: disable=redefined-builtin
     def get(self, id: str) -> Optional[Document]:

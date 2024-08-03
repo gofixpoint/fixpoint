@@ -134,7 +134,7 @@ class WorkflowInstanceFixp:
         self,
         workflow: imperative.Workflow,  # pylint: disable=redefined-outer-name
         run_config: RunConfig,
-        agents: List[fixpoint.agents.BaseAgent],
+        agents: List[fixpoint.agents.AsyncBaseAgent],
         retry_for_run_id: Optional[str] = None,
     ) -> WorkflowContext:
         """Internal function to "run" a workflow.
@@ -276,7 +276,7 @@ def spawn_workflow(
     workflow_entry: AsyncFunc[Params, Ret_co],
     *,
     run_config: RunConfig,
-    agents: List[fixpoint.agents.BaseAgent],
+    agents: List[fixpoint.agents.AsyncBaseAgent],
     args: Optional[Sequence[Any]] = None,
     kwargs: Optional[Dict[str, Any]] = None,
 ) -> WorkflowRunHandle[Ret_co]:
@@ -329,7 +329,7 @@ def respawn_workflow(
     run_id: str,
     *,
     run_config: RunConfig,
-    agents: List[fixpoint.agents.BaseAgent],
+    agents: List[fixpoint.agents.AsyncBaseAgent],
     args: Optional[Sequence[Any]] = None,
     kwargs: Optional[Dict[str, Any]] = None,
 ) -> WorkflowRunHandle[Ret_co]:
@@ -349,7 +349,7 @@ def _spawn_workflow_common(
     *,
     run_id: Optional[str],
     run_config: RunConfig,
-    agents: List[fixpoint.agents.BaseAgent],
+    agents: List[fixpoint.agents.AsyncBaseAgent],
     args: Optional[Sequence[Any]] = None,
     kwargs: Optional[Dict[str, Any]] = None,
 ) -> WorkflowRunHandle[Ret_co]:
@@ -394,7 +394,7 @@ async def run_workflow(
     workflow_entry: AsyncFunc[Params, Ret_co],
     *,
     run_config: RunConfig,
-    agents: List[fixpoint.agents.BaseAgent],
+    agents: List[fixpoint.agents.AsyncBaseAgent],
     args: Optional[Sequence[Any]] = None,
     kwargs: Optional[Dict[str, Any]] = None,
 ) -> Ret_co:
@@ -414,7 +414,7 @@ async def retry_workflow(
     run_id: str,
     *,
     run_config: RunConfig,
-    agents: List[fixpoint.agents.BaseAgent],
+    agents: List[fixpoint.agents.AsyncBaseAgent],
     args: Optional[Sequence[Any]] = None,
     kwargs: Optional[Dict[str, Any]] = None,
 ) -> Ret_co:

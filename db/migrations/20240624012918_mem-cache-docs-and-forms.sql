@@ -29,7 +29,10 @@ CREATE TABLE public.documents (
     workflow_run_id text,
     path text NOT NULL,
     metadata jsonb NOT NULL,
-    contents text NOT NULL
+    contents text NOT NULL,
+    task text,
+    step text,
+    versions jsonb
 );
 
 CREATE INDEX idx_documents_path ON public.documents (path);

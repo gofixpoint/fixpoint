@@ -1,16 +1,20 @@
 # Ignore environment files and directories
-.env
-venv/
-.env
 **/.env
-.env.local
+.env
+env/
+ENV/
+env.bak/
+**/.env.*.local
 **/.env.local
 .env.*.local
-**/.env.*.local
-.env.local.json
+.env.local
+**/.env.*.local.json
 **/.env.local.json
 .env.*.local.json
-**/.env.*.local.json
+.env.local.json
+.venv
+venv/
+venv.bak/
 
 # Ignore Earthly secrets and args
 .arg

@@ -71,14 +71,18 @@ def create_chat(workflow_run_id: str, user_message: str) -> str:
     """Create a chat for a workflow run."""
     wfctx = get_workflow_context(workflow_run_id)
     task = wfctx.workflow_run.node_info.task
+
     if task == "__main__":
         return classify_task(wfctx, user_message)
+
     elif task == FormType.INVOICE.value:
         return invoice_task(wfctx, user_message)
+
     elif task == FormType.EVENT_REGISTRATION.value:
         raise HTTPException(
             status_code=400, detail="Event registration task currently not supported"
         )
+
     else:
         raise HTTPException(status_code=400, detail="Unsupported task")
 
@@ -94,15 +98,6 @@ def classify_task(wfctx: WorkflowContext, user_message: str) -> str:
         return "Could you please tell me more about event registration?"
 
     return "Could you please clarify what you need help with?"
-
-
-def get_workflow_context(workflow_run_id: str) -> WorkflowContext:
-    """Get the workflow context for a workflow run."""
-    wfrun = _wf.load_run(workflow_run_id)
-    if wfrun is None:
-        raise HTTPException(status_code=404, detail="Workflow run not found")
-
-    return WorkflowContext(wfrun, [_wfagent])
 
 
 def invoice_task(wfctx: WorkflowContext, user_message: str) -> str:
@@ -134,46 +129,60 @@ def invoice_task(wfctx: WorkflowContext, user_message: str) -> str:
     gather_invoice_info(wfctx, info_gatherer, user_message)
 
     if stored_form is None:
-        wfrun.forms.store(form_id=form_id, schema=InvoiceQuestions)
-    wfrun.forms.update(form_id=form_id, contents=info_gatherer.form.contents)
+        form = wfrun.forms.store(form_id=form_id, schema=InvoiceQuestions)
+    form = wfrun.forms.update(form_id=form_id, contents=info_gatherer.form.contents)
 
     if info_gatherer.is_complete():
         return f"Here is your form:\n\n{info_gatherer.form.contents.model_dump_json()}"
 
+    if wfrun.state["num_interactions"] < wfrun.state["max_interactions"]:
+        more_questions = info_gatherer.format_questions()
+        return more_questions
+
+    return handle_human_invoice_task(wfctx, form_id)
+
+
+def handle_human_invoice_task(wfctx: WorkflowContext, form_id: str) -> str:
+    """Handle the human-in-the-loop task for invoices"""
+    wfrun = wfctx.wfrun
     task_id = wfrun.node_info.id
-    while wfrun.state["num_interactions"] > wfrun.state["max_interactions"]:
-        curr_form = wfrun.forms.get(form_id=form_id)
-        if curr_form is None:
-            raise HTTPException(
-                status_code=400, detail="Unexpected error. Form not found."
-            )
-        task_entry_id = wfrun.state.get("task_entry_id")
-        if task_entry_id is None:
-            task_entry = wfrun.human.send_task_entry(task_id, curr_form.contents)
-            wfrun.state.update({"task_entry_id": task_entry.id})
-            return (
-                "Looks like you're having trouble with your invoice. "
-                "A real person has been notified to help you out! "
-                "Check back in a few short moments!"
-            )
-        else:
-            current_human_task = wfrun.human.get_task_entry(
-                task_entry_id, curr_form.contents
-            )
-            if current_human_task is None:
-                raise HTTPException(
-                    status_code=400, detail="Unexpected error. Human task not found."
-                )
+    form = wfrun.forms.get(form_id=form_id)
+    if form is None:
+        raise HTTPException(status_code=400, detail="Unexpected error. Form not found.")
+    task_entry_id = wfrun.state.get("task_entry_id")
+    if task_entry_id is None:
+        task_entry = wfrun.human.send_task_entry(task_id, form.contents)
+        wfrun.state.update({"task_entry_id": task_entry.id})
+        return (
+            "Looks like you're having trouble with your invoice. "
+            "A real person has been notified to help you out! "
+            "Check back in a few short moments!"
+        )
 
-            if current_human_task.status == WorkflowStatus.COMPLETED.value:
-                updated_form_contents = current_human_task.to_original_model()
-                wfrun.forms.update(form_id=form_id, contents=updated_form_contents)
-                return (
-                    f"A real person is done reviewing your form. Here it is:\n\n"
-                    f"{updated_form_contents.model_dump_json()}"
-                )
-            else:
-                return "A real person is working hard on fixing it. Please check back later!"
+    current_human_task = wfrun.human.get_task_entry(task_entry_id, form.contents)
+    if current_human_task is None:
+        raise HTTPException(
+            status_code=400, detail="Unexpected error. Human task not found."
+        )
 
-    more_questions = info_gatherer.format_questions()
-    return more_questions
+    if current_human_task.status == WorkflowStatus.COMPLETED.value:
+        updated_form_contents = current_human_task.to_original_model()
+        wfrun.forms.update(form_id=form_id, contents=updated_form_contents)
+        return (
+            f"A real person is done reviewing your form. Here it is:\n\n"
+            f"{updated_form_contents.model_dump_json()}"
+        )
+    else:
+        return "A real person is working hard on fixing it. Please check back later!"
+
+
+def get_workflow_context(workflow_run_id: str) -> WorkflowContext:
+    """Get the workflow context for a workflow run."""
+    try:
+        wfctx = WorkflowContext.load_from_workflow_run(
+            _wf, workflow_run_id, agents=[_wfagent]
+        )
+    except Exception as e:
+        print("Error loading workflow context", e)
+        raise HTTPException(status_code=404, detail="Workflow run not found") from e
+    return wfctx

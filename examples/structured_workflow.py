@@ -4,12 +4,13 @@ import asyncio
 from dataclasses import dataclass
 from io import StringIO
 import os
+import tempfile
 from typing import List, Union, Tuple
 
 import pandas as pd
 
-from fixpoint.agents import BaseAgent
-from fixpoint.agents.openai import OpenAIClients, OpenAIAgent
+from fixpoint.agents import AsyncBaseAgent
+from fixpoint.agents.openai import AsyncOpenAIClients, AsyncOpenAIAgent
 from fixpoint.completions.chat_completion import ChatCompletionMessageParam
 from fixpoint.workflows import structured
 from fixpoint.workflows.structured import WorkflowContext
@@ -162,22 +163,24 @@ async def run_prompt(ctx: WorkflowContext, args: RunPromptArgs) -> PromptComplet
     Returns a pair of (prompt, response)
     """
     agent = ctx.agents[args.agent_name]
-    # TODO(dbmikus) make this an async chat completion
-    completion = agent.create_completion(messages=args.prompt)
+    ctx.logger.info("Running prompt with agent %s", args.agent_name)
+    completion = await agent.create_completion(messages=args.prompt)
     return (args.prompt, completion.choices[0].message.content)
 
 
-def setup_agents() -> Tuple[structured.RunConfig, List[BaseAgent]]:
+def setup_agents() -> Tuple[structured.RunConfig, List[AsyncBaseAgent]]:
     """Setup agents for the workflow"""
     run_config = structured.RunConfig.with_defaults()
-    openaiclients = OpenAIClients.from_api_key(api_key=os.environ["OPENAI_API_KEY"])
-    gpt3 = OpenAIAgent(
+    openaiclients = AsyncOpenAIClients.from_api_key(
+        api_key=os.environ["OPENAI_API_KEY"]
+    )
+    gpt3 = AsyncOpenAIAgent(
         agent_id="gpt3",
         model_name="gpt-3.5-turbo",
         openai_clients=openaiclients,
         cache=run_config.storage.agent_cache,
     )
-    gpt4 = OpenAIAgent(
+    gpt4 = AsyncOpenAIAgent(
         agent_id="gpt4",
         model_name="gpt-4-turbo",
         openai_clients=openaiclients,
@@ -223,7 +226,17 @@ async def main() -> None:
     if doc is None:
         raise RuntimeError(f"Expected doc {results_doc_id} to exist, but it does not")
     df = pd.read_json(StringIO(doc.contents))
-    df.head()
+    print(df.head())
+
+    # Create a temporary file to store the results
+    with tempfile.NamedTemporaryFile(
+        mode="w", delete=False, suffix=".json"
+    ) as temp_file:
+        df.to_json(temp_file.name, orient="records", indent=4)
+        print(f"Results saved to temporary JSON file: {temp_file.name}")
+
+    # Note: The temporary file will persist after the script ends.
+    # You may want to add code to remove it later if it's no longer needed.
 
 
 if __name__ == "__main__":
