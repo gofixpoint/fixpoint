@@ -11,6 +11,9 @@ dependencies:
   "@hookform/resolvers":
     specifier: ^3.9.0
     version: 3.9.0(react-hook-form@7.52.1)
+  "@propelauth/nextjs":
+    specifier: ^0.1.8
+    version: 0.1.8(next@14.2.5)(react@18.3.1)
   "@radix-ui/react-accordion":
     specifier: ^1.2.0
     version: 1.2.0(@types/react-dom@18.3.0)(@types/react@18.3.3)(react-dom@18.3.1)(react@18.3.1)
@@ -505,6 +508,28 @@ packages:
     engines: { node: ">=14" }
     requiresBuild: true
     optional: true
+
+  /@propelauth/nextjs@0.1.8(next@14.2.5)(react@18.3.1):
+    resolution:
+      {
+        integrity: sha512-UaCz1Dlh1azrHJgTSa+vaKm66dkt5AW6Nd+NE9el+Bkp/HryI1HLpwwzozIh/Itc9QhuWYdsIlA87H5WhFlQlQ==,
+      }
+    peerDependencies:
+      next: ^13.1.0 || ^14.0.0
+      react: ^18.2.0
+    dependencies:
+      "@propelauth/node-apis": 2.1.20
+      jose: 5.6.3
+      next: 14.2.5(react-dom@18.3.1)(react@18.3.1)
+      react: 18.3.1
+    dev: false
+
+  /@propelauth/node-apis@2.1.20:
+    resolution:
+      {
+        integrity: sha512-xTofqnS3PCBoX1gF5GTV/gXx73XDmTqEwO6cnPfXhe543YlAfM88TD2gGCH18Fyu3+lz3Z8Yp1XpGrQ0ajcoUw==,
+      }
+    dev: false
 
   /@radix-ui/number@1.1.0:
     resolution:
@@ -3705,6 +3730,13 @@ packages:
         integrity: sha512-2yTgeWTWzMWkHu6Jp9NKgePDaYHbntiwvYuuJLbbN9vl7DC9DvXKOB2BC3ZZ92D3cvV/aflH0osDfwpHepQ53w==,
       }
     hasBin: true
+
+  /jose@5.6.3:
+    resolution:
+      {
+        integrity: sha512-1Jh//hEEwMhNYPDDLwXHa2ePWgWiFNNUadVmguAAw2IJ6sj9mNxV5tGXJNqlMkJAybF6Lgw1mISDxTePP/187g==,
+      }
+    dev: false
 
   /jotai@2.9.0(@types/react@18.3.3)(react@18.3.1):
     resolution:

@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { AuthProvider } from "@propelauth/nextjs/client";
 
 export type Env = {
   flags: Flags;
@@ -6,6 +7,7 @@ export type Env = {
 
 export interface Flags {
   showListTasksQueryStatus: boolean;
+  next_public_auth_url: string;
 }
 
 // Cache this so that server-side components can re-use the cache value. Right
@@ -14,6 +16,7 @@ export interface Flags {
 export const loadEnv = cache((): Env => {
   const env: Env = {
     flags: {
+      next_public_auth_url: reqEnv("NEXT_PUBLIC_AUTH_URL"),
       showListTasksQueryStatus: isEnvTrue("SHOW_LIST_TASKS_QUERY_STATUS"),
     },
   };
@@ -26,4 +29,12 @@ const isEnvTrue = (varname: string): boolean => {
     return false;
   }
   return ["true", "1", "yes", "on"].includes(val.toLowerCase());
+};
+
+const reqEnv = (varname: string): string => {
+  const val = process.env[varname];
+  if (val === undefined) {
+    throw new Error(`Missing required environment variable: ${varname}`);
+  }
+  return val;
 };
