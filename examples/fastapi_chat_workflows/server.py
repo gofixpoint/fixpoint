@@ -34,8 +34,8 @@ from fixpoint.workflows.imperative import (
     WorkflowContext,
     Form,
 )
+from fixpoint.workflows import imperative
 from fixpoint.workflows.node_state import WorkflowStatus
-from fixpoint_extras.analyze.memory import DataframeMemory
 
 from .tasks import classify_form_type, FormType, gather_invoice_info, InvoiceQuestions
 from .controllers.infogather import InfoGatherer
@@ -47,11 +47,26 @@ _openai_key = os.getenv("OPENAI_API_KEY")
 if not _openai_key:
     raise ValueError("OPENAI_API_KEY environment variable is not set or is empty")
 
+_supabase_url = os.environ.get("SUPABASE_URL")
+if not _supabase_url:
+    raise ValueError("SUPABASE_URL environment variable is not set or is empty")
+
+_supabase_api_key = os.environ.get("SUPABASE_ANON_KEY")
+if not _supabase_api_key:
+    raise ValueError("SUPABASE_ANON_KEY environment variable is not set or is empty")
+
+
+storage_config = imperative.StorageConfig.with_supabase(
+    supabase_url=_supabase_url,
+    supabase_api_key=_supabase_api_key,
+)
+
+AGENT_ID = "main"
 _wfagent = fixpoint.agents.OpenAIAgent(
-    agent_id="main",
+    agent_id=AGENT_ID,
     model_name="gpt-3.5-turbo",
     openai_clients=OpenAIClients.from_api_key(_openai_key),
-    memory=DataframeMemory(),
+    memory=storage_config.memory_factory(AGENT_ID),
 )
 _wf = Workflow(id="test_workflow")
 
@@ -60,6 +75,11 @@ _wf = Workflow(id="test_workflow")
 def create_workflow_run() -> WorkflowRun:
     """Create a new workflow run."""
     wfrun = _wf.run()
+
+    # Set up storage
+    wfrun.storage_config = imperative.StorageConfig.with_supabase(
+        supabase_url=str(_supabase_url), supabase_api_key=str(_supabase_api_key)
+    )
 
     # Define some state that we can use to keep track of number of interactions for a user
     wfrun.state.update({"max_interactions": 3, "num_interactions": 0})
