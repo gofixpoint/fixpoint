@@ -17,7 +17,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from fixpoint.workflows import WorkflowStatus
 from ._context import WorkflowContext
-from .errors import DefinitionException
+from .errors import DefinitionError
 from ._callcache import CallCacheKind
 from ._helpers import (
     validate_func_has_context_arg,
@@ -117,7 +117,7 @@ async def call_step(
 
     step_fixp = get_step_fixp(fn)
     if not step_fixp:
-        raise DefinitionException(f"Step {fn.__name__} is not a valid step definition")
+        raise DefinitionError(f"Step {fn.__name__} is not a valid step definition")
 
     step_handle = ctx.workflow_run.spawn_step(step_fixp.id)
     new_ctx = ctx.clone(new_step=step_fixp.id)

@@ -6,7 +6,8 @@ import inspect
 from typing import Any, Awaitable, Callable, Coroutine, ParamSpec, Tuple, TypeVar, cast
 
 from ._context import WorkflowContext
-from .errors import CallException, DefinitionException, InternalException
+from .errors import DefinitionError, InternalError
+from ._errors import InternalExecutionError
 from ._callcache import CallCacheKind, CacheResult, serialize_args
 
 
@@ -25,13 +26,13 @@ def validate_func_has_context_arg(func: Callable[..., Any]) -> None:
     """
     sig = inspect.signature(func)
     if len(sig.parameters) < 1:
-        raise DefinitionException(
+        raise DefinitionError(
             "Function must take at least one argument of type WorkflowContext"
         )
     first_param = list(sig.parameters.values())[0]
     if first_param.name == "self":
         if len(sig.parameters) < 2:
-            raise DefinitionException(
+            raise DefinitionError(
                 "In class method: first non-self parameter must be of type WorkflowContext"
             )
 
@@ -58,14 +59,13 @@ def decorate_with_cache(
             elif kind == CallCacheKind.STEP:
                 callcache = ctx.run_config.call_cache.steps
             else:
-                raise InternalException(f"Unknown call cache kind: {kind}")
+                raise InternalError(f"Unknown call cache kind: {kind}")
 
             remaining_args = args[ctx_pos + 1 :]
             serialized = serialize_args(*remaining_args, **kwargs)
             cache_check: CacheResult[Ret] = callcache.check_cache(
                 run_id=wrun_id, kind_id=kind_id, serialized_args=serialized
             )
-            # TODO(dbmikus) push a WorkflowContext task/step transition onto our call stack
             match cache_check:
                 case CacheResult(found=True, result=cache_res):
                     # we can cast this, because while `cache_res` is of type
@@ -109,5 +109,5 @@ def _pull_ctx_arg(*args: Any) -> Tuple[WorkflowContext, int]:
     raise _new_workflow_context_expected_exc()
 
 
-def _new_workflow_context_expected_exc() -> CallException:
-    return CallException("Expected WorkflowContext as first argument")
+def _new_workflow_context_expected_exc() -> InternalExecutionError:
+    return InternalExecutionError("Expected WorkflowContext as first argument")

@@ -45,6 +45,17 @@ class Workflow(BaseModel):
         self._memory[new_workflow_run.id] = new_workflow_run
         return new_workflow_run
 
+    def retry(
+        self, run_id: str, storage_config: Optional[StorageConfig] = None
+    ) -> "WorkflowRun":
+        """Retry a workflow run"""
+        storage_config = storage_config or get_default_storage_config()
+        run = self.load_run(run_id)
+        if not run:
+            raise ValueError(f'WorkflowRun "{run_id}" not found')
+        run.generate_new_attempt()
+        return run
+
     def load_run(self, workflow_run_id: str) -> Union["WorkflowRun", None]:
         """Load a workflow run from memory."""
         # TODO(jakub): This should work with storage layers: postgres / supabase, in-memory
@@ -55,6 +66,11 @@ class Workflow(BaseModel):
 def new_workflow_run_id() -> str:
     """Create a new workflow run id"""
     return make_resource_uuid("wfrun")
+
+
+def new_workflow_run_attempt_id() -> str:
+    """Create a new workflow run id"""
+    return make_resource_uuid("wfrunatmpt")
 
 
 class WorkflowRun(BaseModel):
@@ -70,6 +86,7 @@ class WorkflowRun(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     _id: str = PrivateAttr(default_factory=new_workflow_run_id)
+    _attempt_id: str = PrivateAttr(default_factory=new_workflow_run_attempt_id)
     _task_ids: List[str] = PrivateAttr(default_factory=list)
 
     workflow: Workflow
@@ -97,6 +114,12 @@ class WorkflowRun(BaseModel):
     def id(self) -> str:
         """The workflow run's unique identifier"""
         return self._id
+
+    @computed_field  # type: ignore[misc]
+    @property
+    def attempt_id(self) -> str:
+        """The workflow run's attempt identifier"""
+        return self._attempt_id
 
     def model_post_init(self, _context: Any) -> None:
         docs_storage: Optional[DocStorage] = None
@@ -186,6 +209,10 @@ class WorkflowRun(BaseModel):
     def spawn_group(self) -> SpawnGroup:  # pylint: disable=invalid-name
         """Handle for spawning a group of tasks"""
         return SpawnGroup(node_state=self._node_state)
+
+    def generate_new_attempt(self) -> None:
+        """Generate and set a new attempt ID for the workflow run"""
+        self._attempt_id = new_workflow_run_attempt_id()
 
     def clone(
         self, new_task: str | None = None, new_step: str | None = None

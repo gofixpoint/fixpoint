@@ -13,7 +13,7 @@ class StepArgs:
 
 def test_bad_step_definition() -> None:
     # must have a ctx arg
-    with pytest.raises(structured.DefinitionException):
+    with pytest.raises(structured.DefinitionError):
 
         @structured.step(id="bad_step")
         async def bad_step() -> int:
@@ -25,7 +25,7 @@ async def test_bad_call_step() -> None:
     async def my_step(ctx: structured.WorkflowContext, args: StepArgs) -> int:
         return args.x + args.y
 
-    with pytest.raises(structured.DefinitionException):
+    with pytest.raises(structured.DefinitionError):
         await structured.call_step(
             new_workflow_context("my-workflow"),
             my_step,

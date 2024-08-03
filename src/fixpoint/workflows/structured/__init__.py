@@ -12,14 +12,16 @@ RAG, and tools for parsing structured output from unstructured documents.
 """
 
 __all__ = [
-    "CallException",
+    "ExecutionError",
     "call_step",
     "call_task",
-    "DefinitionException",
+    "DefinitionError",
     "errors",
     "RunConfig",
     "run_workflow",
+    "retry_workflow",
     "spawn_workflow",
+    "respawn_workflow",
     "step",
     "task",
     "task_entrypoint",
@@ -28,11 +30,18 @@ __all__ = [
     "workflow_entrypoint",
 ]
 
-from ._workflow import workflow, run_workflow, spawn_workflow, workflow_entrypoint
+from ._workflow import (
+    workflow,
+    run_workflow,
+    retry_workflow,
+    spawn_workflow,
+    respawn_workflow,
+    workflow_entrypoint,
+)
 from ._context import WorkflowContext
 from ._task import task, task_entrypoint, call_task
 from ._step import step, call_step
 from ._run_config import RunConfig
 
-from .errors import CallException, DefinitionException
+from .errors import ExecutionError, DefinitionError
 from . import errors

@@ -9,6 +9,14 @@ In a workflow, agents are able to recall memories, documents, and forms from
 past or current tasks within the workflow.
 """
 
+__all__ = [
+    "workflow",
+    "workflow_entrypoint",
+    "spawn_workflow",
+    "run_workflow",
+    "retry_workflow",
+]
+
 from dataclasses import dataclass
 from functools import wraps
 from typing import (
@@ -25,7 +33,7 @@ from typing import (
 
 import fixpoint
 from .. import imperative
-from .errors import DefinitionException, InternalException
+from .errors import DefinitionError, ExecutionError, InternalError
 from ._context import WorkflowContext
 from ._helpers import validate_func_has_context_arg, AsyncFunc, Params, Ret, Ret_co
 from ._run_config import RunConfig
@@ -47,11 +55,8 @@ class _WorkflowMeta(type):
         orig_init = attrs.get("__init__")
 
         def __init__(self: C, *args: Any, **kargs: Any) -> None:
-            fixp_meta: WorkflowMetaFixp = attrs["__fixp_meta"]
             # pylint: disable=unused-private-member,protected-access
-            self.__fixp = WorkflowInstanceFixp(  # type: ignore[attr-defined]
-                workflow_id=fixp_meta.workflow.id
-            )
+            self.__fixp = WorkflowInstanceFixp()  # type: ignore[attr-defined]
             if orig_init:
                 orig_init(self, *args, **kargs)
 
@@ -60,7 +65,7 @@ class _WorkflowMeta(type):
 
         entrypoint_fixp = _WorkflowMeta._get_entrypoint_fixp(attrs)
         if not entrypoint_fixp:
-            raise DefinitionException(f"Workflow {name} has no entrypoint")
+            raise DefinitionError(f"Workflow {name} has no entrypoint")
 
         retclass = super(_WorkflowMeta, mcs).__new__(mcs, name, bases, attrs)  # type: ignore[misc]
 
@@ -103,6 +108,7 @@ class WorkflowMetaFixp:
     workflow: imperative.Workflow
 
     def __init__(self, workflow_id: str) -> None:
+        print("DBM creating Workflow definition again")
         self.workflow = imperative.Workflow(id=workflow_id)
 
 
@@ -119,15 +125,17 @@ class WorkflowRunFixp:
 class WorkflowInstanceFixp:
     """Internal fixpoint attribute for a workflow instance."""
 
-    workflow: imperative.Workflow
     run_fixp: Optional[WorkflowRunFixp]
 
-    def __init__(self, workflow_id: str) -> None:
-        self.workflow = imperative.Workflow(id=workflow_id)
+    def __init__(self) -> None:
         self.run_fixp = None
 
     def run(
-        self, run_config: RunConfig, agents: List[fixpoint.agents.AsyncBaseAgent]
+        self,
+        workflow: imperative.Workflow,  # pylint: disable=redefined-outer-name
+        run_config: RunConfig,
+        agents: List[fixpoint.agents.AsyncBaseAgent],
+        retry_for_run_id: Optional[str] = None,
     ) -> WorkflowContext:
         """Internal function to "run" a workflow.
 
@@ -137,7 +145,10 @@ class WorkflowInstanceFixp:
         """
         if self.run_fixp:
             raise ValueError("workflow instance was already run")
-        run = self.workflow.run(storage_config=run_config.storage)
+        if retry_for_run_id:
+            run = workflow.retry(retry_for_run_id, storage_config=run_config.storage)
+        else:
+            run = workflow.run(storage_config=run_config.storage)
 
         cache = run_config.storage.agent_cache
         # The WorkflowContext initializer will set fresh memory for each agent
@@ -145,7 +156,7 @@ class WorkflowInstanceFixp:
             run_config=run_config, agents=agents, workflow_run=run, cache=cache
         )
         self.run_fixp = WorkflowRunFixp(
-            workflow=self.workflow, ctx=wfctx, workflow_run=run, run_config=run_config
+            workflow=workflow, ctx=wfctx, workflow_run=run, run_config=run_config
         )
         return wfctx
 
@@ -206,18 +217,28 @@ def workflow_entrypoint() -> Callable[[AsyncFunc[Params, Ret]], AsyncFunc[Params
     ```
     """
 
-    def decorator(func: Callable[Params, Ret]) -> Callable[Params, Ret]:
+    def decorator(func: AsyncFunc[Params, Ret]) -> AsyncFunc[Params, Ret]:
         # pylint: disable=protected-access
         func.__fixp = WorkflowEntryFixp()  # type: ignore[attr-defined]
 
         validate_func_has_context_arg(func)
 
         @wraps(func)
-        def wrapper(*args: Params.args, **kwargs: Params.kwargs) -> Ret:
-            result = func(*args, **kwargs)
+        async def wrapper(*args: Params.args, **kwargs: Params.kwargs) -> Ret:
+            try:
+                result = await func(*args, **kwargs)
+            except Exception as e:
+                # first argument is `self`
+                ctx = cast(WorkflowContext, args[1])
+                raise ExecutionError(
+                    str(e),
+                    workflow_id=ctx.workflow_run.workflow_id,
+                    workflow_run_id=ctx.workflow_run.id,
+                    run_attempt_id=ctx.workflow_run.attempt_id,
+                ) from e
             return result
 
-        return cast(Callable[Params, Ret], wrapper)
+        return cast(AsyncFunc[Params, Ret], wrapper)
 
     return decorator
 
@@ -293,34 +314,72 @@ def spawn_workflow(
     If you pass in a `ctx_factory`, it will be used instead of the `ctx_factory`
     defined on the workflow class.
     """
+    return _spawn_workflow_common(
+        workflow_entry,
+        run_id=None,
+        run_config=run_config,
+        agents=agents,
+        args=args,
+        kwargs=kwargs,
+    )
 
+
+def respawn_workflow(
+    workflow_entry: AsyncFunc[Params, Ret_co],
+    run_id: str,
+    *,
+    run_config: RunConfig,
+    agents: List[fixpoint.agents.AsyncBaseAgent],
+    args: Optional[Sequence[Any]] = None,
+    kwargs: Optional[Dict[str, Any]] = None,
+) -> WorkflowRunHandle[Ret_co]:
+    """Retries running a structured workflow."""
+    return _spawn_workflow_common(
+        workflow_entry,
+        run_id=run_id,
+        run_config=run_config,
+        agents=agents,
+        args=args,
+        kwargs=kwargs,
+    )
+
+
+def _spawn_workflow_common(
+    workflow_entry: AsyncFunc[Params, Ret_co],
+    *,
+    run_id: Optional[str],
+    run_config: RunConfig,
+    agents: List[fixpoint.agents.AsyncBaseAgent],
+    args: Optional[Sequence[Any]] = None,
+    kwargs: Optional[Dict[str, Any]] = None,
+) -> WorkflowRunHandle[Ret_co]:
     entryfixp = get_workflow_entrypoint_fixp(workflow_entry)
     if not entryfixp:
-        raise DefinitionException(
+        raise DefinitionError(
             f'Workflow "{workflow_entry.__name__}" is not a valid workflow entrypoint'
         )
     if not entryfixp.workflow_cls:
-        raise DefinitionException(
+        raise DefinitionError(
             f'Workflow "{workflow_entry.__name__}" is not inside a decorated workflow class'
         )
     workflow_defn = entryfixp.workflow_cls
 
     fixpmeta = get_workflow_definition_meta_fixp(workflow_defn)
     if not isinstance(fixpmeta, WorkflowMetaFixp):
-        raise DefinitionException(
+        raise DefinitionError(
             f'Workflow "{workflow_defn.__name__}" is not a valid workflow definition'
         )
     workflow_instance = workflow_defn()
     fixp = get_workflow_instance_fixp(workflow_instance)
     if not fixp:
-        raise DefinitionException(
+        raise DefinitionError(
             f'Workflow "{workflow_defn.__name__}" is not a valid workflow instance'
         )
-    fixp.run(run_config, agents)
+    fixp.run(fixpmeta.workflow, run_config, agents, retry_for_run_id=run_id)
 
     if not fixp.run_fixp:
         # this is an internal error, not a user error
-        raise InternalException("internal error: workflow run not properly initialized")
+        raise InternalError("internal error: workflow run not properly initialized")
 
     args = args or []
     kwargs = kwargs or {}
@@ -346,5 +405,32 @@ async def run_workflow(
     """
     wrun_handle = spawn_workflow(
         workflow_entry, run_config=run_config, agents=agents, args=args, kwargs=kwargs
+    )
+    return await wrun_handle.result()
+
+
+async def retry_workflow(
+    workflow_entry: AsyncFunc[Params, Ret_co],
+    run_id: str,
+    *,
+    run_config: RunConfig,
+    agents: List[fixpoint.agents.AsyncBaseAgent],
+    args: Optional[Sequence[Any]] = None,
+    kwargs: Optional[Dict[str, Any]] = None,
+) -> Ret_co:
+    """Retries running a structured workflow.
+
+    If your workflow run fails, you can retry running that particular run. It
+    will only run previously failed workflow tasks and steps.
+
+    This is a shortcut for `respawn_workflow(...).result()`.
+    """
+    wrun_handle = respawn_workflow(
+        workflow_entry,
+        run_id=run_id,
+        run_config=run_config,
+        agents=agents,
+        args=args,
+        kwargs=kwargs,
     )
     return await wrun_handle.result()
