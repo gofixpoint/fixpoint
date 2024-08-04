@@ -23,16 +23,16 @@ CREATE TABLE public.completion_cache (
 
 
 CREATE TABLE public.documents (
-    -- TODO(dbmikus) how do id and path relate?
-    id text PRIMARY KEY,
-    workflow_id text,
-    workflow_run_id text,
+    id text NOT NULL,
+    workflow_id text NOT NULL,
+    workflow_run_id text NOT NULL,
     path text NOT NULL,
     metadata jsonb NOT NULL,
     contents text NOT NULL,
     task text,
     step text,
-    versions jsonb
+    versions jsonb,
+    PRIMARY KEY (id, workflow_id, workflow_run_id)
 );
 
 CREATE INDEX idx_documents_path ON public.documents (path);

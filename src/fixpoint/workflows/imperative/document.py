@@ -4,16 +4,18 @@ from typing import Dict, Any, Optional, List
 
 from pydantic import BaseModel, Field, computed_field
 
+from fixpoint.workflows.constants import TASK_MAIN_ID, STEP_MAIN_ID
 from ._version import Version
 
 
 class Document(BaseModel):
     """A document is a collection of text and metadata."""
 
-    metadata: Dict[str, Any]
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Metadata for document"
+    )
 
-    id: Optional[str] = Field(
-        default=None,
+    id: str = Field(
         description=("Must be unique within the workflow the document exists in."),
     )
 
@@ -27,8 +29,8 @@ class Document(BaseModel):
 
     contents: str = Field(description="The contents of the document")
 
-    workflow_id: str = Field(description="The workflow id")
-    workflow_run_id: str = Field(description="The workflow run id")
+    workflow_id: Optional[str] = Field(description="The workflow id")
+    workflow_run_id: Optional[str] = Field(description="The workflow run id")
 
     @computed_field  # type: ignore[misc]
     @property
@@ -36,8 +38,8 @@ class Document(BaseModel):
         """The task the document exists in"""
         parts = self.path.split("/")
         if len(parts) == 1:
-            return "__start__"
-        return parts[1]
+            return TASK_MAIN_ID
+        return parts[0]
 
     @computed_field  # type: ignore[misc]
     @property
@@ -45,5 +47,5 @@ class Document(BaseModel):
         """The step the document exists in"""
         parts = self.path.split("/")
         if len(parts) < 3:
-            return "__start__"
+            return STEP_MAIN_ID
         return parts[2]

@@ -1,6 +1,6 @@
 """Document storage for workflows"""
 
-__all__ = ["DocStorage", "SupabaseDocStorage"]
+__all__ = ["DocStorage", "SupabaseDocStorage", "OnDiskDocStorage"]
 
 import json
 import sqlite3
@@ -11,11 +11,19 @@ from fixpoint._storage.sql import format_where_clause
 from .document import Document
 
 
+_NULL_COL_ID = "__null__"
+
+
 class DocStorage(Protocol):
     """Document storage for workflows"""
 
     # pylint: disable=redefined-builtin
-    def get(self, id: str) -> Optional[Document]:
+    def get(
+        self,
+        id: str,
+        workflow_id: Optional[str] = None,
+        workflow_run_id: Optional[str] = None,
+    ) -> Optional[Document]:
         """Get the given document"""
 
     def create(self, document: Document) -> None:
@@ -25,7 +33,10 @@ class DocStorage(Protocol):
         """Update an existing document"""
 
     def list(
-        self, path: Optional[str] = None, workflow_run_id: Optional[str] = None
+        self,
+        path: Optional[str] = None,
+        workflow_id: Optional[str] = None,
+        workflow_run_id: Optional[str] = None,
     ) -> List[Document]:
         """List all documents
 
@@ -42,22 +53,60 @@ class SupabaseDocStorage(DocStorage):
         self._storage = storage
 
     # pylint: disable=redefined-builtin
-    def get(self, id: str) -> Optional[Document]:
-        return self._storage.fetch(id)
+    def get(
+        self,
+        id: str,
+        workflow_id: Optional[str] = None,
+        workflow_run_id: Optional[str] = None,
+    ) -> Optional[Document]:
+        doc_res = self._storage.fetch(
+            self._transform_id(id, workflow_id, workflow_run_id)
+        )
+        if doc_res is None:
+            return None
+        return _transform_fetched_supabase_doc(doc_res)
 
     def create(self, document: Document) -> None:
+        document = _fix_doc_ids(document)
+        document.id = self._transform_id(
+            document.id, document.workflow_id, document.workflow_run_id
+        )
         self._storage.insert(document)
 
     def update(self, document: Document) -> None:
+        document = _fix_doc_ids(document)
+        document.id = self._transform_id(
+            document.id, document.workflow_id, document.workflow_run_id
+        )
         self._storage.update(document)
 
     def list(
-        self, path: Optional[str] = None, workflow_run_id: Optional[str] = None
+        self,
+        path: Optional[str] = None,
+        workflow_id: Optional[str] = None,
+        workflow_run_id: Optional[str] = None,
     ) -> List[Document]:
-        conditions = {"workflow_run_id": workflow_run_id}
+        conditions: Dict[str, str] = {}
+        if workflow_id:
+            conditions["workflow_id"] = workflow_id
+        if workflow_run_id:
+            conditions["workflow_run_id"] = workflow_run_id
         if path:
             conditions["path"] = path
-        return self._storage.fetch_with_conditions(conditions)
+        docs_list = self._storage.fetch_with_conditions(conditions)
+        return [_transform_fetched_supabase_doc(doc) for doc in docs_list]
+
+    def _transform_id(
+        self,
+        id: str,
+        workflow_id: Optional[str] = None,
+        workflow_run_id: Optional[str] = None,
+    ) -> str:
+        if workflow_id is None:
+            workflow_id = _NULL_COL_ID
+        if workflow_run_id is None:
+            workflow_run_id = _NULL_COL_ID
+        return f"{workflow_id}/{workflow_run_id}/{id}"
 
 
 class OnDiskDocStorage(DocStorage):
@@ -71,7 +120,12 @@ class OnDiskDocStorage(DocStorage):
             self._conn.execute(storage_definitions.DOCS_SQLITE_TABLE)
 
     # pylint: disable=redefined-builtin
-    def get(self, id: str) -> Optional[Document]:
+    def get(
+        self,
+        id: str,
+        workflow_id: Optional[str] = None,
+        workflow_run_id: Optional[str] = None,
+    ) -> Optional[Document]:
         with self._conn:
             dbcursor = self._conn.execute(
                 """
@@ -85,9 +139,16 @@ class OnDiskDocStorage(DocStorage):
                     task,
                     step,
                     versions
-                FROM documents WHERE id = :id
+                FROM documents WHERE
+                    id = :id
+                    AND workflow_id = :workflow_id
+                    AND workflow_run_id = :workflow_run_id
                 """,
-                {"id": id},
+                {
+                    "id": id,
+                    "workflow_id": workflow_id or _NULL_COL_ID,
+                    "workflow_run_id": workflow_run_id or _NULL_COL_ID,
+                },
             )
             row = dbcursor.fetchone()
             if not row:
@@ -95,6 +156,7 @@ class OnDiskDocStorage(DocStorage):
             return self._load_row(row)
 
     def create(self, document: Document) -> None:
+        document = _fix_doc_ids(document)
         mdict = document.model_dump()
         mdict["metadata"] = json.dumps(mdict["metadata"])
         mdict["versions"] = json.dumps(mdict["versions"])
@@ -130,6 +192,8 @@ class OnDiskDocStorage(DocStorage):
     def update(self, document: Document) -> None:
         doc_dict = {
             "id": document.id,
+            "workflow_id": document.workflow_id or _NULL_COL_ID,
+            "workflow_run_id": document.workflow_run_id or _NULL_COL_ID,
             "metadata": json.dumps(document.metadata),
             "contents": document.contents,
         }
@@ -139,18 +203,26 @@ class OnDiskDocStorage(DocStorage):
                 UPDATE documents SET
                     metadata = :metadata,
                     contents = :contents
-                WHERE id = :id
+                WHERE
+                    id = :id
+                    AND workflow_id = :workflow_id
+                    AND workflow_run_id = :workflow_run_id
                 """,
                 doc_dict,
             )
 
     def list(
-        self, path: Optional[str] = None, workflow_run_id: Optional[str] = None
+        self,
+        path: Optional[str] = None,
+        workflow_id: Optional[str] = None,
+        workflow_run_id: Optional[str] = None,
     ) -> List[Document]:
         params: Dict[str, Any] = {}
         where_clause = ""
         if path:
             params["path"] = path
+        if workflow_id:
+            params["workflow_id"] = workflow_id
         if workflow_run_id:
             params["workflow_run_id"] = workflow_run_id
         if params:
@@ -177,12 +249,37 @@ class OnDiskDocStorage(DocStorage):
             return [self._load_row(row) for row in dbcursor]
 
     def _load_row(self, row: Any) -> Document:
+        wid = row[1]
+        if wid == _NULL_COL_ID:
+            wid = None
+        wrid = row[2]
+        if wrid == _NULL_COL_ID:
+            wrid = None
+
         return Document(
             id=row[0],
-            workflow_id=row[1],
-            workflow_run_id=row[2],
+            workflow_id=wid,
+            workflow_run_id=wrid,
             path=row[3],
             metadata=json.loads(row[4]),
             contents=row[5],
             versions=json.loads(row[8]),
         )
+
+
+def _fix_doc_ids(doc: Document) -> Document:
+    doc = doc.model_copy(deep=True)
+    if doc.workflow_id is None:
+        doc.workflow_id = _NULL_COL_ID
+    if doc.workflow_run_id is None:
+        doc.workflow_run_id = _NULL_COL_ID
+    return doc
+
+
+def _transform_fetched_supabase_doc(doc: Document) -> Document:
+    if doc.workflow_id == _NULL_COL_ID:
+        doc.workflow_id = None
+    if doc.workflow_run_id == _NULL_COL_ID:
+        doc.workflow_run_id = None
+    doc.id = doc.id.split("/")[-1]
+    return doc
