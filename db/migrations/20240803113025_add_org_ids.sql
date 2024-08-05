@@ -1,27 +1,27 @@
 -- migrate:up
 ALTER TABLE fixpoint.workflows
-ADD COLUMN org_id UUID NOT NULL;
+ADD COLUMN org_id TEXT NOT NULL;
 
 ALTER TABLE fixpoint.chat_completion_inputs
-ADD COLUMN org_id UUID NOT NULL;
+ADD COLUMN org_id TEXT NOT NULL;
 
 ALTER TABLE fixpoint.chat_completion_outputs
-ADD COLUMN org_id UUID NOT NULL;
+ADD COLUMN org_id TEXT NOT NULL;
 
 ALTER TABLE public.memory_store
-ADD COLUMN org_id UUID NOT NULL;
+ADD COLUMN org_id TEXT NOT NULL;
 
 ALTER TABLE public.completion_cache
-ADD COLUMN org_id UUID NOT NULL;
+ADD COLUMN org_id TEXT NOT NULL;
 
 ALTER TABLE public.documents
-ADD COLUMN org_id UUID NOT NULL;
+ADD COLUMN org_id TEXT NOT NULL;
 
 ALTER TABLE public.forms_with_metadata
-ADD COLUMN org_id UUID NOT NULL;
+ADD COLUMN org_id TEXT NOT NULL;
 
 ALTER TABLE public.task_entries
-ADD COLUMN org_id UUID NOT NULL;
+ADD COLUMN org_id TEXT NOT NULL;
 
 -- migrate:down
 ALTER TABLE fixpoint.workflows
