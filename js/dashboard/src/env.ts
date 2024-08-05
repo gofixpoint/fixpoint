@@ -7,7 +7,8 @@ export type Env = {
 
 export interface Flags {
   showListTasksQueryStatus: boolean;
-  next_public_auth_url: string;
+  nextPublicAuthUrl: string;
+  authProviderName: string;
 }
 
 // Cache this so that server-side components can re-use the cache value. Right
@@ -16,8 +17,9 @@ export interface Flags {
 export const loadEnv = cache((): Env => {
   const env: Env = {
     flags: {
-      next_public_auth_url: reqEnv("NEXT_PUBLIC_AUTH_URL"),
+      nextPublicAuthUrl: reqEnv("NEXT_PUBLIC_AUTH_URL"),
       showListTasksQueryStatus: isEnvTrue("SHOW_LIST_TASKS_QUERY_STATUS"),
+      authProviderName: reqEnv("AUTH_PROVIDER_NAME"),
     },
   };
   return env;

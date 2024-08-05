@@ -18,7 +18,7 @@ export function RootProvider(props: {
     <JotaiProvider>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <AuthProvider authUrl={props.env.flags.next_public_auth_url}>
+          <AuthProvider authUrl={props.env.flags.nextPublicAuthUrl}>
             <AtomsInit env={props.env}>{props.children}</AtomsInit>
           </AuthProvider>
         </TooltipProvider>
