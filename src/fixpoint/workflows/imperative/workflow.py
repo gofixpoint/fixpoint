@@ -255,7 +255,11 @@ class _Documents:
         """
         document = None
         if self._storage:
-            document = self._storage.get(document_id)
+            document = self._storage.get(
+                document_id,
+                workflow_id=self.workflow_run.workflow_id,
+                workflow_run_id=self.workflow_run.id,
+            )
         else:
             document = self._memory.get(document_id, None)
         return document
@@ -336,7 +340,9 @@ class _Documents:
 
         if self._storage:
             documents = self._storage.list(
-                path=path, workflow_run_id=self.workflow_run.id
+                path=path,
+                workflow_id=self.workflow_run.workflow_id,
+                workflow_run_id=self.workflow_run.id,
             )
         else:
             conditions = {"workflow_run_id": self.workflow_run.id}
