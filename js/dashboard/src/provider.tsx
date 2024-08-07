@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { AuthProvider } from "@propelauth/nextjs/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Provider as JotaiProvider } from "jotai";
 import { Env } from "@/env";
@@ -17,7 +18,9 @@ export function RootProvider(props: {
     <JotaiProvider>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <AtomsInit env={props.env}>{props.children}</AtomsInit>
+          <AuthProvider authUrl={props.env.flags.nextPublicAuthUrl}>
+            <AtomsInit env={props.env}>{props.children}</AtomsInit>
+          </AuthProvider>
         </TooltipProvider>
       </QueryClientProvider>
     </JotaiProvider>
